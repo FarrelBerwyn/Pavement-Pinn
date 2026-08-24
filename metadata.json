@@ -1,0 +1,6 @@
+{
+  "name": "PAVEMENT-PINN",
+  "description": "Physics-Informed Neural Network Decision Support System for Road Pavement Degradation Prediction & Multi-Stakeholder Edge AI Management",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

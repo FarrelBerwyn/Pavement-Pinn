@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+html, body, #root {
+  height: 100%;
+  height: 100dvh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area support for iOS / modern mobile notches and home bars */
+.pb-safe {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+}
+
+.pt-safe {
+  padding-top: max(12px, env(safe-area-inset-top, 12px));
+}
+
+.bottom-safe {
+  bottom: max(12px, env(safe-area-inset-bottom, 12px));
+}
+
+.top-safe {
+  top: max(12px, env(safe-area-inset-top, 12px));
+}
+
+/* Custom subtle scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glassmorphic floating card shadow */
+.floating-glass-card {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+.dark .floating-glass-card {
+  background: rgba(18, 22, 34, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Snapchat Heatmap Thermal Glow */
+.snapchat-heat-blob {
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(22px);
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+  transition: all 0.3s ease;
+}
+
+.dark .snapchat-heat-blob {
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+/* Snapchat-style Story Preview Bubble */
+.snapchat-story-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border-radius: 9999px;
+  padding: 4px 12px 4px 4px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.snapchat-story-chip:hover {
+  transform: translateY(-54%) scale(1.05);
+  box-shadow: 0 16px 30px -4px rgba(0, 0, 0, 0.35), 0 0 16px rgba(239, 68, 68, 0.4);
+}
+
+.snapchat-story-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Blinking & Pulsing Animation for Newly Created Road Issue Pin on Leaflet Map */
+@keyframes pinSproutGrow {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-12px) scale(1.38);
+  }
+  75% {
+    transform: translateY(3px) scale(0.92);
+  }
+  90% {
+    transform: translateY(-2px) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pinDropBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(-80px) scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.15);
+  }
+  80% {
+    transform: translateY(-4px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pinBlinkHighlight {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0px rgba(245, 158, 11, 0));
+  }
+  20% {
+    transform: scale(1.35);
+    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 1));
+  }
+  40% {
+    transform: scale(0.92);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+  }
+  60% {
+    transform: scale(1.28);
+    filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.95));
+  }
+  80% {
+    transform: scale(0.96);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.32));
+  }
+}
+
+.newly-created-pin-sprout {
+  animation: pinSproutGrow 0.95s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: bottom center;
+  z-index: 99999 !important;
+}
+
+.newly-created-pin-drop {
+  animation: pinDropBounce 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: bottom center;
+}
+
+.newly-created-pin-blink {
+  animation: pinBlinkHighlight 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 4;
+  z-index: 9999 !important;
+}
+
+@keyframes pingRingExpand {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+.newly-created-pin-ring {
+  position: absolute;
+  top: -16px;
+  left: -16px;
+  right: -16px;
+  bottom: -16px;
+  border-radius: 50%;
+  border: 3.5px solid #f59e0b;
+  animation: pingRingExpand 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.newly-created-pin-ring-delay {
+  position: absolute;
+  top: -16px;
+  left: -16px;
+  right: -16px;
+  bottom: -16px;
+  border-radius: 50%;
+  border: 2px solid #fbbf24;
+  animation: pingRingExpand 1.2s cubic-bezier(0, 0, 0.2, 1) 0.5s infinite;
+  pointer-events: none;
+  z-index: 9;
+}
+
+
