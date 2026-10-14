@@ -1223,7 +1223,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-white">Cuaca Terkini</h4>
-                      <p className="text-[11px] text-slate-300">Hujan Sedang (28°C)</p>
+                      <p className="text-[11px] text-slate-300">Hujan Sedang (28°C) · simulasi</p>
                     </div>
                   </div>
                   <div className="text-right">

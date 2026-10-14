@@ -56,11 +56,11 @@ WIM vehicle records (plates, per-truck weights) or engineering diagnostics. An u
 
 | URL | Rendered by | Kind | Access |
 |---|---|---|---|
-| `/engine/` | `pages/engine/EngineHubPage.tsx` | page | PUBLIC |
-| `/engine/pinn/` | `pages/engine/EnginePinnPage.tsx` | page | PUBLIC |
-| `/engine/simulation/` | `pages/engine/EngineSimulationPage.tsx`; classic portal simulator tab | page | PUBLIC |
-| `/engine/fwd/` | `pages/engine/EngineFwdPage.tsx` | page | FIELD_ENGINEER, OPERATIONS_MANAGER |
-| `/engine/prediction/` | `pages/engine/EnginePredictionPage.tsx` | page | FIELD_ENGINEER, OPERATIONS_MANAGER |
+| `/engine/` | `pages/engine/EnginePage.tsx` | page | PUBLIC |
+| `/engine/pinn/` | `pages/engine/PinnPage.tsx` | page | PUBLIC |
+| `/engine/simulation/` | `pages/engine/SimulationPage.tsx`; classic portal simulator tab | page | PUBLIC |
+| `/engine/fwd/` | `pages/engine/FwdPage.tsx` | page | FIELD_ENGINEER, OPERATIONS_MANAGER |
+| `/engine/prediction/` | `pages/engine/PredictionPage.tsx` | page | FIELD_ENGINEER, OPERATIONS_MANAGER |
 
 The simulator is public because the public sidebar already offered it before the
 restructure. Its inputs and outputs are synthetic; it exposes no private data.
@@ -69,9 +69,9 @@ restructure. Its inputs and outputs are synthetic; it exposes no private data.
 
 | URL | Rendered by | Kind | Access |
 |---|---|---|---|
-| `/computer-vision/` | `ComputerVisionHubPage` in `pages/computer-vision/ComputerVisionPages.tsx` | page | PUBLIC |
-| `/computer-vision/detection/` | `ComputerVisionDetectionPage` (launches the existing report card) | page | PUBLIC |
-| `/computer-vision/history/` | `ComputerVisionHistoryPage` | page | PUBLIC |
+| `/computer-vision/` | `pages/computer-vision/ComputerVisionPage.tsx` | page | PUBLIC |
+| `/computer-vision/detection/` | `pages/computer-vision/DamageDetectionPage.tsx` (launches the existing report card) | page | PUBLIC |
+| `/computer-vision/history/` | `pages/computer-vision/InspectionHistoryPage.tsx` | page | PUBLIC |
 
 All three pages state that classification is SIMULATED (no vision model runs).
 

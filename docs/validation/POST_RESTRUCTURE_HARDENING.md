@@ -216,7 +216,7 @@ The 25 errors and what was done:
 | `ModernAppLayout`, `ReportDetailBottomSheet` | `account.avatar` | Always the generic avatar | `avatarUrl` |
 | `ModernAppLayout` quick search | `seg.district`, `seg.damageSeverity` | Blank line | `province`, `conditionCategory` |
 | `ReportRoadIssueCard` | `segment.district` | Sub-location always "Jakarta, ..." | Corridor and province |
-| `EnginePredictionPage` | missing required prop | Prop undefined | `communityReports` passed |
+| `PredictionPage` | missing required prop | Prop undefined | `communityReports` passed |
 | `OperationsPage` | redundant comparison | Dead condition | Removed; behaviour identical |
 
 These are behaviour changes, each one replacing a blank, a wrong constant or a crash
@@ -296,7 +296,7 @@ An anonymous caller can still trigger Gemini calls with a valid role.
 | Is it in the bundle? | PASS, it is not. A build run with a unique canary value in that variable produced a `dist/` containing zero occurrences of the canary |
 | Why not | The only `import.meta.env` use in the source is `BASE_URL` in `src/app/router.tsx`; Vite inlines only variables that are referenced |
 | Live site | PASS: the JavaScript bundle currently served at the project's GitHub Pages URL contains no Google-key-shaped string and no mention of the variable (counts only; nothing was printed) |
-| Server-side key | Read only in `server/integrations/geminiClient.ts` |
+| Server-side key | Read only in `server/integrations/gemini/geminiClient.ts` |
 | Key in this environment | Present but rejected by Google as invalid, so a real Gemini response is NOT TESTED |
 
 The workflow line is a latent risk, not a current leak: a single future reference to
@@ -414,7 +414,7 @@ Modified: `package.json` and `package-lock.json` (two type packages; audit fixes
 `server/routes/index.ts`, `server/services/narrativeService.ts`, `src/app/App.tsx`,
 `AppStateProvider.tsx`, `ModernAppLayout.tsx`, the five map components,
 `CommunityReportsDashboard`, `ReportDetailBottomSheet`, `ReportRoadIssueCard`,
-`FieldEngineerTools`, `ExecutivePolicyView`, `RoadHistoryView`, `EnginePredictionPage`,
+`FieldEngineerTools`, `ExecutivePolicyView`, `RoadHistoryView`, `PredictionPage`,
 `OperationsPage`, and four documents.
 
 Not touched: the engine (`pinnEngine.ts`), the golden file, the route table, the
@@ -499,3 +499,136 @@ import) are contained in the first commit at their new paths.
 6. A real Gemini response (the configured key is rejected as invalid).
 7. OpenVINO, hardware and computer-vision capabilities remain SIMULATED or PLANNED;
    nothing in this pass changed that.
+
+## 12. Git reconciliation audit and readiness gate (2026-10-14)
+
+Read-only investigation. No fetch, merge, rebase, reset, push or ref change was made.
+
+### 12.1 State
+
+| Ref | Commit | Meaning |
+|---|---|---|
+| `restructure/modular-architecture` (checked out) | `20dcaed` | hardening, parent `b2bd8dd` (restructure), parent `fffa344` |
+| local `main` | `fffa344` | a root commit made on 2026-08-24 12:20 |
+| `origin/main` (tracking ref) | `a32ef56` | parent `067f539`, a different root commit, both dated 2026-08-25 |
+| remote `main` (queried with `git ls-remote`, which fetches nothing) | `a32ef56` | equal to the tracking ref, so the tracking ref is **not stale** |
+| remote `gh-pages` | `0cd6e4d` | deployment output |
+| `refs/backup/pre-restructure` | `477f549` | the working tree before the restructure, including the seven uncommitted edits |
+| `refs/backup/post-restructure` | `81f060f` | the tree at the end of the restructure; identical to the tree of `b2bd8dd` |
+
+Merge base of local `main` (or the working branch) with `origin/main`: none.
+
+### 12.2 Cause of the missing merge base (from the tracking-ref log)
+
+| When | Event | Remote `main` afterwards |
+|---|---|---|
+| 2026-08-24 09:58 | an earlier history existed on the remote (two commits, tip `542b38f`, still in the local object store) | `542b38f` |
+| 2026-08-24 12:20 | local repository re-initialised: `fffa344` is "commit (initial)" with no parent | |
+| 2026-08-24 12:21 | "update by push": the parentless `fffa344` replaced `542b38f`, which is only possible as a forced push | `fffa344` |
+| 2026-08-25 04:01 to 04:07 | two commits made in another working copy (`067f539` "initial commit", `a32ef56`) | |
+| by 2026-10-14 00:46 | a fetch recorded "forced-update" from `fffa344` to `a32ef56`: the remote had been force-replaced again | `a32ef56` |
+
+So three unrelated root histories exist. The project was re-initialised and force-pushed
+twice, from two different working copies. Nothing is "stale"; the histories simply do
+not share a commit.
+
+### 12.3 What differs in content
+
+- Identical on both sides: the PINN engine, the server, the road dataset, the PDF
+  generator, the device detector, the damage taxonomy, `package.json`, the deploy
+  workflow as it was. The PINN findings therefore apply to the deployed engine too.
+- The remote is a later and different line of the UI: 41 files differ from local `main`
+  (about 8,000 lines each way). It has six files the local line never had
+  (`BeforeAfterSlider`, `InteractiveWorkflowBar`, `ReportWorkflowTimeline`,
+  `WorkflowModals`, `WorkflowTransitionPromptModal`, `utils/aiRoadDetection.ts`) and no
+  lockfile.
+- The seven local edits (tile layers, avatars, stylesheet import) are not on the remote.
+- The restructure and hardening exist only locally.
+- `aiRoadDetection.ts` on the remote is a canvas pixel heuristic with no ML dependency.
+  It has not been audited; the computer-vision capability label must be reviewed after
+  integration.
+
+All verification in these reports was done on the local line. The remote-only
+features have not been tested by this work.
+
+### 12.4 Trial merge (in memory, nothing written to refs, index or working tree)
+
+`git merge-tree --write-tree --merge-base=fffa344 HEAD a32ef56`, treating local `main`
+as the common content ancestor: 29 files merge automatically, 11 paths conflict
+(`ModernAppLayout`, `LeafletMap`, `demoAccounts`, `ReportDetailBottomSheet`,
+`ReportRoadIssueCard`, `OpenVINOModelDiagnosticsModal`, `MyTasksView`, `vite.config.ts`,
+and three modify-versus-delete cases: `App.tsx`, `types.ts`, `package-lock.json`). The
+six remote-only files land at their old paths and must be placed in the new structure.
+
+### 12.5 Recommended integration (not executed)
+
+Goal: combine both lines with a real three-way merge, then join the result to the
+actual remote history so it can be pushed without force. No history is rewritten.
+
+1. Confirm that remote `main` is the intended product line (it is what is deployed).
+2. Create an integration branch from the working branch.
+3. Record the remote tree as one commit on top of local `main`, so Git has a merge base.
+4. Merge that commit; resolve the 11 conflicts; move the six new files; run lint, tests,
+   build and the browser checklist.
+5. Join histories with a second merge that keeps the resolved tree and records
+   `origin/main` as a parent.
+6. Push the integration branch as a new remote branch and open a pull request. Merging
+   it into `main` is what triggers deployment.
+
+```text
+git switch -c integrate/remote-main restructure/modular-architecture
+git branch import/origin-main $(git commit-tree "origin/main^{tree}" -p main -m "import: tree of origin/main a32ef56")
+git merge --no-ff import/origin-main
+    (resolve, verify, commit)
+git merge -s ours --allow-unrelated-histories origin/main -m "merge: join remote main history"
+git push origin integrate/remote-main
+```
+
+Options considered and not recommended:
+
+- Merging `origin/main` directly with `--allow-unrelated-histories`: with no merge base,
+  moved files are not matched, so the remote versions would sit beside the restructured
+  ones as duplicates.
+- Force-pushing the local branch: destroys the remote-only work. Not acceptable.
+- Re-running the restructure on top of the remote tree: possible, but repeats and
+  re-verifies the whole migration.
+
+### 12.6 Readiness checklist (nothing here has been run for the integrated result)
+
+Browser, per account (8 accounts, desktop and one mobile width):
+
+- [ ] public map loads; markers, filters, heatmap, three base layers
+- [ ] login, account switch, refresh keeps the identity, back and forward
+- [ ] every sidebar entry of each role changes the URL and renders its view
+- [ ] protected URL as a public identity redirects to login; wrong role shows the 403 page
+- [ ] simulation run, narrative, PDF export from each dashboard that offers it
+- [ ] report creation by upload and by camera; geolocation; edit; upvote across two identities
+- [ ] operations views: WIM map, four monitoring views, BATM and ETLE actions, tasks
+- [ ] policy tabs, brief generation, strategic map
+- [ ] FWD tools: all four tabs; PCI history view
+- [ ] remote-only features after integration: workflow timeline and modals, before/after slider
+- [ ] mobile layout: bottom navigation, bottom sheet, safe areas
+- [ ] no uncaught console error
+
+GitHub Pages, after an approved deploy:
+
+- [ ] site root redirects to the dashboard
+- [ ] a deep link such as `/PavementPinn/engine/pinn/` renders (served through `404.html`)
+- [ ] refresh on a nested route; canonical trailing slash
+- [ ] assets load under `/PavementPinn/assets/`; no request to `/api/` is required for the page to work
+- [ ] the narrative falls back to the offline text; the two OpenVINO download links are known to be dead on a static host
+- [ ] the published bundle contains no key-shaped string
+
+Capability labels to keep: deterministic engine and rule alerts WORKING; OpenVINO
+telemetry, device benchmark, IR export, WIM pipeline and damage classification
+SIMULATED; trained PINN, backend authorization and persistence PLANNED.
+
+### 12.7 Checks run in this pass
+
+| Check | Result |
+|---|---|
+| Dev server from `server/index.ts` on port 3100 | PASS: `/api/health` 200, unknown API path 404 JSON, application shell and a deep link 200 |
+| `npm run lint` | PASS, exit 0 |
+| `npm test` | PASS, 106 of 106 (92 plus the 14 new audit tests) |
+| `npm run build` | NOT re-run: no source, configuration or dependency changed since the build of commit `20dcaed` passed |
+| Hooks | no hook output appeared in this pass, consistent with the five entries being disabled |

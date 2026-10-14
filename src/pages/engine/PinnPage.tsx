@@ -55,7 +55,7 @@ const CAPABILITIES: Array<{ capability: string; status: ImplementationStatus; no
 const buttonClass = 'px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-slate-200 font-bold text-xs cursor-pointer';
 
 /** Route: /engine/pinn/ — model card for the PINN engine with accurate capability labels. */
-export const EnginePinnPage: React.FC = () => {
+export const PinnPage: React.FC = () => {
   const { closePage, onOpenOpenvinoModal, onOpenWimPipeline, onOpenAuditModal } = usePageContext();
 
   return (

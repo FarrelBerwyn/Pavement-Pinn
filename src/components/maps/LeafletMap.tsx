@@ -1,13 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet.heat';
-import { attachMapResizeRecovery, safeFlyTo } from './mapViewport';
+import { attachMapResizeRecovery, mapHasSize, safeFitBounds, safeFlyTo } from './mapViewport';
+import {
+  BASEMAP_SOURCES,
+  BasemapSource,
+  INITIAL_TILE_HEALTH,
+  TileHealth,
+  TileStage,
+  recordTileError,
+  recordTileLoad,
+  sourceForStage
+} from './basemap';
+import {
+  CLUSTER_MAX_ZOOM,
+  LatLngBounds,
+  SEGMENT_LINE_MIN_ZOOM,
+  SEGMENT_PIN_MIN_ZOOM,
+  boundsOf,
+  clusterByPixelDistance,
+  minZoomForViewportHeight
+} from './mapDetail';
 import { DamageReport, DamageType, ReportSeverity, RoadSegment, UserRole } from '../../types';
 import { UserAccount } from '../../features/authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { resolveLiveReport } from '../../features/community-reports/reportState';
 import { Language, TRANSLATIONS } from '../../i18n/translations';
+import { DEMO_DATA_LABEL, DEMO_DATA_NOTE } from '../../data/provenance';
+import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
 import {
   Filter,
   Search,
@@ -27,7 +48,21 @@ import {
   CheckCircle
 } from 'lucide-react';
 
-interface LeafletMapProps {
+/**
+ * Camera move for this map. Leaflet's flyTo keeps tiles and markers aligned through the
+ * zoom events it fires on the way; a flight that starts and ends on the same zoom fires
+ * none when the browser skips its frames (hidden tab, throttled rendering) and leaves the
+ * layers out of register. Same-zoom moves therefore pan instead.
+ */
+function moveCamera(map: L.Map, center: L.LatLngExpression, zoom: number, options?: L.ZoomPanOptions): void {
+  if (mapHasSize(map) && map.getZoom() === zoom) {
+    map.setView(center, zoom, { duration: options?.duration });
+    return;
+  }
+  safeFlyTo(map, center, zoom, options);
+}
+
+export interface LeafletMapProps {
   roadSegments: RoadSegment[];
   selectedSegment: RoadSegment | null;
   onSelectSegment: (segment: RoadSegment) => void;
@@ -49,6 +84,16 @@ interface LeafletMapProps {
   recenterKey?: number;
   highlightReportId?: string | null;
   mapCenterTarget?: { coords: [number, number]; zoom?: number; timestamp: number } | null;
+  /** Report-density overlay. A layer, independent of the severity filter. */
+  showDensity?: boolean;
+  /** Called when the map starts moving and when it comes to rest. */
+  onViewportChange?: (viewport: { zoom: number; bounds: LatLngBounds; moving: boolean }) => void;
+  /** Device position from the Geolocation API; never a placeholder. */
+  userLocation?: { coordinates: [number, number]; accuracyM: number } | null;
+  /** Height of a bottom sheet covering the map; the selected segment is framed above it. */
+  bottomInsetPx?: number;
+  /** Reports that share one position and cannot be separated by zooming. */
+  onSelectCluster?: (reports: DamageReport[]) => void;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -72,8 +117,21 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   onSelectReport,
   recenterKey = 0,
   highlightReportId = null,
-  mapCenterTarget = null
+  mapCenterTarget = null,
+  showDensity,
+  onViewportChange,
+  userLocation = null,
+  bottomInsetPx = 0,
+  onSelectCluster
 }) => {
+  const onSelectClusterRef = useRef(onSelectCluster);
+  onSelectClusterRef.current = onSelectCluster;
+  const viewBeforeSelectionRef = useRef<{ center: L.LatLng; zoom: number } | null>(null);
+  const densityOn = showDensity ?? activeFilter === 'HEATMAP';
+  const [zoom, setZoom] = useState<number>(12);
+  const onViewportChangeRef = useRef(onViewportChange);
+  onViewportChangeRef.current = onViewportChange;
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
   const t = TRANSLATIONS[language];
   const isEn = language === 'en';
 
@@ -81,6 +139,30 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const tileHealthRef = useRef<TileHealth>(INITIAL_TILE_HEALTH);
+  const baseMapStyleRef = useRef(baseMapStyle);
+  baseMapStyleRef.current = baseMapStyle;
+  const [tileStage, setTileStage] = useState<TileStage>('primary');
+
+  // Point the existing tile layer at another source and keep the attribution in step.
+  const applyBasemapSource = (source: BasemapSource) => {
+    const tileLayer = tileLayerRef.current;
+    const map = mapInstanceRef.current;
+    if (!tileLayer) return;
+    const previousAttribution = tileLayer.options.attribution;
+    if (map?.attributionControl && typeof previousAttribution === 'string') {
+      map.attributionControl.removeAttribution(previousAttribution);
+      map.attributionControl.addAttribution(source.attribution);
+    }
+    tileLayer.options.attribution = source.attribution;
+    tileLayer.setUrl(source.url);
+  };
+
+  const resetBasemap = () => {
+    tileHealthRef.current = INITIAL_TILE_HEALTH;
+    setTileStage('primary');
+    applyBasemapSource(BASEMAP_SOURCES[baseMapStyleRef.current]);
+  };
 
   // Filters State
   const [provinceFilter, setProvinceFilter] = useState<string>('ALL');
@@ -141,7 +223,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         // Step 3: Fly from Karawang regional view into the target location with close range (Zoom in)
         const flyTimeout = setTimeout(() => {
-          safeFlyTo(map, targetCoords, targetZoom, {
+          moveCamera(map, targetCoords, targetZoom, {
             duration: 2.2,
             easeLinearity: 0.25
           });
@@ -167,7 +249,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         };
       } else {
         // Standard navigation flyTo
-        safeFlyTo(map, targetCoords, targetZoom, {
+        moveCamera(map, targetCoords, targetZoom, {
           duration: 1.4
         });
       }
@@ -225,6 +307,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const newReport: DamageReport = {
       id: `REP-${Date.now().toString().slice(-6)}`,
       reporterName: currentAccount?.name || 'Masyarakat Pelapor',
+      creatorRole: activeRole,
+      origin: 'SESSION',
       reporterRole:
         activeRole === 'PUBLIC_REPORTER'
           ? 'Pelapor Terverifikasi'
@@ -355,23 +439,43 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // Select tile URL based on baseMapStyle (DARK, SATELLITE, LIGHT)
-      const tileUrl =
-        baseMapStyle === 'SATELLITE'
-          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          : baseMapStyle === 'LIGHT'
-          ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-          : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+      // Keep the world at least as tall as the map and stop vertical panning past the poles,
+      // so the map never shows as a strip with empty space above and below.
+      const applyZoomFloor = () => {
+        const height = map.getSize().y;
+        if (height > 0) map.setMinZoom(minZoomForViewportHeight(height));
+      };
+      map.options.maxBoundsViscosity = 1;
+      map.setMaxBounds([
+        [-85.0511, -1800],
+        [85.0511, 1800]
+      ]);
+      applyZoomFloor();
+      map.on('resize', applyZoomFloor);
 
-      const tileLayer = L.tileLayer(tileUrl, {
-        attribution:
-          baseMapStyle === 'LIGHT'
-            ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            : '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
+      // Select tile source based on baseMapStyle (DARK, SATELLITE, LIGHT)
+      const source = BASEMAP_SOURCES[baseMapStyle];
+      const tileLayer = L.tileLayer(source.url, {
+        attribution: source.attribution,
         maxZoom: 19
       }).addTo(map);
 
       tileLayerRef.current = tileLayer;
+
+      // A provider that serves nothing is replaced once; data layers are never removed.
+      tileLayer.on('tileload', () => {
+        tileHealthRef.current = recordTileLoad(tileHealthRef.current);
+      });
+      tileLayer.on('tileerror', () => {
+        const previous = tileHealthRef.current;
+        const next = recordTileError(previous);
+        tileHealthRef.current = next;
+        if (next.stage === previous.stage) return;
+        if (next.stage === 'fallback') {
+          applyBasemapSource(sourceForStage(baseMapStyleRef.current, 'fallback'));
+        }
+        setTileStage(next.stage);
+      });
 
       // Map click event listener: Select point and set mapSelectedPoint
       map.on('click', (e: L.LeafletMouseEvent) => {
@@ -401,6 +505,25 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       });
 
       layerGroupRef.current = L.layerGroup().addTo(map);
+
+      // Viewport reporting: detail level follows the zoom, surrounding UI follows movement.
+      const reportViewport = (moving: boolean) => {
+        const b = map.getBounds();
+        onViewportChangeRef.current?.({
+          zoom: map.getZoom(),
+          bounds: [
+            [b.getSouth(), b.getWest()],
+            [b.getNorth(), b.getEast()]
+          ],
+          moving
+        });
+      };
+      map.on('movestart', () => reportViewport(true));
+      map.on('moveend', () => {
+        setZoom(map.getZoom());
+        reportViewport(false);
+      });
+      map.whenReady(() => reportViewport(false));
       mapInstanceRef.current = map;
       attachMapResizeRecovery(map, mapContainerRef.current);
     }
@@ -416,13 +539,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Update tile layer url when baseMapStyle or theme changes
   useEffect(() => {
     if (tileLayerRef.current) {
-      const tileUrl =
-        baseMapStyle === 'SATELLITE'
-          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          : baseMapStyle === 'LIGHT'
-          ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-          : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
-      tileLayerRef.current.setUrl(tileUrl);
+      resetBasemap();
     }
   }, [baseMapStyle, theme]);
 
@@ -444,12 +561,45 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           ? '#f97316'
           : '#ef4444';
 
-      // Render location pin marker with white circular background behind layer icon (No polyline paths)
+      // Segment line (illustrative geometry from the demo dataset), drawn once it is long enough to read
+      if (zoom >= SEGMENT_LINE_MIN_ZOOM && segment.polyline.length > 1) {
+        const isSelectedLine = selectedSegment?.id === segment.id;
+        if (isSelectedLine) {
+          L.polyline(segment.polyline, {
+            color: '#ffffff',
+            weight: 11,
+            opacity: 0.95,
+            lineCap: 'round',
+            lineJoin: 'round',
+            interactive: false
+          }).addTo(layerGroup);
+        }
+        const line = L.polyline(segment.polyline, {
+          color,
+          weight: isSelectedLine ? 6 : 4,
+          opacity: isSelectedLine ? 1 : 0.85,
+          lineCap: 'round',
+          lineJoin: 'round',
+          bubblingMouseEvents: false
+        }).addTo(layerGroup);
+        line.bindTooltip(`${segment.name} · PCI ${segment.currentPci} (${DEMO_DATA_LABEL[language]})`, { sticky: true });
+        line.on('click', () => onSelectSegment(segment));
+        // Invisible wider line so the segment can be tapped on a touch screen
+        L.polyline(segment.polyline, { color, weight: 24, opacity: 0, lineCap: 'round', bubblingMouseEvents: false })
+          .addTo(layerGroup)
+          .on('click', () => onSelectSegment(segment));
+      }
+
+      // Pins and station markers would cover the area overview, so they start one level later.
+      // On the public map the line itself is the segment; a pin on top of it would hide reports.
+      if (zoom < SEGMENT_PIN_MIN_ZOOM || isRegularUser) return;
+
+      // Render location pin marker with white circular background behind layer icon
       const customIconHtml = `
         <div style="position: relative; width: 34px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.38)); transition: transform 0.15s ease;">
           <!-- SVG Map Pin Shape -->
           <svg viewBox="0 0 384 512" width="32" height="42" fill="${color}" xmlns="http://www.w3.org/2000/svg">
-            <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0s192 85.961 192 0 192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
           </svg>
           <!-- Background Bulat Putih Dibelakang Layer Icon -->
           <div style="
@@ -849,12 +999,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     });
 
     // OFFICIAL LEAFLET.HEAT PLUGIN IMPLEMENTATION: L.heatLayer(points, options)
-    if (activeFilter === 'HEATMAP' && visibleReports.length > 0) {
+    if (densityOn && visibleReports.length > 0) {
       // 1. Prepare data points using [latitude, longitude, intensity]
-      const heatPoints: [number, number, number][] = visibleReports.map((rep) => {
-        const intensity =
-          rep.severity === 'CRITICAL' ? 1.0 : rep.severity === 'SEVERE' ? 0.75 : rep.severity === 'MODERATE' ? 0.5 : 0.3;
-        return [rep.coordinates[0], rep.coordinates[1], intensity];
+      // Regular User reports only, under the same severity filter as the markers
+      const heatPoints: [number, number, number][] = selectRegularUserDensity(communityReports || [], activeFilter).reports.map((rep) => {
+        // Uniform weight: the overlay shows how many reports there are, not how severe they are
+        return [rep.coordinates[0], rep.coordinates[1], 0.6];
       });
 
       // 2. Initialize Leaflet.heat layer and pass data points into L.heatLayer()
@@ -1096,8 +1246,52 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
 
     // Render Community Damage Report Markers (Pin Point Format Sesuai Gambar: Circular Photo + Severity Border + Pointer + Count Badge + Heat Glow)
-    if (showCommunityReports && visibleReports.length > 0 && activeFilter !== 'HEATMAP') {
-      visibleReports.forEach((report, index) => {
+    if (showCommunityReports && visibleReports.length > 0 && !densityOn) {
+      // Reports that are being introduced or highlighted always keep their own pin
+      const keepsOwnPin = (report: DamageReport) =>
+        report.id === hiddenPinReportId || report.id === sproutingPinReportId || report.id === activeBlinkReportId;
+      const reportClusters = clusterByPixelDistance(
+        visibleReports.filter((report) => !keepsOwnPin(report)),
+        (report) => report.coordinates,
+        zoom
+      );
+
+      // Count markers: several reports too close to tell apart at this zoom
+      reportClusters
+        .filter((cluster) => cluster.items.length > 1)
+        .forEach((cluster) => {
+          const count = cluster.items.length;
+          const size = count >= 10 ? 44 : count >= 5 ? 38 : 32;
+          const label = isEn
+            ? `${count} reports here (a count of reports, not a damage level)`
+            : `${count} laporan di sini (jumlah laporan, bukan tingkat kerusakan)`;
+          const clusterIcon = L.divIcon({
+            html: `<div role="button" aria-label="${label}" title="${label}" style="width:${size}px;height:${size}px;border-radius:50%;background:#1e293b;color:#ffffff;border:2px solid #ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.35);display:flex;align-items:center;justify-content:center;font:700 13px system-ui,-apple-system,sans-serif;cursor:pointer;">${count}</div>`,
+            className: 'report-cluster-marker',
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2]
+          });
+          const clusterMarker = L.marker(cluster.center, { icon: clusterIcon }).addTo(layerGroup);
+          clusterMarker.on('click', () => {
+            const memberBounds = boundsOf(cluster.items.map((report) => report.coordinates));
+            if (!memberBounds) return;
+            const samePosition =
+              memberBounds[0][0] === memberBounds[1][0] && memberBounds[0][1] === memberBounds[1][1];
+            if (samePosition && onSelectClusterRef.current) {
+              // Zooming cannot separate these reports: list them instead
+              onSelectClusterRef.current(cluster.items);
+              return;
+            }
+            safeFitBounds(map, memberBounds, { padding: [70, 70], maxZoom: CLUSTER_MAX_ZOOM });
+          });
+        });
+
+      const individualReports = [
+        ...visibleReports.filter(keepsOwnPin),
+        ...reportClusters.filter((cluster) => cluster.items.length === 1).map((cluster) => cluster.items[0])
+      ];
+
+      individualReports.forEach((report, index) => {
         // Hide newly created pin during initial map zoom flight from Karawang overview
         if (hiddenPinReportId && report.id === hiddenPinReportId) {
           return;
@@ -1124,14 +1318,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           : report.severity === 'MODERATE'
           ? 'rgba(245, 158, 11, 0.42)'
           : 'rgba(16, 185, 129, 0.38)';
-
-        // Count badge representation (matching sample in image: 12, 5, 2)
-        const badgeCount =
-          report.severity === 'CRITICAL'
-            ? 12
-            : report.severity === 'SEVERE' || report.severity === 'MODERATE'
-            ? 5
-            : 2;
 
         // Check if this pin is sprouting or newly created
         const isSprouting = report.id === sproutingPinReportId;
@@ -1222,30 +1408,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   "
                 />
 
-                <!-- Top Right Number Badge Pill (e.g. 12, 5, 2) -->
-                <div style="
-                  position: absolute;
-                  top: -5px;
-                  right: -5px;
-                  min-width: 18px;
-                  height: 18px;
-                  padding: 0 4px;
-                  border-radius: 999px;
-                  background-color: ${reportColor};
-                  color: ${reportColor === '#f59e0b' ? '#0f172a' : '#ffffff'};
-                  font-size: 10px;
-                  font-weight: 900;
-                  font-family: system-ui, -apple-system, sans-serif;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  border: 2px solid #ffffff;
-                  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                  z-index: 10;
-                  line-height: 1;
-                ">
-                  ${badgeCount}
-                </div>
               </div>
 
               <!-- Pin Pointer Tip Triangle -->
@@ -1279,32 +1441,19 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             const targetPoint = map.project(report.coordinates, targetZoom);
             const offsetPoint = L.point(targetPoint.x, targetPoint.y + 195);
             const unprojected = map.unproject(offsetPoint, targetZoom);
-            safeFlyTo(map, [unprojected.lat, unprojected.lng], targetZoom, { duration: 1.0 });
+            moveCamera(map, [unprojected.lat, unprojected.lng], targetZoom, { duration: 1.0 });
           }
           if (onSelectReport) {
             onSelectReport(report);
           } else {
             setDetailModalReport(report);
+            // Without a report handler the segment selection is the only feedback
+            const seg = roadSegments.find((s) => s.id === report.segmentId);
+            if (seg) onSelectSegment(seg);
           }
-          const seg = roadSegments.find((s) => s.id === report.segmentId);
-          if (seg) onSelectSegment(seg);
         });
       });
 
-      // Render User GPS Blue Location Marker on Map (as shown in reference image)
-      const userGpsIconHtml = `
-        <div style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; width: 26px; height: 26px; border-radius: 50%; background: rgba(59, 130, 246, 0.3); border: 1px solid rgba(59, 130, 246, 0.5);"></div>
-          <div style="width: 13px; height: 13px; border-radius: 50%; background-color: #2563eb; border: 2.5px solid #ffffff; box-shadow: 0 0 8px rgba(37, 99, 235, 0.85); z-index: 2;"></div>
-        </div>
-      `;
-      const userGpsIcon = L.divIcon({
-        html: userGpsIconHtml,
-        className: 'user-gps-dot-marker',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-      L.marker([-6.3120, 107.3050], { icon: userGpsIcon }).addTo(layerGroup);
     }
 
     // Render Selected Location Pin Marker & Anchored Popup Card directly above pin
@@ -1388,25 +1537,79 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         if (closeBtn) closeBtn.onclick = handleCancel;
       }, 50);
     }
-  }, [filteredSegments, filteredWimStations, communityReports, selectedSegment, showWimOnly, showCommunityReports, mapSelectedPoint, activeFilter, activeRole, hiddenPinReportId, sproutingPinReportId, activeBlinkReportId]);
+  }, [filteredSegments, filteredWimStations, communityReports, selectedSegment, showWimOnly, showCommunityReports, mapSelectedPoint, activeFilter, activeRole, hiddenPinReportId, sproutingPinReportId, activeBlinkReportId, zoom, densityOn]);
 
   // Center on selected segment
+  const hasBottomInset = bottomInsetPx > 0;
   useEffect(() => {
-    if (selectedSegment && mapInstanceRef.current) {
-      safeFlyTo(mapInstanceRef.current, selectedSegment.coordinates, 12, {
-        duration: 1.2
-      });
+    const map = mapInstanceRef.current;
+    if (!selectedSegment || !map) return;
+
+    if (hasBottomInset) {
+      // A sheet covers the lower part of the map: frame the segment in what is left, and
+      // remember where the user was so closing the sheet can bring that view back.
+      if (!viewBeforeSelectionRef.current) {
+        viewBeforeSelectionRef.current = { center: map.getCenter(), zoom: map.getZoom() };
+      }
+      const segmentBounds = boundsOf(selectedSegment.polyline.length > 1 ? selectedSegment.polyline : [selectedSegment.coordinates]);
+      if (segmentBounds) {
+        safeFitBounds(map, segmentBounds, {
+          paddingTopLeft: [36, 130],
+          paddingBottomRight: [36, bottomInsetPx + 24],
+          maxZoom: 15
+        });
+      }
+      return;
     }
-  }, [selectedSegment]);
+
+    if (viewBeforeSelectionRef.current) {
+      const previous = viewBeforeSelectionRef.current;
+      viewBeforeSelectionRef.current = null;
+      map.setView(previous.center, previous.zoom);
+      return;
+    }
+
+    // Never zoom out of the level the user is working at
+    moveCamera(map, selectedSegment.coordinates, Math.max(map.getZoom(), 12), { duration: 1.2 });
+  }, [selectedSegment, hasBottomInset]);
 
   // Recenter Map to Karawang with wide view of Karawang Regency
   useEffect(() => {
     if (recenterKey > 0 && mapInstanceRef.current) {
-      safeFlyTo(mapInstanceRef.current, [-6.3050, 107.3180], 12, {
+      moveCamera(mapInstanceRef.current, [-6.3050, 107.3180], 12, {
         duration: 1.2
       });
     }
   }, [recenterKey]);
+
+  // Device position: drawn only when the Geolocation API returned one
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    userLayerRef.current?.remove();
+    userLayerRef.current = null;
+    if (!userLocation) return;
+
+    const group = L.layerGroup().addTo(map);
+    L.circle(userLocation.coordinates, {
+      radius: userLocation.accuracyM,
+      color: '#2563eb',
+      weight: 1,
+      fillColor: '#3b82f6',
+      fillOpacity: 0.12,
+      interactive: false
+    }).addTo(group);
+    L.circleMarker(userLocation.coordinates, {
+      radius: 7,
+      color: '#ffffff',
+      weight: 2.5,
+      fillColor: '#2563eb',
+      fillOpacity: 1,
+      interactive: false
+    }).addTo(group);
+    userLayerRef.current = group;
+    moveCamera(map, userLocation.coordinates, Math.max(map.getZoom(), 15), { duration: 1.2 });
+  }, [userLocation]);
 
   // Check if current logged-in role is a regular user account (Public Reporter / Viewer)
   const isRegularUser = activeRole === 'PUBLIC_REPORTER' || activeRole === 'PUBLIC_VIEWER';
@@ -1417,6 +1620,42 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       <div className="absolute inset-0 w-full h-full z-0">
         <div ref={mapContainerRef} className="w-full h-full" />
       </div>
+
+      {/* Provenance: everything drawn on this map comes from the bundled demo datasets */}
+      <div
+        data-testid="demo-data-badge"
+        title={DEMO_DATA_NOTE[language]}
+        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-[9px] font-black tracking-wide px-2 py-0.5 rounded-md shadow"
+      >
+        {DEMO_DATA_LABEL[language]}
+      </div>
+
+      {/* Basemap status: shown only when the selected tile provider could not be used */}
+      {tileStage !== 'primary' && (
+        <div
+          role="status"
+          data-testid="basemap-status"
+          className="absolute top-28 left-1/2 -translate-x-1/2 z-20 w-max max-w-[calc(100%-1.5rem)] flex items-center gap-2 bg-slate-900/95 backdrop-blur-xl border border-amber-400/50 text-white text-[11px] font-bold px-3 py-2 rounded-2xl shadow-xl"
+        >
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>
+            {tileStage === 'fallback'
+              ? language === 'en'
+                ? 'Backup basemap in use.'
+                : 'Memakai peta dasar cadangan.'
+              : language === 'en'
+              ? 'Basemap unavailable. Map data is still shown.'
+              : 'Peta dasar tidak tersedia. Data tetap ditampilkan.'}
+          </span>
+          <button
+            type="button"
+            onClick={resetBasemap}
+            className="shrink-0 whitespace-nowrap underline text-amber-300 cursor-pointer"
+          >
+            {language === 'en' ? 'Retry' : 'Coba lagi'}
+          </button>
+        </div>
+      )}
 
       {/* Top Floating Control Bar (Filters & Search) - ONLY for Official Roles */}
       {!isRegularUser && (
@@ -1926,7 +2165,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           if (seg) {
             onSelectSegment(seg);
           } else if (mapInstanceRef.current) {
-            safeFlyTo(mapInstanceRef.current, rep.coordinates, 10, { duration: 1.2 });
+            moveCamera(mapInstanceRef.current, rep.coordinates, 10, { duration: 1.2 });
           }
         }}
       />

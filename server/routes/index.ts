@@ -1,10 +1,9 @@
 import { Router, type Request, type Response } from "express";
-import { API_PATHS } from "../../src/types";
-import { getHealth } from "../controllers/healthController";
-import { listRoads } from "../controllers/roadsController";
-import { postSimulate } from "../controllers/simulationController";
-import { exportConfig, exportIr } from "../controllers/openvinoController";
-import { postGenerateNarrative } from "../controllers/narrativeController";
+import { registerHealthRoutes } from "./health.routes";
+import { registerRoadsRoutes } from "./roads.routes";
+import { registerPinnRoutes } from "./pinn.routes";
+import { registerOpenvinoRoutes } from "./openvino.routes";
+import { registerNarrativeRoutes } from "./narrative.routes";
 
 /**
  * All HTTP API routes. Paths are the pre-restructure paths, taken from the shared
@@ -16,12 +15,12 @@ import { postGenerateNarrative } from "../controllers/narrativeController";
 export function createApiRouter(): Router {
   const router = Router();
 
-  router.get(API_PATHS.health, getHealth);
-  router.get(API_PATHS.roads, listRoads);
-  router.post(API_PATHS.simulate, postSimulate);
-  router.get(API_PATHS.openvinoExportIr, exportIr);
-  router.get(API_PATHS.openvinoExportConfig, exportConfig);
-  router.post(API_PATHS.generateNarrative, postGenerateNarrative);
+  // Same registration order as before the split.
+  registerHealthRoutes(router);
+  registerRoadsRoutes(router);
+  registerPinnRoutes(router);
+  registerOpenvinoRoutes(router);
+  registerNarrativeRoutes(router);
 
   // Anything else under /api is an API mistake, not a page: answer JSON 404 instead of
   // letting the request fall through to the SPA host (which replied with HTML, status 200).

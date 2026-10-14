@@ -398,6 +398,8 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
     const newReport: DamageReport = {
       id: reportNum,
       reporterName: currentAccount.name,
+      creatorRole: currentAccount.role,
+      origin: 'SESSION',
       reporterRole: currentAccount.role === 'PUBLIC_REPORTER' ? 'Public Reporter' : 'Citizen User',
       reporterAvatar: currentAccount.avatarUrl,
       timestamp: new Date().toLocaleString('id-ID', {

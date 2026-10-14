@@ -46,7 +46,7 @@ const TOOLS: EngineTool[] = [
 ];
 
 /** Route: /engine/ — index of the engine tools (public; restricted tools are marked). */
-export const EngineHubPage: React.FC = () => {
+export const EnginePage: React.FC = () => {
   const { currentAccount, closePage } = usePageContext();
 
   return (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IntelTelemetry, HardwareDevice, PrecisionMode, DeviceHardwareProfile } from '../../types';
 import { detectLocalDeviceProfile } from '../../runtime/intel-hardware/deviceDetector';
 import { runLocalOpenVINOBenchmark } from '../../runtime/openvino/simulatedBenchmark';
-import { openvinoIrExportUrl, openvinoConfigExportUrl } from '../../services/api/openvinoExportApi';
+import { openvinoIrExportUrl, openvinoConfigExportUrl } from '../../services/api/endpoints';
 import { Cpu, X, Download, Play, Gauge, ShieldCheck, CheckCircle2, Zap } from 'lucide-react';
 
 interface OpenVINOModelDiagnosticsModalProps {

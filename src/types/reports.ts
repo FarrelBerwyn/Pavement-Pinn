@@ -1,4 +1,5 @@
 /** Community damage-report domain types. */
+import type { UserRole } from './rbac';
 
 export type DamageType =
   | 'POTHOLE'
@@ -19,6 +20,10 @@ export interface DamageReport {
   id: string;
   reporterName: string;
   reporterRole: string;
+  /** Account role of the creator. Recorded for reports made in the app; absent on the bundled demo reports. */
+  creatorRole?: UserRole;
+  /** 'SESSION': made in this browser session (not persisted). Absent: one of the bundled demo reports. */
+  origin?: 'SESSION';
   reporterAvatar?: string;
   timestamp: string;
   segmentId: string;

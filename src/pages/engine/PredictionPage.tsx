@@ -8,7 +8,7 @@ import { usePageContext } from '../../app/pageContext';
  *
  * Markup moved verbatim from the modern shell's "ROAD_HISTORY" overlay.
  */
-export const EnginePredictionPage: React.FC = () => {
+export const PredictionPage: React.FC = () => {
   const { roadSegments, selectedSegment, onSelectSegment, communityReports, isFieldEngineer, isOperationsManager, setActiveNav } = usePageContext();
 
   return (

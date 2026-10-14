@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { getGeminiClient } from "../integrations/geminiClient";
+import { getGeminiClient } from "../integrations/gemini/geminiClient";
 import { generateNarrative } from "../services/narrativeService";
 
 /**

@@ -26,9 +26,18 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { DamageReport, ReportReview } from '../../types';
+import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
 
-export type SheetSnapPoint = 'HALF' | 'FULL';
+export type SheetSnapPoint = 'PEEK' | 'HALF' | 'FULL';
+
+/** Verification and handling status, as stored on the report. */
+const STATUS_LABEL: Record<DamageReport['status'], string> = {
+  PENDING: 'Menunggu verifikasi',
+  VERIFIED_BY_ENGINEER: 'Terverifikasi',
+  SCHEDULED_FOR_REPAIR: 'Dijadwalkan diperbaiki',
+  REPAIRED: 'Selesai diperbaiki'
+};
 
 interface ReportDetailBottomSheetProps {
   isOpen: boolean;
@@ -189,14 +198,22 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
     setIsDragging(false);
 
     // Gestural Snap & Dismiss Decisions
-    if (snapPoint === 'HALF') {
+    if (snapPoint === 'PEEK') {
+      if (finalDelta > 40 || velocity > 0.45) {
+        handleClose();
+      } else {
+        if (finalDelta < -30) setSnapPoint('HALF');
+        setDragOffsetY(0);
+      }
+    } else if (snapPoint === 'HALF') {
       if (finalDelta < -45 || (velocity < -0.4 && finalDelta < -20)) {
         // Dragged up significantly -> Expand to FULL
         setSnapPoint('FULL');
         setDragOffsetY(0);
       } else if (finalDelta > 55 || velocity > 0.45) {
-        // Dragged down significantly ("kebawah banget") -> Scroll down exit animation and close
-        handleClose();
+        // Dragged down from HALF -> PEEK: the summary stays, the map is free again
+        setSnapPoint('PEEK');
+        setDragOffsetY(0);
       } else {
         setDragOffsetY(0);
       }
@@ -303,14 +320,12 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
 
   // Unified click handler on card surface: expands to 90% height when in HALF state
   const handleCardSurfaceClick = (e: React.MouseEvent) => {
-    if (snapPoint === 'HALF') {
-      const target = e.target as HTMLElement;
-      // Do not trigger expand if clicking directly on an interactive button or control
-      const isInteractive = target.closest('button, a, input, textarea, select, [role="button"], [data-interactive="true"]');
-      if (!isInteractive) {
-        setSnapPoint('FULL');
-      }
-    }
+    if (snapPoint === 'FULL') return;
+    const target = e.target as HTMLElement;
+    // Do not trigger expand if clicking directly on an interactive button or control
+    const isInteractive = target.closest('button, a, input, textarea, select, [role="button"], [data-interactive="true"]');
+    if (isInteractive) return;
+    setSnapPoint(snapPoint === 'PEEK' ? 'HALF' : 'FULL');
   };
 
   const isRepaired = report.status === 'REPAIRED';
@@ -327,6 +342,8 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
         onWheel={handleBackdropWheel}
         className={`fixed inset-0 z-30 transition-all duration-300 sm:hidden cursor-pointer ${
           isClosing
+            ? 'opacity-0 pointer-events-none'
+            : snapPoint === 'PEEK'
             ? 'opacity-0 pointer-events-none'
             : snapPoint === 'FULL'
             ? 'bg-black/60 opacity-100 pointer-events-auto'
@@ -357,7 +374,9 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             : 'transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]'
         } ${
           /* Max height snap point: 90vh on mobile so user has 90% full card view with full scrollability */
-          snapPoint === 'HALF'
+          snapPoint === 'PEEK'
+            ? 'h-[116px] left-2! right-2! bottom-[calc(env(safe-area-inset-bottom)+88px)]! rounded-2xl! cursor-pointer sm:h-auto sm:left-auto! sm:top-4 sm:right-4! sm:bottom-24! sm:w-[420px] sm:rounded-[32px]!'
+            : snapPoint === 'HALF'
             ? 'h-[48vh] min-h-[360px] max-h-[460px] cursor-pointer sm:h-auto sm:max-h-none sm:top-4 sm:right-4 sm:bottom-24 sm:w-[420px] sm:inset-x-auto'
             : 'h-[90vh] max-h-[90dvh] top-[10vh] sm:top-4 sm:right-4 sm:bottom-24 sm:w-[430px] sm:inset-x-auto sm:h-auto'
         }`}
@@ -376,7 +395,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           {/* Visual Pill Indicator */}
           <div className="w-14 h-1.5 bg-white/40 hover:bg-amber-400 rounded-full transition-all duration-200" />
           <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
-            <span>{snapPoint === 'HALF' ? 'Ketuk / Tarik Ke Atas Untuk Detail Penuh (90%)' : 'Tarik Ke Bawah Untuk Perkecil'}</span>
+            <span>{snapPoint === 'PEEK' ? 'Ketuk untuk membuka detail' : snapPoint === 'HALF' ? 'Ketuk / Tarik Ke Atas Untuk Detail Penuh (90%)' : 'Tarik Ke Bawah Untuk Perkecil'}</span>
             {snapPoint === 'HALF' ? (
               <ChevronUp className="w-3 h-3 text-amber-400" />
             ) : (
@@ -417,13 +436,13 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                 {report.segmentName}
               </p>
               <div className="flex items-center gap-1.5 text-[10.5px] mt-0.5 text-slate-400 font-medium truncate">
-                <span className={`font-bold ${isRepaired ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {isRepaired ? 'Selesai Diperbaiki' : 'Belum Ditangani'}
+                <span className={`font-bold ${isRepaired ? 'text-emerald-400' : report.status === 'PENDING' ? 'text-rose-400' : 'text-sky-300'}`}>
+                  {STATUS_LABEL[report.status]}
                 </span>
                 <span>&bull;</span>
                 <span className="font-mono text-amber-300">{report.severity}</span>
                 <span>&bull;</span>
-                <span className="truncate">{report.province}</span>
+                <span className="truncate font-mono">{report.id}</span>
               </div>
             </div>
           </div>
@@ -547,6 +566,9 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                 {/* Before (Rusak) */}
                 <div className="space-y-1.5">
                   <div className="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-slate-950 aspect-video shadow-md">
+                    <span className="absolute bottom-1 left-1 z-10 bg-slate-950/80 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      {ILLUSTRATIVE_PHOTO_LABEL.id}
+                    </span>
                     <img
                       src={report.photoUrl}
                       alt="Sebelum Perbaikan (Rusak)"

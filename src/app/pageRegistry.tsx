@@ -9,17 +9,15 @@ import { AnalyticsPage } from '../pages/dashboard/AnalyticsPage';
 import { LoginPage } from '../pages/login/LoginPage';
 import { SettingsPage } from '../pages/settings/SettingsPage';
 import { RoadDetailPage } from '../pages/roads/RoadDetailPage';
-import { EngineHubPage } from '../pages/engine/EngineHubPage';
-import { EnginePinnPage } from '../pages/engine/EnginePinnPage';
-import { EngineSimulationPage } from '../pages/engine/EngineSimulationPage';
-import { EngineFwdPage } from '../pages/engine/EngineFwdPage';
-import { EnginePredictionPage } from '../pages/engine/EnginePredictionPage';
+import { EnginePage } from '../pages/engine/EnginePage';
+import { PinnPage } from '../pages/engine/PinnPage';
+import { SimulationPage } from '../pages/engine/SimulationPage';
+import { FwdPage } from '../pages/engine/FwdPage';
+import { PredictionPage } from '../pages/engine/PredictionPage';
 import { TechnicalReferencePage } from '../pages/engineering/TechnicalReferencePage';
-import {
-  ComputerVisionHubPage,
-  ComputerVisionDetectionPage,
-  ComputerVisionHistoryPage
-} from '../pages/computer-vision/ComputerVisionPages';
+import { ComputerVisionPage } from '../pages/computer-vision/ComputerVisionPage';
+import { DamageDetectionPage } from '../pages/computer-vision/DamageDetectionPage';
+import { InspectionHistoryPage } from '../pages/computer-vision/InspectionHistoryPage';
 
 export type PageComponent = React.ComponentType<{ params: Record<string, string> }>;
 
@@ -29,13 +27,13 @@ export const PAGE_COMPONENTS: Partial<Record<RouteId, PageComponent>> = {
   login: LoginPage,
   settings: SettingsPage,
   roadDetail: RoadDetailPage,
-  engine: EngineHubPage,
-  enginePinn: EnginePinnPage,
-  engineSimulation: EngineSimulationPage,
-  engineFwd: EngineFwdPage,
-  enginePrediction: EnginePredictionPage,
+  engine: EnginePage,
+  enginePinn: PinnPage,
+  engineSimulation: SimulationPage,
+  engineFwd: FwdPage,
+  enginePrediction: PredictionPage,
   engineeringReference: TechnicalReferencePage,
-  computerVision: ComputerVisionHubPage,
-  computerVisionDetection: ComputerVisionDetectionPage,
-  computerVisionHistory: ComputerVisionHistoryPage
+  computerVision: ComputerVisionPage,
+  computerVisionDetection: DamageDetectionPage,
+  computerVisionHistory: InspectionHistoryPage
 };

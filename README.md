@@ -195,6 +195,18 @@ Ini terutama berguna untuk Policy Maker dalam perencanaan fiskal & APBN.
 
 ---
 
+### 🗺️ 15. GIS & Pemetaan Spasial — Leaflet
+
+**Fungsi:** Menyajikan visualisasi geospasial interaktif untuk memetakan koridor jalan nasional, posisi stasiun sensor WIM, heatmap sebaran lubang jalan, dan titik laporan kerusakan masyarakat di seluruh Indonesia.
+
+> **Analogi:** Seperti peta anatomi tubuh pada rekam medis digital — menunjukkan titik koordinat presisi organ mana yang mengalami peradangan dan seberapa luas kerusakannya.
+
+- **Teknologi GIS Utama:** Menggunakan **Leaflet** (`L.map`, `L.tileLayer`, `L.featureGroup`, `L.divIcon`, `L.polyline`) sebagai pustaka dan *engine* GIS utama aplikasi.
+- **Interaktivitas:** Leaflet menangani kontrol zoom, interaktivitas klik peta untuk penentuan koordinat laporan warga, animasi viewport (*flyTo* & *panTo*), rendering polyline koridor jalan nasional, klastering marker, serta visualisasi thermal heatmap kerusakan.
+- **Korelasi Terpadu:** Setiap titik koordinat di peta Leaflet secara otomatis terhubung dengan data stasiun WIM terdekat dan menjadi input parameter bagi simulasi model PINN.
+
+---
+
 ## 💡 Alur Ringkas Seluruh Teknologi
 
 ```
@@ -247,7 +259,7 @@ Server Express dan Vite berjalan di `http://localhost:3000/PavementPinn/`.
 |---|---|
 | `npm run dev` | server pengembangan (Express dan Vite middleware) |
 | `npm run lint` | pemeriksaan tipe (`tsc --noEmit`) |
-| `npm test` | 92 tes otomatis: regresi PINN, kontrak API, rute, RBAC, batas modul, status laporan, peta |
+| `npm test` | 106 tes otomatis: regresi dan audit matematis PINN, kontrak API, rute, RBAC, batas modul, status laporan, peta |
 | `npm run build` | build produksi ke `dist/` (termasuk `404.html` untuk GitHub Pages) |
 | `npm start` | menjalankan build produksi |
 
@@ -301,4 +313,5 @@ Agar tidak ada klaim yang berlebihan, status tiap kemampuan dicatat apa adanya:
 | `docs/api/API_INVENTORY.md` | kontrak keenam endpoint |
 | `docs/validation/PINN_REGRESSION_REPORT.md` | rumus, konstanta, dan hasil regresi numerik |
 | `docs/validation/RESTRUCTURE_TEST_REPORT.md` | perintah, hasil uji, celah verifikasi, dan cara rollback |
-| `docs/validation/POST_RESTRUCTURE_HARDENING.md` | hasil pengerasan: perbaikan, keamanan backend, temuan ambang regangan |
+| `docs/validation/POST_RESTRUCTURE_HARDENING.md` | hasil pengerasan: perbaikan, keamanan backend, audit Git, daftar kesiapan |
+| `docs/validation/PINN_VALIDATION_GAP.md` | celah validasi ilmiah: klasifikasi model, ambang regangan, data minimum yang dibutuhkan |

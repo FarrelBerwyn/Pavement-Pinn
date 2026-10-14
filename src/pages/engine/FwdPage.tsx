@@ -9,7 +9,7 @@ import { usePageContext } from '../../app/pageContext';
  *
  * Markup moved verbatim from the modern shell's "ENGINEERING" overlay.
  */
-export const EngineFwdPage: React.FC = () => {
+export const FwdPage: React.FC = () => {
   const { currentAccount, currentResult, roadSegments, selectedSegment, onSelectSegment, communityReports, onEditReport, setActiveNav } = usePageContext();
 
   return (

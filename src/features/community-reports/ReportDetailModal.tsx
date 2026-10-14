@@ -20,6 +20,7 @@ import {
   Eye
 } from 'lucide-react';
 import { DamageReport } from '../../types';
+import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
 import { Language, TRANSLATIONS } from '../../i18n/translations';
 
@@ -250,6 +251,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   <span className="text-[10px] font-mono text-slate-400">{report.timestamp}</span>
                 </div>
                 <div className="relative rounded-xl overflow-hidden border border-white/10 h-44 group">
+                  <span className="absolute bottom-2 left-2 z-10 bg-slate-950/80 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded">
+                    {ILLUSTRATIVE_PHOTO_LABEL[language]}
+                  </span>
                   <img
                     src={report.photoUrl}
                     alt={t.beforeLabel}

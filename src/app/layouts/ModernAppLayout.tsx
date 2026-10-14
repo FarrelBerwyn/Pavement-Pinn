@@ -78,9 +78,16 @@ import {
   ReportReview
 } from '../../types';
 import { UserAccount, USER_ACCOUNTS } from '../../features/authentication/demoAccounts';
-import { LeafletMap } from '../../components/maps/LeafletMap';
+import { LeafletMap, type LeafletMapProps } from '../../components/maps/LeafletMap';
+import { MAP_LAYER_PANEL_ID, MapLayerPanel } from '../../components/maps/MapLayerPanel';
+import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { ReportDetailBottomSheet } from '../../features/community-reports/ReportDetailBottomSheet';
+import { DEMO_DATA_LABEL } from '../../data/provenance';
+import { LatLngBounds, itemsInBounds } from '../../components/maps/mapDetail';
+import { MapSheet } from '../../components/maps/MapSheet';
+import { MapSheetState, sheetInsetPx } from '../../components/maps/sheetState';
+import { DemoTag, ReportList, RoadSegmentSheet } from '../../features/road-health/RoadSegmentSheet';
 import type { PolicyTabType } from '../../features/policy-analysis/ExecutivePolicyView';
 import { ReportRoadIssueCard } from '../../features/community-reports/ReportRoadIssueCard';
 import { generateOfficialReportPdf } from '../../services/reporting/pdfGenerator';
@@ -120,6 +127,9 @@ interface ModernAppLayoutProps {
   /** Route outlet: the page component for the current route, if it is a standalone page. */
   children?: React.ReactNode;
 }
+
+// MapLibre (WebGL, globe) is loaded only for the accounts that use it
+const MapLibreMap = React.lazy(() => import('../../components/maps/MapLibreMap'));
 
 export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   currentAccount,
@@ -236,7 +246,22 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   };
 
   // Filter state for Map overlay pills
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'CRITICAL' | 'MODERATE' | 'MINOR' | 'HEATMAP'>('ALL');
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'CRITICAL' | 'MODERATE' | 'MINOR'>('ALL');
+  // Report density is a map layer, not a data filter: the two can be combined.
+  const [showDensity, setShowDensity] = useState<boolean>(false);
+  const [mapBounds, setMapBounds] = useState<LatLngBounds | null>(null);
+  const [isMapMoving, setIsMapMoving] = useState<boolean>(false);
+  const [userLocation, setUserLocation] = useState<{ coordinates: [number, number]; accuracyM: number } | null>(null);
+  const [recenterToastText, setRecenterToastText] = useState<string>('');
+  // Shared map sheet: a road segment, or reports that share one position.
+  const [sheetSegment, setSheetSegment] = useState<RoadSegment | null>(null);
+  const [sheetCluster, setSheetCluster] = useState<DamageReport[] | null>(null);
+  const [mapSheetState, setMapSheetState] = useState<MapSheetState>('HALF');
+  const isMapSheetOpen = !!sheetSegment || !!sheetCluster;
+  const closeMapSheet = () => {
+    setSheetSegment(null);
+    setSheetCluster(null);
+  };
 
   // Base map style (DARK, SATELLITE, LIGHT) - Default to Light GIS
   const [baseMapStyle, setBaseMapStyle] = useState<'DARK' | 'SATELLITE' | 'LIGHT'>('LIGHT');
@@ -483,11 +508,26 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   // Sync selectedIssueReport with selected segment when clicking map
   const handleSelectSegmentFromMap = (seg: RoadSegment) => {
     onSelectSegment(seg);
-    const matchedReport = communityReports.find((r) => r.segmentId === seg.id);
-    if (matchedReport) {
-      setSelectedIssueReport(matchedReport);
-      setIsDetailsPanelOpen(true);
+    if (isFieldEngineer) {
+      const matchedReport = communityReports.find((r) => r.segmentId === seg.id);
+      if (matchedReport) {
+        setSelectedIssueReport(matchedReport);
+        setIsDetailsPanelOpen(true);
+      }
+      return;
     }
+    // A segment opens the segment sheet, not one of its reports
+    setIsDetailsPanelOpen(false);
+    setSheetCluster(null);
+    setSheetSegment(seg);
+    setMapSheetState('HALF');
+  };
+
+  const openReportFromSheet = (report: DamageReport) => {
+    closeMapSheet();
+    setSelectedIssueReport(report);
+    setDetailsTab('COMPARISON');
+    setIsDetailsPanelOpen(true);
   };
 
   // Handle Form Submit
@@ -518,6 +558,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
     const newReport: DamageReport = {
       id: `REP-${Date.now().toString().slice(-6)}`,
       reporterName: currentAccount.name,
+      creatorRole: currentAccount.role,
+      origin: 'SESSION',
       reporterRole: currentAccount.role === 'PUBLIC_REPORTER' ? 'Public Reporter' : 'Public Viewer',
       reporterAvatar: currentAccount.avatarUrl,
       timestamp: new Date().toLocaleString('id-ID', {
@@ -657,6 +699,76 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
     }
     return communityReports;
   }, [communityReports, activeFilter]);
+
+  // What the "in view" pill and card show: filtered reports inside the current viewport.
+  const reportsInView = useMemo(
+    () => itemsInBounds(recentReportsList, (report) => report.coordinates, mapBounds),
+    [recentReportsList, mapBounds]
+  );
+  const inViewCounts = useMemo(
+    () => ({
+      critical: reportsInView.filter((r) => r.severity === 'CRITICAL').length,
+      moderate: reportsInView.filter((r) => r.severity === 'SEVERE' || r.severity === 'MODERATE').length,
+      minor: reportsInView.filter((r) => r.severity === 'LIGHT').length
+    }),
+    [reportsInView]
+  );
+  const matchesCardFilter = (severity: string) =>
+    reportsCardFilter === 'ALL' ||
+    (reportsCardFilter === 'CRITICAL' && severity === 'CRITICAL') ||
+    (reportsCardFilter === 'MODERATE' && (severity === 'SEVERE' || severity === 'MODERATE')) ||
+    (reportsCardFilter === 'MINOR' && severity === 'LIGHT');
+  const inViewLabel = language === 'en' ? 'reports in view' : 'laporan di area ini';
+
+  // Report density layer: Regular User reports under the same severity filter as the markers
+  const densitySelection = useMemo(
+    () => selectRegularUserDensity(communityReports, activeFilter),
+    [communityReports, activeFilter]
+  );
+  const densityInView = useMemo(
+    () => itemsInBounds(densitySelection.reports, (report) => report.coordinates, mapBounds),
+    [densitySelection, mapBounds]
+  );
+  const layerButtonRef = React.useRef<HTMLButtonElement>(null);
+  const closeLayersMenu = React.useCallback(() => setIsLayersMenuOpen(false), []);
+
+  // Public accounts get the globe map; official roles keep the Leaflet map and its tools
+  const isPublicRole = currentAccount.role === 'PUBLIC_REPORTER' || currentAccount.role === 'PUBLIC_VIEWER';
+  const PublicMap: React.ComponentType<LeafletMapProps> = isPublicRole ? MapLibreMap : LeafletMap;
+
+  const showMapToast = (text: string) => {
+    setRecenterToastText(text);
+    setShowRecenterToast(true);
+    setTimeout(() => setShowRecenterToast(false), 2600);
+  };
+
+  // Locate: the device position when permission is given, otherwise the data region.
+  const handleLocate = () => {
+    const fallBackToDataRegion = () => {
+      setUserLocation(null);
+      setRecenterKey((prev) => prev + 1);
+      showMapToast(
+        language === 'en'
+          ? 'Location unavailable. Map centred on the Karawang data region.'
+          : 'Lokasi tidak tersedia. Peta dipusatkan ke wilayah data Karawang.'
+      );
+    };
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      fallBackToDataRegion();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          coordinates: [position.coords.latitude, position.coords.longitude],
+          accuracyM: position.coords.accuracy
+        });
+        showMapToast(language === 'en' ? 'Map centred on your location.' : 'Peta dipusatkan ke lokasi Anda.');
+      },
+      fallBackToDataRegion,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  };
 
   return (
     <div className="flex h-screen w-screen bg-[#0b0f19] text-slate-100 overflow-hidden font-sans select-none antialiased">
@@ -1736,7 +1848,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <>
               {/* Base Leaflet Map Component (100% Function Layout Preserved) */}
               <div className="absolute inset-0 w-full h-full z-0">
-                <LeafletMap
+                <React.Suspense fallback={<div className="w-full h-full bg-[#0b1220]" />}>
+                <PublicMap
                   roadSegments={roadSegments}
                   selectedSegment={selectedSegment}
                   onSelectSegment={handleSelectSegmentFromMap}
@@ -1748,6 +1861,23 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   onUpvoteReport={onUpvoteReport}
                   currentAccount={currentAccount}
                   activeFilter={activeFilter}
+                  showDensity={showDensity}
+                  bottomInsetPx={
+                    sheetSegment && typeof window !== 'undefined' && window.innerWidth < 768
+                      ? sheetInsetPx(mapSheetState, window.innerHeight)
+                      : 0
+                  }
+                  onSelectCluster={(reports) => {
+                    setIsDetailsPanelOpen(false);
+                    setSheetSegment(null);
+                    setSheetCluster(reports);
+                    setMapSheetState('HALF');
+                  }}
+                  userLocation={userLocation}
+                  onViewportChange={({ bounds, moving }) => {
+                    setIsMapMoving(moving);
+                    if (!moving) setMapBounds(bounds);
+                  }}
                   baseMapStyle={baseMapStyle}
                   theme={theme}
                   language={language}
@@ -1760,6 +1890,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     setIsCreateReportModalOpen(true);
                   }}
                   onSelectReport={(rep) => {
+                    closeMapSheet();
+                    const reportSegment = roadSegments.find((s) => s.id === rep.segmentId);
+                    if (reportSegment) onSelectSegment(reportSegment);
                     if (!isFieldEngineer) {
                       setSelectedIssueReport(rep);
                       setDetailsTab('COMPARISON');
@@ -1775,13 +1908,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     }
                   }}
                 />
+                </React.Suspense>
               </div>
 
           {/* RECENTER TOAST NOTIFICATION */}
           {showRecenterToast && (
             <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 backdrop-blur-xl border border-amber-400/50 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none">
-              <Navigation className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-              <span>Peta Berpusat di Wilayah Karawang (Kawasan Industri & Arteri)</span>
+              <Navigation className="w-3.5 h-3.5 text-amber-400" />
+              <span>{recenterToastText}</span>
             </div>
           )}
 
@@ -1800,10 +1934,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 />
                 <div className="text-left flex flex-col justify-center">
                   <p className="text-[11.5px] font-black leading-none text-slate-900 dark:text-white truncate max-w-[110px]">
-                    {selectedSegment ? (selectedSegment.name.split(' ')[0] + ', ID') : 'Jakarta, ID'}
+                    {selectedSegment ? selectedSegment.province : 'Indonesia'}
                   </p>
                   <p className="text-[10px] text-amber-500 font-bold leading-none mt-1 flex items-center gap-1">
-                    <span>☀️</span> 28°C
+                    {DEMO_DATA_LABEL[language]}
                   </p>
                 </div>
               </div>
@@ -1888,197 +2022,54 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   <span className="w-2 h-2 rounded-full bg-emerald-400 mr-0.5" />
                   <span>{t.filterMinor}</span>
                 </button>
-
-                {/* Heatmap Layer */}
-                <button
-                  onClick={() => setActiveFilter(activeFilter === 'HEATMAP' ? 'ALL' : 'HEATMAP')}
-                  className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-1.5 cursor-pointer shrink-0 border ${
-                    activeFilter === 'HEATMAP'
-                      ? 'bg-slate-800 text-amber-300 border-amber-600/60'
-                      : 'bg-slate-900/90 backdrop-blur-md text-slate-300 hover:text-amber-300 border-slate-800'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>{t.filterHeatmap}</span>
-                </button>
               </div>
 
-              {/* Tipe Peta Dasar Switcher (Tampil jika Mode Heatmap aktif atau dari menu layer) */}
-              {activeFilter === 'HEATMAP' && (
-                <div className="flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-xl border border-slate-800 p-1 rounded-xl shadow-lg self-start">
-                  <span className="text-[10px] uppercase font-semibold text-slate-400 px-2 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    Peta Dasar:
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setBaseMapStyle('DARK')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        baseMapStyle === 'DARK'
-                          ? 'bg-slate-800 text-amber-300 border border-slate-700'
-                          : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                      }`}
-                    >
-                      Dark GIS
-                    </button>
-                    <button
-                      onClick={() => setBaseMapStyle('SATELLITE')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        baseMapStyle === 'SATELLITE'
-                          ? 'bg-slate-800 text-amber-300 border border-slate-700'
-                          : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                      }`}
-                    >
-                      Satelit
-                    </button>
-                    <button
-                      onClick={() => setBaseMapStyle('LIGHT')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        baseMapStyle === 'LIGHT'
-                          ? 'bg-slate-800 text-amber-300 border border-slate-700'
-                          : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                      }`}
-                    >
-                      Light GIS
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
           {/* FLOATING MAP CONTROLS (Right-Center of Map Viewport) */}
-          <div className="absolute right-3 sm:right-4 top-28 sm:top-32 md:top-20 z-20 flex flex-col space-y-2 pointer-events-auto">
+          <div
+            className={`absolute right-3 sm:right-4 top-28 sm:top-32 md:top-20 z-20 flex flex-col space-y-2 pointer-events-auto transition-opacity duration-200 ${
+              isMapMoving && !isLayersMenuOpen ? 'opacity-30' : 'opacity-100'
+            }`}
+          >
             {/* Layers / Base Map Menu Button */}
             <div className="relative">
               <button
+                ref={layerButtonRef}
+                type="button"
+                aria-expanded={isLayersMenuOpen}
+                aria-controls={MAP_LAYER_PANEL_ID}
+                aria-label={language === 'en' ? 'Map layers' : 'Lapisan peta'}
                 onClick={() => setIsLayersMenuOpen(!isLayersMenuOpen)}
                 className={`w-10 h-10 rounded-xl backdrop-blur-md border shadow-lg flex items-center justify-center transition-all cursor-pointer ${
-                  isLayersMenuOpen || activeFilter === 'HEATMAP'
+                  isLayersMenuOpen || showDensity
                     ? 'bg-slate-800 text-amber-400 border-slate-700'
                     : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
                 title="Tipe Peta Dasar & Lapisan Geospasial"
               >
-                <Layers className={`w-4 h-4 ${isLayersMenuOpen || activeFilter === 'HEATMAP' ? 'text-amber-400' : 'text-slate-400'}`} />
+                <Layers className={`w-4 h-4 ${isLayersMenuOpen || showDensity ? 'text-amber-400' : 'text-slate-400'}`} />
               </button>
 
-              {/* TIPE PETA DASAR & LAPISAN POPOVER */}
-              {isLayersMenuOpen && (
-                <div className="absolute right-0 top-12 w-64 sm:w-72 bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-2xl p-3.5 shadow-2xl text-slate-200 animate-in fade-in duration-200 z-50">
-                  <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-800">
-                    <div className="flex items-center space-x-1.5">
-                      <Layers className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-semibold text-white tracking-wide">Tipe Peta Dasar</span>
-                    </div>
-                    <button
-                      onClick={() => setIsLayersMenuOpen(false)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* 1. Tipe Peta Dasar (Dark GIS, Satelit, Light GIS) */}
-                  <div className="space-y-1.5 mb-3">
-                    <div className="text-[10px] uppercase font-semibold text-slate-400 px-1">
-                      Pilihan Peta Dasar (Basemap)
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <button
-                        onClick={() => setBaseMapStyle('DARK')}
-                        className={`px-2 py-2 rounded-xl text-center font-semibold text-[11px] transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
-                          baseMapStyle === 'DARK'
-                            ? 'bg-slate-800 text-amber-400 border-slate-700 shadow-sm'
-                            : 'bg-slate-950/60 text-slate-300 hover:bg-slate-800/60 border-slate-800'
-                        }`}
-                      >
-                        <Moon className="w-3.5 h-3.5" />
-                        <span>Dark GIS</span>
-                      </button>
-
-                      <button
-                        onClick={() => setBaseMapStyle('SATELLITE')}
-                        className={`px-2 py-2 rounded-xl text-center font-semibold text-[11px] transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
-                          baseMapStyle === 'SATELLITE'
-                            ? 'bg-slate-800 text-amber-400 border-slate-700 shadow-sm'
-                            : 'bg-slate-950/60 text-slate-300 hover:bg-slate-800/60 border-slate-800'
-                        }`}
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        <span>Satelit</span>
-                      </button>
-
-                      <button
-                        onClick={() => setBaseMapStyle('LIGHT')}
-                        className={`px-2 py-2 rounded-xl text-center font-semibold text-[11px] transition-all flex flex-col items-center justify-center gap-1 cursor-pointer border ${
-                          baseMapStyle === 'LIGHT'
-                            ? 'bg-slate-800 text-amber-400 border-slate-700 shadow-sm'
-                            : 'bg-slate-950/60 text-slate-300 hover:bg-slate-800/60 border-slate-800'
-                        }`}
-                      >
-                        <Sun className="w-3.5 h-3.5" />
-                        <span>Light GIS</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 2. Visualisasi Lapisan Geospasial */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                    <div className="text-[10px] uppercase font-semibold text-slate-400 px-1">
-                      Lapisan Heatmap & Overlay
-                    </div>
-
-                    <button
-                      onClick={() => setActiveFilter(activeFilter === 'HEATMAP' ? 'ALL' : 'HEATMAP')}
-                      className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between text-xs font-semibold transition-all cursor-pointer border ${
-                        activeFilter === 'HEATMAP'
-                          ? 'bg-slate-800 text-amber-300 border-amber-600/60'
-                          : 'bg-slate-950/60 text-slate-300 hover:bg-slate-800/60 border-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                        <span>Heatmap Kepadatan Kerusakan</span>
-                      </div>
-                      {activeFilter === 'HEATMAP' && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
-                    </button>
-
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
-                      <button
-                        onClick={() => setActiveFilter('ALL')}
-                        className={`px-2 py-1.5 rounded-lg text-center text-[10px] font-semibold transition-all cursor-pointer border ${
-                          activeFilter === 'ALL'
-                            ? 'bg-slate-800 text-white border-slate-700'
-                            : 'text-slate-400 hover:text-white bg-slate-950/60 border-slate-800'
-                        }`}
-                      >
-                        Semua Laporan
-                      </button>
-                      <button
-                        onClick={() => setActiveFilter('CRITICAL')}
-                        className={`px-2 py-1.5 rounded-lg text-center text-[10px] font-semibold transition-all cursor-pointer border ${
-                          activeFilter === 'CRITICAL'
-                            ? 'bg-rose-950/80 text-rose-300 border-rose-800'
-                            : 'text-slate-400 hover:text-rose-300 bg-slate-950/60 border-slate-800'
-                        }`}
-                      >
-                        Kritis Saja
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Layer settings: collapsed by default, opens next to the button */}
+              <MapLayerPanel
+                open={isLayersMenuOpen}
+                onClose={closeLayersMenu}
+                anchorRef={layerButtonRef}
+                baseMapStyle={baseMapStyle}
+                onBaseMapStyleChange={setBaseMapStyle}
+                showDensity={showDensity}
+                onShowDensityChange={setShowDensity}
+                density={densitySelection}
+                language={language}
+              />
             </div>
 
             <button
-              onClick={() => {
-                setRecenterKey((prev) => prev + 1);
-                setShowRecenterToast(true);
-                setTimeout(() => setShowRecenterToast(false), 2400);
-              }}
+              onClick={handleLocate}
               className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 shadow-lg flex items-center justify-center transition-all cursor-pointer group active:scale-95"
-              title="Recenter Maps ke Karawang"
+              title={language === 'en' ? 'My location' : 'Lokasi saya'}
             >
               <Navigation className="w-4 h-4 text-amber-400 group-hover:rotate-12 transition-transform" />
             </button>
@@ -2092,18 +2083,18 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
           </div>
 
           {/* OVERLAY 2: FLOATING "ROAD ISSUES NEARBY" CARD (Above bottom nav bar) */}
-          {!isFieldEngineer && isNearbyCardExpanded && !isDetailsPanelOpen && (
+          {!isFieldEngineer && isNearbyCardExpanded && !isDetailsPanelOpen && !isMapSheetOpen && (
             <div className="absolute bottom-[78px] sm:bottom-[86px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto max-h-[48vh] sm:max-h-[55vh] flex flex-col box-border overflow-hidden">
               {/* Card Header & Toggle */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2 shrink-0">
                 <div className="flex items-center space-x-2.5 min-w-0">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-xs sm:text-sm text-white truncate">
-                      {communityReports.length} Road Issues Nearby
+                      {reportsInView.length} {inViewLabel}
                     </h3>
                     <p className="text-[10px] text-slate-400 font-medium truncate">
-                      12 Critical &bull; 8 Moderate &bull; 4 Minor
+                      {inViewCounts.critical} Critical &bull; {inViewCounts.moderate} Moderate &bull; {inViewCounts.minor} Minor
                     </p>
                   </div>
                 </div>
@@ -2129,7 +2120,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       : 'bg-slate-950/60 text-slate-400 hover:text-white border-slate-800'
                   }`}
                 >
-                  All ({recentReportsList.length})
+                  All ({reportsInView.length})
                 </button>
                 <button
                   onClick={() => setReportsCardFilter('CRITICAL')}
@@ -2139,7 +2130,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       : 'bg-slate-950/60 text-slate-400 hover:text-rose-300 border-slate-800'
                   }`}
                 >
-                  Critical (12)
+                  Critical ({inViewCounts.critical})
                 </button>
                 <button
                   onClick={() => setReportsCardFilter('MODERATE')}
@@ -2149,7 +2140,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       : 'bg-slate-950/60 text-slate-400 hover:text-amber-300 border-slate-800'
                   }`}
                 >
-                  Moderate (8)
+                  Moderate ({inViewCounts.moderate})
                 </button>
                 <button
                   onClick={() => setReportsCardFilter('MINOR')}
@@ -2159,14 +2150,19 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       : 'bg-slate-950/60 text-slate-400 hover:text-emerald-300 border-slate-800'
                   }`}
                 >
-                  Minor (4)
+                  Minor ({inViewCounts.minor})
                 </button>
               </div>
 
               {/* Scrollable list of recent issues */}
               <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar flex-1">
-                {recentReportsList
-                  .filter((rep) => reportsCardFilter === 'ALL' || rep.severity === reportsCardFilter)
+                {reportsInView.length === 0 && (
+                  <p className="text-xs text-slate-400 py-3 text-center">
+                    {language === 'en' ? 'No reports in this area. Move or zoom out the map.' : 'Tidak ada laporan di area ini. Geser atau perkecil peta.'}
+                  </p>
+                )}
+                {reportsInView
+                  .filter((rep) => matchesCardFilter(rep.severity))
                   .map((rep) => (
                     <div
                       key={rep.id}
@@ -2235,20 +2231,55 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
           )}
 
           {/* OVERLAY 3: FLOATING PILL WHEN CARD IS COLLAPSED */}
-          {!isFieldEngineer && !isNearbyCardExpanded && !isDetailsPanelOpen && (
+          {!isFieldEngineer && !isNearbyCardExpanded && !isDetailsPanelOpen && !isMapSheetOpen && (
             <div className="absolute bottom-[78px] sm:bottom-[86px] md:bottom-6 left-3 right-3 sm:left-4 sm:right-4 sm:max-w-xs sm:mx-auto z-20 flex justify-center pointer-events-auto">
               <button
                 onClick={() => setIsNearbyCardExpanded(true)}
                 className="flex items-center gap-2 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-xl py-2 px-4 shadow-lg text-white font-semibold text-xs active:scale-95 transition-all cursor-pointer"
               >
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                <span>{communityReports.length} Issues Nearby</span>
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                <span>
+                  {showDensity
+                    ? `${densityInView.length} ${language === 'en' ? 'user reports in view' : 'laporan pengguna di area ini'}`
+                    : `${reportsInView.length} ${inViewLabel}`}
+                </span>
                 <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
               </button>
             </div>
           )}
 
           {/* OVERLAY 4: MOBILE & DESKTOP DRAGGABLE BOTTOM SHEET MODAL (SNAP POINTS 50% & 88% SCREEN, INNER SCROLLING & ENTRANCE ANIMATION) */}
+          <MapSheet
+            isOpen={isMapSheetOpen}
+            state={mapSheetState}
+            onStateChange={setMapSheetState}
+            onClose={closeMapSheet}
+            title={
+              sheetSegment
+                ? sheetSegment.name
+                : `${sheetCluster?.length ?? 0} ${language === 'en' ? 'reports at this location' : 'laporan di lokasi ini'}`
+            }
+            subtitle={sheetSegment ? `${sheetSegment.id} · ${sheetSegment.province}` : undefined}
+            badge={<DemoTag language={language} />}
+            closeLabel={language === 'en' ? 'Close' : 'Tutup'}
+          >
+            {sheetSegment ? (
+              <RoadSegmentSheet
+                segment={sheetSegment}
+                reports={communityReports.filter((r) => r.segmentId === sheetSegment.id)}
+                language={language}
+                onSelectReport={openReportFromSheet}
+                onOpenSimulation={onLaunchSimulation}
+              />
+            ) : (
+              <ReportList
+                reports={sheetCluster ?? []}
+                onSelectReport={openReportFromSheet}
+                emptyText={language === 'en' ? 'No reports.' : 'Tidak ada laporan.'}
+              />
+            )}
+          </MapSheet>
+
           <ReportDetailBottomSheet
             isOpen={isDetailsPanelOpen && !!selectedIssueReport}
             onClose={() => {

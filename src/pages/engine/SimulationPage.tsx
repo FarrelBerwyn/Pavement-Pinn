@@ -8,7 +8,7 @@ import { usePageContext } from '../../app/pageContext';
  *
  * Markup moved verbatim from the modern shell's "SIMULATION" overlay.
  */
-export const EngineSimulationPage: React.FC = () => {
+export const SimulationPage: React.FC = () => {
   const { activeRole, roadSegments, selectedSegment, onSelectSegment, currentResult, onSimulationComplete, onOpenOpenvinoModal, setActiveNav } = usePageContext();
 
   return (

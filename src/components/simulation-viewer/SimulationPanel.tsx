@@ -12,7 +12,7 @@ import { generateOfficialReportPdf } from '../../services/reporting/pdfGenerator
 import confetti from 'canvas-confetti';
 import { detectLocalDeviceProfile } from '../../runtime/intel-hardware/deviceDetector';
 import { isStaticHost } from '../../services/api/client';
-import { requestAiNarrative } from '../../services/api/narrativeApi';
+import { requestAiNarrative } from '../../services/api/endpoints';
 import {
   Sliders,
   Play,

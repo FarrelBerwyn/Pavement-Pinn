@@ -322,7 +322,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
                 activeBaseLayer === 'CARTO_LIGHT' ? 'bg-amber-50 text-amber-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
               }`}
             >
-              CartoDB Light GIS
+              Leaflet Light Canvas
             </button>
             <button
               onClick={() => handleChangeBaseMap('OSM_STANDARD')}
@@ -330,7 +330,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
                 activeBaseLayer === 'OSM_STANDARD' ? 'bg-amber-50 text-amber-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
               }`}
             >
-              OpenStreetMap
+              Leaflet Street Map
             </button>
           </div>
         )}

@@ -13,11 +13,11 @@ pavement-pinn/
     index.ts                      process entry: config, app, frontend host, listen
     app.ts                        createApp(): express.json() then the API router
     config/env.ts                 PORT, NODE_ENV, VITE_BASE_PATH
-    routes/index.ts               the six endpoints, paths from the shared contract
+    routes/                       index.ts plus one file per resource: health, roads, pinn, openvino, narrative
     controllers/                  health, roads, simulation, openvino, narrative
     services/                     simulationService, openvinoExportService, narrativeService
     repositories/roadSegmentRepository.ts   read-only access to the static dataset
-    integrations/geminiClient.ts  lazy Gemini client
+    integrations/gemini/geminiClient.ts  lazy Gemini client
     middleware/frontendHost.ts    Vite dev middleware or static dist + SPA fallback
   src/
     main.tsx                      browser entry
@@ -34,9 +34,9 @@ pavement-pinn/
     pages/
       dashboard/AnalyticsPage     login/LoginPage        settings/SettingsPage
       reports/ReportsPage         roads/RoadDetailPage   not-found/NotFoundPage
-      engine/                     EngineHubPage, EnginePinnPage, EngineSimulationPage,
-                                  EngineFwdPage, EnginePredictionPage
-      computer-vision/ComputerVisionPages
+      engine/                     EnginePage, PinnPage, SimulationPage,
+                                  FwdPage, PredictionPage
+      computer-vision/             ComputerVisionPage, DamageDetectionPage, InspectionHistoryPage
       engineering/                EngineeringPage, WorkOrdersPage, TechnicalReferencePage
       operations/OperationsPage   policy/PolicyPage
     features/
@@ -64,7 +64,7 @@ pavement-pinn/
       intel-hardware/deviceDetector.ts
       openvino/simulatedBenchmark.ts
     services/
-      api/                        client, narrativeApi, openvinoExportApi
+      api/                        client, endpoints
       wim/binaMargaWimScraper.ts
       reporting/pdfGenerator.ts
     components/
@@ -185,11 +185,11 @@ the moved files are byte-identical, except where a row says otherwise.
 | `components/PublicUserLayout.tsx` | `src/app/layouts/ModernAppLayout.tsx` | component renamed `ModernAppLayout`; overlays and workspace branches extracted to `src/pages` |
 | `components/Navbar.tsx` | `src/app/layouts/Navbar.tsx` | |
 | `components/LeafletMap.tsx` | `src/components/maps/LeafletMap.tsx` | |
-| `components/SimulationPanel.tsx` | `src/components/simulation-viewer/SimulationPanel.tsx` | inline `fetch` replaced by `services/api/narrativeApi` |
+| `components/SimulationPanel.tsx` | `src/components/simulation-viewer/SimulationPanel.tsx` | inline `fetch` replaced by `services/api/endpoints` |
 | `components/LoginModal.tsx` | `src/features/authentication/LoginModal.tsx` | |
 | `components/RoleHeaderBanner.tsx` | `src/features/rbac/RoleHeaderBanner.tsx` | still unused |
 | `components/AuditTrailModal.tsx` | `src/features/audit-trail/AuditTrailModal.tsx` | |
-| `components/OpenVINOModelDiagnosticsModal.tsx` | `src/features/openvino-diagnostics/OpenVINOModelDiagnosticsModal.tsx` | export links built by `services/api/openvinoExportApi` |
+| `components/OpenVINOModelDiagnosticsModal.tsx` | `src/features/openvino-diagnostics/OpenVINOModelDiagnosticsModal.tsx` | export links built by `services/api/endpoints` |
 | `components/BinaMargaWimPipelineModal.tsx` | `src/features/wim/BinaMargaWimPipelineModal.tsx` | |
 | `components/Operations{HomeView,ManagerAppView,ManagerDashboard,PosWimMapView}.tsx` | `src/features/wim/` | |
 | `components/{CommunityReportsDashboard,ReportDetailModal,ReportDetailBottomSheet,ReportRoadIssueCard}.tsx` | `src/features/community-reports/` | |

@@ -190,6 +190,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
     const newReport: DamageReport = {
       id: `REP-${Date.now().toString().slice(-6)}`,
       reporterName: currentAccount.name,
+      creatorRole: activeRole,
+      origin: 'SESSION',
       reporterRole:
         activeRole === 'PUBLIC_REPORTER'
           ? 'Pelapor Masyarakat Terverifikasi'

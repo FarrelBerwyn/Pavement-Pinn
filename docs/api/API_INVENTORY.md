@@ -11,11 +11,11 @@ single `server.ts` file into modules. Contract tests: `tests/integration/api.tes
 |---|---|
 | `server/index.ts` | process entry: load config, create the app, attach the frontend host, listen |
 | `server/app.ts` | `createApp()`: `express.json()` first, then the API router (no side effects, used by tests) |
-| `server/routes/index.ts` | route table; paths come from `API_PATHS` in `src/types/api.ts` |
+| `server/routes/` | `index.ts` composes one file per resource (`health`, `roads`, `pinn`, `openvino`, `narrative`); paths come from `API_PATHS` in `src/types/api.ts` |
 | `server/controllers/*` | HTTP input and output |
 | `server/services/*` | simulation, OpenVINO export builders, narrative generation |
 | `server/repositories/roadSegmentRepository.ts` | read-only access to the road dataset |
-| `server/integrations/geminiClient.ts` | Gemini client, created lazily |
+| `server/integrations/gemini/geminiClient.ts` | Gemini client, created lazily |
 | `server/middleware/frontendHost.ts` | Vite middleware in development, static `dist/` plus SPA fallback in production |
 | `server/config/env.ts` | `PORT` (default 3000), `NODE_ENV`, `VITE_BASE_PATH` (default `/PavementPinn/`) |
 
@@ -122,7 +122,7 @@ the server and the browser clients in `src/services/api/`.
 - Implementation status: IMPLEMENTED with offline fallback. The Gemini path itself is
   NOT TESTED: in the audited environment the configured key was rejected by Google
   ("API key not valid"), so only the fallback paths were observed.
-- Consumer: `requestAiNarrative` in `src/services/api/narrativeApi.ts`, used by the simulation panel.
+- Consumer: `requestAiNarrative` in `src/services/api/endpoints.ts`, used by the simulation panel.
 
 ## Summary table
 
@@ -160,7 +160,7 @@ WIM data must not serve them unauthenticated. No endpoint stores or modifies any
 
 ## Secrets
 
-- `GEMINI_API_KEY` is read only in `server/integrations/geminiClient.ts`, on the server.
+- `GEMINI_API_KEY` is read only in `server/integrations/gemini/geminiClient.ts`, on the server.
   A source search and a search of the built bundle found no reference to it in frontend code.
 - `.github/workflows/deploy.yml` used to pass the secret to the static build as
   `VITE_GEMINI_API_KEY`. Nothing ever read that variable, so it was never in a
