@@ -14,14 +14,14 @@ docs/REQUIREMENT_TRACEABILITY.md and docs/GAP_REGISTER.md, then `git status`.
 | M1b anonymous identity, M1c audit gating, P3 role UIs, P4 engines | DONE | 11b9b45, 61ddc90 (queue fix) | Shared workflow panel and queues; ESAL, traffic/WIM, weather, baseline, assessment, explanation |
 | P5 Road Story, What-If, map link | DONE | 246e50d | `/roads/:id/` insight |
 | P6 UI tokens, motion, CI | DONE | dfb7487 | Tokens, focus ring, reduced motion, `.github/workflows/ci.yml` |
-| P7 verification | DONE | — | 208 tests; browser golden path; production bundle smoke test |
+| P7 verification | DONE | — | 209 tests; browser golden path; production bundle smoke test |
 | P8 docs | DONE | (this commit) | DECISION_LOG, SOURCE_INVENTORY, REQUIREMENT_TRACEABILITY, GAP_REGISTER, DATA_ACQUISITION_PLAN, AI, DEPLOYMENT, FINAL_AUDIT, WORKFLOW_API, WORKFLOW_STATE_MACHINE |
 
 ## Next tasks (in order)
 
-1. Relabel or remove illustrative figures in legacy screens (G-SW-04).
-2. Persist simulations in the workflow store (G-SW-01).
-3. Playwright suite for the golden path (G-SW-02).
+1. Decide whether to remove or recompute the illustrative figures in legacy screens (now labelled, G-SW-04).
+2. Playwright suite for the golden path (G-SW-02).
+3. Exclude CLOSED-as-invalid reports from the density heatmap if the product owner agrees (G-SW-05).
 4. With credentials: Supabase store + Auth + Storage (G-SB-01..03).
 5. With Python and data: CV fine-tuning on local photos, PINN training and ablation,
    OpenVINO CPU benchmark (G-03, G-04, G-05).

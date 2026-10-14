@@ -5,6 +5,7 @@ import { OperationsPosWimMapView } from '../../features/wim/OperationsPosWimMapV
 import { usePageContext } from '../../app/pageContext';
 import type { WorkspaceNav } from '../../app/navigation';
 import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
+import { DataNotice } from '../../components/ui/DataNotice';
 
 /** Shell view keys that the operations workspace renders. */
 export const OPERATIONS_WORKSPACE_NAVS: readonly WorkspaceNav[] = [
@@ -88,6 +89,9 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
       <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0f172a]">
         {/* "Where should we act now?" — the shared report queue comes first. */}
         <WorkflowQueueSection />
+        <DataNotice label="SIMULASI">
+          Telemetri WIM, plat nomor, dan tombol penindakan (BATM, ETLE, pengalihan rute) di bawah adalah data dan aksi simulasi; tidak terhubung ke sistem penindakan nyata. AI tidak menilang atau memblokir kendaraan.
+        </DataNotice>
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}
@@ -110,6 +114,9 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
   if (activeNav === 'MONITORING_KONDISI_JALAN' || activeNav === 'MONITORING_POS_WIM' || activeNav === 'MONITORING_ODOL' || activeNav === 'MONITORING_CUACA_BANJIR' || activeNav === 'TINDAKAN_REKAYASA') {
     return (
       <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#07090e]">
+        <DataNotice label="SIMULASI">
+          Data WIM, plat nomor, korelasi beban, dan tombol penindakan pada halaman ini adalah simulasi demo, bukan pengukuran atau tindakan nyata.
+        </DataNotice>
         <OperationsManagerAppView
           currentAccount={currentAccount}
           roadSegments={roadSegments}

@@ -24,7 +24,7 @@ export interface AuditEvent {
   id: string;
   at: string;
   actor: Actor;
-  entityType: 'REPORT_CASE';
+  entityType: 'REPORT_CASE' | 'SIMULATION';
   entityId: string;
   action: string;
   from: string | null;
@@ -32,11 +32,24 @@ export interface AuditEvent {
   reason: string;
 }
 
+/** A What-If run (always SIMULATED). The result is stored as returned by the engine. */
+export interface SimulationRecord {
+  id: string;
+  segmentId: string;
+  requestedBy: Actor;
+  at: string;
+  summary: string;
+  result: unknown;
+  dataStatus: 'SIMULATED';
+}
+
 export interface WorkflowSnapshot {
   /** Bumped on every commit; lets file stores detect torn writes. */
   revision: number;
   cases: ReportCase[];
   audit: AuditEvent[];
+  /** Optional so stores written before simulations were persisted still load. */
+  simulations?: SimulationRecord[];
 }
 
 export interface CaseStore {
@@ -77,6 +90,7 @@ export interface WorkflowDeps {
 export type ServiceResult<T> = { ok: true; value: T } | { ok: false; code: WorkflowErrorCode | 'NOT_FOUND' | 'STORAGE'; message: string };
 
 const MAX_AUDIT_EVENTS = 5000;
+const MAX_SIMULATIONS = 500;
 /** Format produced by the report factory (`REP-` + 16 uppercase hex characters). */
 const CLIENT_REPORT_ID = /^REP-[0-9A-F]{16}$/;
 
@@ -114,7 +128,7 @@ export class WorkflowService {
   private async commit(snapshot: WorkflowSnapshot, changed: ReportCase, events: AuditEvent[]): Promise<ServiceResult<ReportCase>> {
     const others = snapshot.cases.filter((c) => c.id !== changed.id);
     const audit = [...snapshot.audit, ...events].slice(-MAX_AUDIT_EVENTS);
-    const next: WorkflowSnapshot = { revision: snapshot.revision + 1, cases: [changed, ...others], audit };
+    const next: WorkflowSnapshot = { ...snapshot, revision: snapshot.revision + 1, cases: [changed, ...others], audit };
     try {
       await this.store.commit(next);
     } catch (error) {
@@ -166,9 +180,48 @@ export class WorkflowService {
         });
       });
       const audit = cases.map((c) => auditFrom(c.history[0], c.id));
-      await this.store.commit({ revision: snapshot.revision + 1, cases, audit: [...snapshot.audit, ...audit] });
+      await this.store.commit({ ...snapshot, revision: snapshot.revision + 1, cases, audit: [...snapshot.audit, ...audit] });
       return cases.length;
     });
+  }
+
+  /** Persist a What-If run with an audit event; returns the stored record. */
+  recordSimulation(input: Omit<SimulationRecord, 'id' | 'at' | 'dataStatus'>): Promise<ServiceResult<SimulationRecord>> {
+    return this.serialize(async () => {
+      const snapshot = await this.store.load();
+      const record: SimulationRecord = { ...input, id: this.deps.newId('SIM'), at: this.deps.now(), dataStatus: 'SIMULATED' };
+      const event: AuditEvent = {
+        id: `AUD-${record.id}`,
+        at: record.at,
+        actor: record.requestedBy,
+        entityType: 'SIMULATION',
+        entityId: record.id,
+        action: 'SIMULATION_RUN',
+        from: null,
+        to: null,
+        reason: `${record.segmentId}: ${record.summary}`
+      };
+      const next: WorkflowSnapshot = {
+        ...snapshot,
+        revision: snapshot.revision + 1,
+        simulations: [...(snapshot.simulations ?? []), record].slice(-MAX_SIMULATIONS),
+        audit: [...snapshot.audit, event].slice(-MAX_AUDIT_EVENTS)
+      };
+      try {
+        await this.store.commit(next);
+      } catch (error) {
+        return { ok: false, code: 'STORAGE', message: `The simulation was not saved: ${(error as Error).message}` };
+      }
+      return { ok: true, value: record };
+    });
+  }
+
+  async listSimulations(segmentId?: string): Promise<SimulationRecord[]> {
+    return ((await this.store.load()).simulations ?? []).filter((s) => !segmentId || s.segmentId === segmentId);
+  }
+
+  async getSimulation(id: string): Promise<SimulationRecord | null> {
+    return ((await this.store.load()).simulations ?? []).find((s) => s.id === id) ?? null;
   }
 
   async listCases(): Promise<ReportCase[]> {

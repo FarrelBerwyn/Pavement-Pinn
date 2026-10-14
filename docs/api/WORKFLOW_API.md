@@ -74,8 +74,8 @@ bodies never carry identity. Demo tokens are *not* authentication (see RBAC_MATR
 | `GET /api/road-segments/:id` | anyone | public segment fields (WIM vehicle records removed) + current estimate. |
 | `GET /api/road-segments/:id/assessment` | anyone | full assessment (inputs with provenance, traffic/ESAL with WIM status, weather, uncertainty) + deterministic explanation. |
 | `GET /api/road-segments/:id/story` | anyone | Road Story entries labelled OBSERVED/PREDICTED/SIMULATED/DECISION; staff see notes, the public does not. |
-| `POST /api/simulations` | FIELD_ENGINEER | `{ segmentId, scenario }`; inputs outside the engine range → 422. 201 `{ simulationId, result (label SIMULATION), persisted: false }`. |
-| `GET /api/simulations/:id` | official roles | kept in server memory only. |
+| `POST /api/simulations` | FIELD_ENGINEER | `{ segmentId, scenario }`; inputs outside the engine range → 422. 201 `{ simulationId, result (label SIMULATION), persisted: true }`; the run is stored and audited (`SIMULATION_RUN`). |
+| `GET /api/simulations/:id` | official roles | stored record (`dataStatus: SIMULATED`). |
 | `GET /api/provenance/{road_segment|assessment|report}/:id` | anyone | data status and source per field. |
 
 ## System

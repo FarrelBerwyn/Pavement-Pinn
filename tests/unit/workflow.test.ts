@@ -309,3 +309,18 @@ test('public view hides staff identities, reasons and notes', async () => {
   assert.deepEqual(view.timeline.map((t) => t.state), ['SUBMITTED', 'AI_SCREENING', 'NEEDS_REVIEW', 'VERIFIED', 'FIELD_INSPECTION_REQUESTED']);
   assert.equal(view.report.repairDetails?.engineerNote, undefined);
 });
+
+test('What-If runs are persisted as SIMULATED records with an audit event', async () => {
+  const { service, store } = setup();
+  const saved = ok(await service.recordSimulation({ segmentId: 'KRW-002', requestedBy: ENG, summary: 'thicker asphalt', result: { label: 'SIMULATION' } }));
+  assert.equal(saved.dataStatus, 'SIMULATED');
+  assert.deepEqual((await service.listSimulations('KRW-002')).map((s) => s.id), [saved.id]);
+  assert.equal((await service.getSimulation(saved.id))?.summary, 'thicker asphalt');
+  const audit = await service.listAudit({ entityId: saved.id, limit: 10, offset: 0 });
+  assert.equal(audit.items[0].action, 'SIMULATION_RUN');
+  assert.equal(audit.items[0].entityType, 'SIMULATION');
+  store.failNextCommit = true;
+  const failed = await service.recordSimulation({ segmentId: 'KRW-002', requestedBy: ENG, summary: 'x', result: null });
+  assert.equal(codeOf(failed), 'STORAGE');
+  assert.equal((await service.listSimulations()).length, 1);
+});

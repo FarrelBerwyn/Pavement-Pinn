@@ -2,6 +2,7 @@ import React from 'react';
 import { MyTasksView } from '../../features/work-orders/MyTasksView';
 import { usePageContext } from '../../app/pageContext';
 import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
+import { DataNotice } from '../../components/ui/DataNotice';
 
 /**
  * Routes: /engineering/tasks/ and /operations/tasks/ — tasks, inspections and work
@@ -15,6 +16,9 @@ export const WorkOrdersPage: React.FC = () => {
     <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#f8fafc]">
       {/* Shared workflow queue (server-backed). The task list below is the earlier demo planner. */}
       <WorkflowQueueSection />
+      <DataNotice label="DEMO LOKAL">
+        Perencana tugas di bawah adalah demo lama yang hanya hidup di browser (tidak tersimpan dan tidak terhubung ke laporan). Penugasan dan inspeksi resmi ada di antrian di atas.
+      </DataNotice>
       <MyTasksView
         currentAccount={currentAccount}
         roadSegments={roadSegments}

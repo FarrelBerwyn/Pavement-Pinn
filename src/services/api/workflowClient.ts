@@ -228,8 +228,6 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
   private readonly ready: Promise<number>;
   private seq = 0;
 
-  private readonly simulations = new Map<string, Array<{ at: string; summary: string }>>();
-
   constructor(
     seedReports: DamageReport[],
     private readonly roleOf: (id: string) => UserRole | null,
@@ -322,7 +320,8 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
     const cases = await this.service.listCases();
     const audience = this.actor.role !== 'SYSTEM' && isOfficialRole(this.actor.role) ? ('STAFF' as const) : ('PUBLIC' as const);
     const assessment = assessSegment(this.segment(segmentId), { now: new Date().toISOString(), cases });
-    return { audience, story: buildRoadStory(segmentId, cases, [assessment], this.simulations.get(segmentId) ?? [], audience), note: 'Offline demo: history exists only in this browser tab.' };
+    const sims = (await this.service.listSimulations(segmentId)).map((s) => ({ at: s.at, summary: s.summary }));
+    return { audience, story: buildRoadStory(segmentId, cases, [assessment], sims, audience), note: 'Offline demo: history exists only in this browser tab.' };
   }
 
   async simulate(segmentId: string, scenario: Partial<AssessmentInputs>): Promise<WhatIfResult> {
@@ -336,9 +335,7 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
       }
     }
     const result = runWhatIf(this.segment(segmentId), scenario, { now: new Date().toISOString(), cases: await this.service.listCases() });
-    const list = this.simulations.get(segmentId) ?? [];
-    list.push({ at: new Date().toISOString(), summary: result.explanation });
-    this.simulations.set(segmentId, list.slice(-20));
+    await this.service.recordSimulation({ segmentId, requestedBy: this.actor, summary: result.explanation, result });
     return result;
   }
 }

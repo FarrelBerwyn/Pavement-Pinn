@@ -151,8 +151,14 @@ brief `Update Fix All execute Agent.pdf` > existing repository > engineering jud
 ## D-032 What-If is engineer-only on the API (spec Lampiran L)
 
 - The legacy public simulator page (`/engine/simulation/`) is kept unchanged; the new
-  What-If API and panel follow the spec (Field Engineer). Simulations are kept in server
-  memory only and reported as `persisted: false`.
+  What-If API and panel follow the spec (Field Engineer). Runs are stored in the workflow
+  snapshot (`simulations`) with a `SIMULATION_RUN` audit event and labelled SIMULATED.
+
+## D-033 Legacy illustrative screens are labelled, not deleted
+
+- The executive policy view, WIM/ODOL operations views and the old task planner keep
+  their content (no feature removed) but carry visible ILUSTRATIF / SIMULASI / DEMO LOKAL
+  notices (`components/ui/DataNotice.tsx`). Removing the figures is a product decision.
 
 ## Open product questions (not decided here)
 

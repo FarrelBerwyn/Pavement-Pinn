@@ -90,7 +90,7 @@ Test files: `tests/unit/workflow.test.ts` (WF), `tests/integration/workflow-api.
 | REQ-MAP-003 | Road selection opens detail; risk/why/confidence | spec §21.4, §21.7 | segment sheet → `/roads/:id/` | browser | PASS | |
 | REQ-MAP-004 | Risk layer colouring on the map by estimate | spec §21.3 | — | — | PARTIAL | Map still colours by dataset PCI; estimate shown in detail |
 | REQ-WI-001 | What-If baseline vs scenario, deltas, SIMULATION label, sanity checks | spec §14 | `runWhatIf`, `WhatIfPanel`, `POST /api/simulations` | INT, IAPI, browser | PASS | |
-| REQ-WI-002 | Simulations persisted and retrievable | spec Lampiran L | `GET /api/simulations/:id` | IAPI | PARTIAL | Memory only (G-SW-01) |
+| REQ-WI-002 | Simulations persisted and retrievable | spec Lampiran L | `recordSimulation`, `GET /api/simulations/:id` | WF, IAPI | PASS | Local store (cloud BLOCKED, G-SB-01) |
 | REQ-RS-001 | Road Story with OBSERVED/PREDICTED/SIMULATED labels | spec §21.5 | `buildRoadStory`, `RoadStoryTimeline` | INT, IAPI, browser | PASS | No historical data yet |
 
 ## Responsible AI, security, quality (P6/P7/P8)

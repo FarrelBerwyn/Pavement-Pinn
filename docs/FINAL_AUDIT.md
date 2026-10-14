@@ -7,7 +7,7 @@ BLOCKED, NOT_IMPLEMENTED. Software completeness and scientific validation are se
 
 | Check | Result |
 |---|---|
-| `npm test` | 208 tests, 208 pass, 0 fail |
+| `npm test` | 209 tests, 209 pass, 0 fail |
 | `npm run lint` (tsc) | clean |
 | `npm run build` | SPA + server bundle built; existing warning: chunks > 500 kB |
 | Production bundle smoke test (`node dist/server.cjs`, port 3200) | `/api/health` 200, SPA route 200, `/api/system-health` OK, official audit 200, store written to `DATA_DIR` |
@@ -62,7 +62,8 @@ BLOCKED, NOT_IMPLEMENTED. Software completeness and scientific validation are se
   benchmark; it is labelled "simulasi" in some places, not all.
 - The task planner under the new queue (`MyTasksView`) is the earlier local demo planner.
 
-These should be relabelled or removed in a follow-up (G-SW-04).
+Each of these screens now carries a visible ILUSTRATIF / SIMULASI / DEMO LOKAL notice;
+removing or recomputing the figures remains a follow-up (G-SW-04).
 
 ## Software vs scientific status
 

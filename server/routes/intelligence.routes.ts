@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { Request, Response, Router } from "express";
 import { WORKFLOW_API_PATHS } from "../../src/types";
 import { isOfficialRole } from "../../src/domain/access";
@@ -11,8 +10,6 @@ import type { WorkflowRuntime } from "../services/workflowRuntime";
 import { actorFrom } from "../auth/actor";
 import { ALL_SEGMENTS, segmentById } from "../services/segments";
 
-/** What-If runs are kept in memory for the Road Story; they are SIMULATED and not persisted. */
-const MAX_SIMULATIONS_PER_SEGMENT = 20;
 
 export const ASSESSMENT_PATH = "/api/road-segments/:id/assessment";
 export const SIMULATIONS_PATH = "/api/simulations";
@@ -42,8 +39,6 @@ const SCENARIO_KEYS: Array<keyof AssessmentInputs> = [
 ];
 
 export function registerIntelligenceRoutes(router: Router, runtime: WorkflowRuntime): void {
-  const simulations = new Map<string, Array<{ at: string; summary: string }>>();
-  const simulationRecords = new Map<string, { id: string; segmentId: string; requestedBy: string; at: string; result: ReturnType<typeof runWhatIf> }>();
   const simulateLimit = rateLimit("what-if", 60, 60_000);
 
   router.get(WORKFLOW_API_PATHS.riskMap, async (_req: Request, res: Response) => {
@@ -86,7 +81,8 @@ export function registerIntelligenceRoutes(router: Router, runtime: WorkflowRunt
     const audience = actor && actor.role !== "SYSTEM" && isOfficialRole(actor.role) ? "STAFF" : "PUBLIC";
     const cases = await runtime.service.listCases();
     const assessment = assessSegment(segment, { now: new Date().toISOString(), cases });
-    const story = buildRoadStory(segment.id, cases, [assessment], simulations.get(segment.id) ?? [], audience);
+    const sims = (await runtime.service.listSimulations(segment.id)).map((s) => ({ at: s.at, summary: s.summary }));
+    const story = buildRoadStory(segment.id, cases, [assessment], sims, audience);
     res.json({ success: true, segmentId: segment.id, audience, story, note: "Historical condition data is not yet available (DATA REQUIRED); the story starts with the records in this system." });
   });
 
@@ -115,22 +111,20 @@ export function registerIntelligenceRoutes(router: Router, runtime: WorkflowRunt
     const cases = await runtime.service.listCases();
     const at = new Date().toISOString();
     const result = runWhatIf(segment, scenario, { now: at, cases });
-    const id = `SIM-${randomUUID().slice(0, 8).toUpperCase()}`;
-    simulationRecords.set(id, { id, segmentId: segment.id, requestedBy: actor.id, at, result });
-    if (simulationRecords.size > 500) simulationRecords.delete(simulationRecords.keys().next().value as string);
-    const list = simulations.get(segment.id) ?? [];
-    list.push({ at, summary: result.explanation });
-    simulations.set(segment.id, list.slice(-MAX_SIMULATIONS_PER_SEGMENT));
-    res.status(201).json({ success: true, simulationId: id, result, persisted: false });
+    const saved = await runtime.service.recordSimulation({ segmentId: segment.id, requestedBy: actor, summary: result.explanation, result });
+    if (saved.ok === false) {
+      return res.status(503).json({ success: false, error: { code: "STORAGE", message: (saved as { message: string }).message } });
+    }
+    res.status(201).json({ success: true, simulationId: saved.value.id, result, persisted: true });
   });
 
-  router.get(SIMULATION_PATH, (req: Request, res: Response) => {
+  router.get(SIMULATION_PATH, async (req: Request, res: Response) => {
     const actor = actorFrom(req, runtime);
     if (!actor || actor.role === "SYSTEM" || !isOfficialRole(actor.role)) {
       return res.status(actor ? 403 : 401).json({ success: false, error: { code: actor ? "FORBIDDEN" : "UNAUTHENTICATED", message: "Simulations are readable by official roles." } });
     }
-    const record = simulationRecords.get(req.params.id);
-    if (!record) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Simulation not found (simulations are kept in server memory only)." } });
+    const record = await runtime.service.getSimulation(req.params.id);
+    if (!record) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Simulation not found." } });
     res.json({ success: true, simulation: record });
   });
 

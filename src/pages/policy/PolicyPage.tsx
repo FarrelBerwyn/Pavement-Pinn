@@ -2,6 +2,7 @@ import React from 'react';
 import { ExecutivePolicyView, PolicyTabType } from '../../features/policy-analysis/ExecutivePolicyView';
 import { usePageContext } from '../../app/pageContext';
 import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
+import { DataNotice } from '../../components/ui/DataNotice';
 
 interface PolicyPageProps {
   /** Active executive tab — owned by the shell because its sidebar drives it. */
@@ -19,6 +20,9 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ policyNavTab, setPolicyN
   return (
     <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#07090e]">
       <WorkflowQueueSection />
+      <DataNotice label="ILUSTRATIF">
+        Angka anggaran, kerugian ekonomi, penghematan, dan proyeksi PCI pada tampilan eksekutif di bawah adalah nilai contoh dari prototipe, bukan keluaran model ekonomi atau PINN yang tervalidasi. Prioritas berbasis bukti ada pada tabel di atas.
+      </DataNotice>
       <ExecutivePolicyView
         currentAccount={currentAccount}
         roadSegments={roadSegments}

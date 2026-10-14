@@ -85,7 +85,7 @@ test('What-If: engineers only, 422 outside the validated range, stored SIMULATIO
   assert.equal(r.status, 201);
   assert.equal(r.body.result.label, 'SIMULATION');
   assert.equal(r.body.result.changed[0].parameter, 'asphaltThicknessCm');
-  assert.equal(r.body.persisted, false);
+  assert.equal(r.body.persisted, true);
 
   const tooThick = await call('POST', '/api/simulations', { segmentId: 'KRW-002', scenario: { asphaltThicknessCm: 40 } }, eng);
   assert.equal(tooThick.status, 422);
@@ -96,7 +96,8 @@ test('What-If: engineers only, 422 outside the validated range, stored SIMULATIO
   const ops = await login('USR-008');
   const read = await call('GET', `/api/simulations/${r.body.simulationId}`, undefined, ops);
   assert.equal(read.status, 200);
-  assert.equal(read.body.simulation.requestedBy, 'USR-006');
+  assert.equal(read.body.simulation.requestedBy.id, 'USR-006');
+  assert.equal(read.body.simulation.dataStatus, 'SIMULATED');
   assert.equal((await call('GET', `/api/simulations/${r.body.simulationId}`, undefined, citizen)).status, 403);
 });
 
