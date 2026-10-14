@@ -1,5 +1,59 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens (spec v2.2 §21.10–21.11, execution brief §Z). One source for the risk
+ * palette, radii and motion; components use these instead of ad-hoc values. Tailwind v4
+ * exposes @theme colors as utilities (e.g. bg-risk-high, text-risk-good).
+ */
+@theme {
+  --color-risk-high: #e5484d;
+  --color-risk-watch: #f5a524;
+  --color-risk-moderate: #f2c94c;
+  --color-risk-good: #2fb344;
+  --color-info: #3b82f6;
+  --color-simulation: #8b5cf6;
+  --color-focus: #7dd3fc;
+
+  --radius-card: 8px;
+  --radius-sheet: 16px;
+
+  /* Motion: short, purposeful, ease-out on enter. */
+  --duration-micro: 120ms;
+  --duration-hover: 160ms;
+  --duration-popover: 200ms;
+  --duration-sheet: 260ms;
+  --ease-enter: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --default-transition-duration: var(--duration-hover);
+  --default-transition-timing-function: var(--ease-enter);
+}
+
+/* One visible keyboard focus treatment everywhere (mouse clicks do not show it). */
+:where(button, a[href], input, select, textarea, summary, [role="button"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Disabled controls look and feel disabled. */
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+
+/*
+ * Reduced motion: keep state changes visible but drop transforms, flights and looping
+ * decoration. Map cameras check the same preference in code (components/ui/motion.ts).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 html, body, #root {
   height: 100%;
   height: 100dvh;

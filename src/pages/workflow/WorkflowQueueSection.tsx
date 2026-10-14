@@ -14,10 +14,10 @@ import { ReportWorkflowPanel, StateBadge } from '../../features/workflow/ReportW
 import { engineerQueue, isOverdue, operationsQueue, segmentPriorities, type QueueBucket } from '../../features/workflow/queues';
 
 const RISK_STYLE: Record<string, string> = {
-  HIGH: 'bg-[#E5484D]/15 text-[#ff9a9d] border-[#E5484D]/40',
-  WATCH: 'bg-[#F5A524]/15 text-[#ffc56b] border-[#F5A524]/40',
-  MODERATE: 'bg-[#F2C94C]/15 text-[#f5dc8a] border-[#F2C94C]/40',
-  GOOD: 'bg-[#2FB344]/15 text-[#7ee08c] border-[#2FB344]/40'
+  HIGH: 'bg-risk-high/15 text-[#ff9a9d] border-risk-high/40',
+  WATCH: 'bg-risk-watch/15 text-[#ffc56b] border-risk-watch/40',
+  MODERATE: 'bg-risk-moderate/15 text-[#f5dc8a] border-risk-moderate/40',
+  GOOD: 'bg-risk-good/15 text-[#7ee08c] border-risk-good/40'
 };
 
 export const WorkflowQueueSection: React.FC = () => {

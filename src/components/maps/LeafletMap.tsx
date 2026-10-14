@@ -31,6 +31,7 @@ import { DEMO_DATA_LABEL, DEMO_DATA_NOTE } from '../../data/provenance';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
 import { createSessionReport, ReportCreationError } from '../../features/community-reports/reportFactory';
 import { settleMutation } from '../../features/community-reports/reportMutations';
+import { prefersReducedMotion } from '../ui/motion';
 import {
   Filter,
   Search,
@@ -57,6 +58,11 @@ import {
  * layers out of register. Same-zoom moves therefore pan instead.
  */
 function moveCamera(map: L.Map, center: L.LatLngExpression, zoom: number, options?: L.ZoomPanOptions): void {
+  // Reduced motion: jump instead of flying (setView without animation keeps layers aligned).
+  if (mapHasSize(map) && prefersReducedMotion()) {
+    map.setView(center, zoom, { animate: false });
+    return;
+  }
   if (mapHasSize(map) && map.getZoom() === zoom) {
     map.setView(center, zoom, { duration: options?.duration });
     return;

@@ -11,16 +11,16 @@ import type { StoryEntry, StoryKind } from '../../domain/intelligence/roadStory'
 import type { WhatIfResult } from '../../domain/intelligence/whatIf';
 
 const RISK: Record<RiskLevel, { label: string; className: string; sentence: string }> = {
-  HIGH: { label: 'Risiko tinggi', className: 'bg-[#E5484D]/15 text-[#ffb1b3] border-[#E5484D]/50', sentence: 'Ruas ini mungkin perlu perhatian.' },
-  WATCH: { label: 'Perlu diawasi', className: 'bg-[#F5A524]/15 text-[#ffd08a] border-[#F5A524]/50', sentence: 'Tanda kerusakan berkembang.' },
-  MODERATE: { label: 'Sedang', className: 'bg-[#F2C94C]/15 text-[#f5dc8a] border-[#F2C94C]/50', sentence: 'Pantau secara rutin.' },
-  GOOD: { label: 'Baik', className: 'bg-[#2FB344]/15 text-[#8be597] border-[#2FB344]/50', sentence: 'Indikator saat ini relatif baik.' }
+  HIGH: { label: 'Risiko tinggi', className: 'bg-risk-high/15 text-[#ffb1b3] border-risk-high/50', sentence: 'Ruas ini mungkin perlu perhatian.' },
+  WATCH: { label: 'Perlu diawasi', className: 'bg-risk-watch/15 text-[#ffd08a] border-risk-watch/50', sentence: 'Tanda kerusakan berkembang.' },
+  MODERATE: { label: 'Sedang', className: 'bg-risk-moderate/15 text-[#f5dc8a] border-risk-moderate/50', sentence: 'Pantau secara rutin.' },
+  GOOD: { label: 'Baik', className: 'bg-risk-good/15 text-[#8be597] border-risk-good/50', sentence: 'Indikator saat ini relatif baik.' }
 };
 
 const KIND: Record<StoryKind, { label: string; className: string }> = {
   OBSERVED: { label: 'OBSERVED', className: 'border-emerald-500/50 text-emerald-200 bg-emerald-500/10' },
   PREDICTED: { label: 'PREDICTED', className: 'border-sky-500/50 text-sky-200 bg-sky-500/10' },
-  SIMULATED: { label: 'SIMULATED', className: 'border-[#8B5CF6]/60 text-violet-200 bg-[#8B5CF6]/10' },
+  SIMULATED: { label: 'SIMULATED', className: 'border-simulation/60 text-violet-200 bg-simulation/10' },
   DECISION: { label: 'DECISION', className: 'border-slate-500/50 text-slate-200 bg-slate-600/20' }
 };
 
@@ -200,7 +200,7 @@ export const WhatIfPanel: React.FC<{
     <section className={card} aria-label="What-If">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-white">Coba skenario (What-If)</h3>
-        <span className={`${tag} border-[#8B5CF6]/60 text-violet-200 bg-[#8B5CF6]/10`}>SIMULATION</span>
+        <span className={`${tag} border-simulation/60 text-violet-200 bg-simulation/10`}>SIMULATION</span>
       </div>
       <p className="text-[11px] text-slate-400">Mengubah parameter tidak mengubah data lapangan. Hasil dihitung mesin RULE_BASED dan bukan fakta lapangan.</p>
       <div className="grid gap-3 sm:grid-cols-2">
