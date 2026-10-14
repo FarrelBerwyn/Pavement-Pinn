@@ -25,7 +25,7 @@ export function createApp(options: AppOptions = {}): Express {
     next();
   });
   // Report bodies may carry one photo (base64, max 5 MB decoded); every other route keeps the 100 kB default.
-  app.use([WORKFLOW_API_PATHS.reports, WORKFLOW_API_PATHS.content], express.json({ limit: "7mb" }));
+  app.use([WORKFLOW_API_PATHS.reports, WORKFLOW_API_PATHS.content, "/api/reports"], express.json({ limit: "7mb" }));
   app.use(express.json());
   app.use(createApiRouter(workflow));
 

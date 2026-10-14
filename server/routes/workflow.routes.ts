@@ -35,6 +35,9 @@ const STATUS: Record<ErrorCode, number> = {
   DISABLED: 403
 };
 
+/** Endpoint paths named in spec v2.2 Lampiran L, served as aliases of the workflow routes. */
+export const SPEC_PATHS = { reports: "/api/reports", login: "/api/auth/login" } as const;
+
 function sendError(res: Response, code: ErrorCode, message: string): void {
   res.status(STATUS[code]).json({ success: false, error: { code, message } });
 }
@@ -80,18 +83,22 @@ function parseVersion(value: unknown): number | null {
 export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime): void {
   const { service, signer } = runtime;
   const writeLimit = rateLimit("workflow-write", 120, 60_000);
-  const submitLimit = rateLimit("report-submit", 10, 60_000);
+  // Spec Lampiran L / §20.2: 10 reports per hour per client.
+  const submitLimit = rateLimit("report-submit", 10, 60 * 60_000);
   const sessionLimit = rateLimit("session", 60, 60_000);
 
   // --- Identity -------------------------------------------------------------------
-  router.post(WORKFLOW_API_PATHS.demoSession, sessionLimit, (req: Request, res: Response) => {
+  const demoSessionHandler = (req: Request, res: Response) => {
     if (!runtime.demoAuthEnabled) return sendError(res, "DISABLED", "Demo sessions are disabled on this server.");
     const account = USER_ACCOUNTS.find((a) => a.id === req.body?.accountId);
     if (!account) return sendError(res, "VALIDATION", "Unknown demo account.");
     const actor: Actor = { id: account.id, role: account.role, kind: "DEMO_ACCOUNT" };
     const { token, expiresAt } = signer.issue(actor);
     res.json({ success: true, token, expiresAt, actor, authentication: "DEMO (no credentials checked)" });
-  });
+  };
+  router.post(WORKFLOW_API_PATHS.demoSession, sessionLimit, demoSessionHandler);
+  // Spec path (Lampiran L). Demo mode only: it is the account picker, not a credential check.
+  router.post(SPEC_PATHS.login, sessionLimit, demoSessionHandler);
 
   router.post(WORKFLOW_API_PATHS.anonymousSession, sessionLimit, (_req: Request, res: Response) => {
     // The id is chosen by the server, so a browser cannot pick (or reuse) someone else's.
@@ -130,7 +137,7 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
     res.json({ success: true, report: view });
   });
 
-  router.post(WORKFLOW_API_PATHS.reports, submitLimit, async (req: Request, res: Response) => {
+  const submitHandler = async (req: Request, res: Response) => {
     await runtime.ready;
     const actor = actorFrom(req, runtime);
     if (!actor) return sendError(res, "UNAUTHENTICATED", "Start a session first (anonymous sessions are allowed).");
@@ -147,7 +154,10 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
       return;
     }
     sendResult(res, result, actor, 201);
-  });
+  };
+  router.post(WORKFLOW_API_PATHS.reports, submitLimit, submitHandler);
+  // Spec path (Lampiran L): same handler and limits.
+  router.post(SPEC_PATHS.reports, submitLimit, submitHandler);
 
   router.post(WORKFLOW_API_PATHS.transitions, writeLimit, async (req: Request, res: Response) => {
     await runtime.ready;

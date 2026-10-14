@@ -37,7 +37,7 @@ const Fact: React.FC<{ label: string; value: React.ReactNode }> = ({ label, valu
  * records (licence plates, per-truck weights) are NOT shown here.
  */
 export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ params }) => {
-  const { closePage, roadSegments, communityReports, onSelectSegment, onLaunchSimulation, setActiveNav } = usePageContext();
+  const { closePage, roadSegments, communityReports, onSelectSegment, onLaunchSimulation, setActiveNav, isFieldEngineer } = usePageContext();
   const segment = roadSegments.find((item) => item.id === params.roadId);
   const { workflow } = useAppState();
   const [insight, setInsight] = useState<{ assessment: EngineeringAssessment; explanation: StructuredExplanation } | null>(null);
@@ -134,7 +134,12 @@ export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ p
       {!insight && !insightError && <p className="text-[11px] text-slate-400">Memuat analisis ruas…</p>}
       {insight && <SegmentRiskCard assessment={insight.assessment} explanation={insight.explanation} />}
       {story && <RoadStoryTimeline story={story.story} note={story.note} />}
-      {insight && (
+      {insight && !isFieldEngineer && (
+        <p className="rounded-2xl border border-white/10 bg-[#121622] p-4 text-[11px] text-slate-400">
+          What-If (simulasi skenario) tersedia untuk Field Engineer. Hasil simulasi yang sudah dijalankan tampil di Road Story dengan label SIMULATED.
+        </p>
+      )}
+      {insight && isFieldEngineer && (
         <WhatIfPanel
           baseline={insight.assessment.inputs}
           onRun={async (scenario) => {

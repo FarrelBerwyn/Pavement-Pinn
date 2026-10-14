@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Request, Response, Router } from "express";
 import { WORKFLOW_API_PATHS } from "../../src/types";
 import { isOfficialRole } from "../../src/domain/access";
@@ -15,6 +16,20 @@ const MAX_SIMULATIONS_PER_SEGMENT = 20;
 
 export const ASSESSMENT_PATH = "/api/road-segments/:id/assessment";
 export const SIMULATIONS_PATH = "/api/simulations";
+export const SIMULATION_PATH = "/api/simulations/:id";
+export const SEGMENT_PATH = "/api/road-segments/:id";
+export const PROVENANCE_PATH = "/api/provenance/:entityType/:id";
+
+/** Validated ranges for scenario inputs (engine ranges; spec Lampiran L: out of range → 422). */
+const SCENARIO_RANGES: Record<keyof AssessmentInputs, [number, number]> = {
+  axleLoadTon: [10, 25],
+  rainIntensityMmHr: [0, 100],
+  floodDurationHours: [0, 48],
+  surfaceTemperatureC: [25, 60],
+  subgradeCbrPercent: [3, 10],
+  asphaltThicknessCm: [5, 25],
+  asphaltModulusMpa: [1200, 3500]
+};
 
 const SCENARIO_KEYS: Array<keyof AssessmentInputs> = [
   "axleLoadTon",
@@ -28,6 +43,7 @@ const SCENARIO_KEYS: Array<keyof AssessmentInputs> = [
 
 export function registerIntelligenceRoutes(router: Router, runtime: WorkflowRuntime): void {
   const simulations = new Map<string, Array<{ at: string; summary: string }>>();
+  const simulationRecords = new Map<string, { id: string; segmentId: string; requestedBy: string; at: string; result: ReturnType<typeof runWhatIf> }>();
   const simulateLimit = rateLimit("what-if", 60, 60_000);
 
   router.get(WORKFLOW_API_PATHS.riskMap, async (_req: Request, res: Response) => {
@@ -74,8 +90,12 @@ export function registerIntelligenceRoutes(router: Router, runtime: WorkflowRunt
     res.json({ success: true, segmentId: segment.id, audience, story, note: "Historical condition data is not yet available (DATA REQUIRED); the story starts with the records in this system." });
   });
 
+  // POST /api/simulations — spec Lampiran L: Field Engineer only; out-of-range → 422.
   router.post(SIMULATIONS_PATH, simulateLimit, async (req: Request, res: Response) => {
     await runtime.ready;
+    const actor = actorFrom(req, runtime);
+    if (!actor) return res.status(401).json({ success: false, error: { code: "UNAUTHENTICATED", message: "What-If simulation requires an engineer session." } });
+    if (actor.role !== "FIELD_ENGINEER") return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "What-If simulation is limited to field engineers." } });
     const segment = segmentById(String(req.body?.segmentId ?? ""));
     if (!segment) return res.status(400).json({ success: false, error: { code: "VALIDATION", message: "segmentId must be a known road segment." } });
     const raw = req.body?.scenario ?? {};
@@ -83,16 +103,95 @@ export function registerIntelligenceRoutes(router: Router, runtime: WorkflowRunt
     for (const key of SCENARIO_KEYS) {
       const v = raw[key];
       if (v === undefined) continue;
-      if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1000) {
-        return res.status(400).json({ success: false, error: { code: "VALIDATION", message: `${key} must be a non-negative number.` } });
+      if (typeof v !== "number" || !Number.isFinite(v)) {
+        return res.status(400).json({ success: false, error: { code: "VALIDATION", message: `${key} must be a number.` } });
+      }
+      const [lo, hi] = SCENARIO_RANGES[key];
+      if (v < lo || v > hi) {
+        return res.status(422).json({ success: false, error: { code: "OUTSIDE_VALIDATED_RANGE", message: `Outside validated range: ${key} must be ${lo}–${hi}.` } });
       }
       scenario[key] = v;
     }
     const cases = await runtime.service.listCases();
-    const result = runWhatIf(segment, scenario, { now: new Date().toISOString(), cases });
+    const at = new Date().toISOString();
+    const result = runWhatIf(segment, scenario, { now: at, cases });
+    const id = `SIM-${randomUUID().slice(0, 8).toUpperCase()}`;
+    simulationRecords.set(id, { id, segmentId: segment.id, requestedBy: actor.id, at, result });
+    if (simulationRecords.size > 500) simulationRecords.delete(simulationRecords.keys().next().value as string);
     const list = simulations.get(segment.id) ?? [];
-    list.push({ at: new Date().toISOString(), summary: result.explanation });
+    list.push({ at, summary: result.explanation });
     simulations.set(segment.id, list.slice(-MAX_SIMULATIONS_PER_SEGMENT));
-    res.json({ success: true, result });
+    res.status(201).json({ success: true, simulationId: id, result, persisted: false });
+  });
+
+  router.get(SIMULATION_PATH, (req: Request, res: Response) => {
+    const actor = actorFrom(req, runtime);
+    if (!actor || actor.role === "SYSTEM" || !isOfficialRole(actor.role)) {
+      return res.status(actor ? 403 : 401).json({ success: false, error: { code: actor ? "FORBIDDEN" : "UNAUTHENTICATED", message: "Simulations are readable by official roles." } });
+    }
+    const record = simulationRecords.get(req.params.id);
+    if (!record) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Simulation not found (simulations are kept in server memory only)." } });
+    res.json({ success: true, simulation: record });
+  });
+
+  // GET /api/road-segments/{id} — public segment facts plus the current estimate.
+  router.get(SEGMENT_PATH, async (req: Request, res: Response) => {
+    await runtime.ready;
+    const segment = segmentById(req.params.id);
+    if (!segment) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Unknown road segment." } });
+    const cases = await runtime.service.listCases();
+    const a = assessSegment(segment, { now: new Date().toISOString(), cases });
+    const { wimDetails: _wim, activeWimStatus: _status, ...publicSegment } = segment;
+    void _wim;
+    void _status;
+    res.json({
+      success: true,
+      segment: publicSegment,
+      estimate: { risk: a.risk, conditionScorePrototype: a.outputs.conditionScorePrototype, confidence: a.confidence, engine: a.engine, validationStatus: a.validationStatus },
+      openReports: cases.filter((c) => c.segmentId === segment.id && c.state !== "CLOSED" && c.state !== "RESOLVED").length
+    });
+  });
+
+  // GET /api/provenance/{entity_type}/{id}
+  router.get(PROVENANCE_PATH, async (req: Request, res: Response) => {
+    await runtime.ready;
+    const { entityType, id } = req.params;
+    if (entityType === "road_segment") {
+      const segment = segmentById(id);
+      if (!segment) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Unknown road segment." } });
+      return res.json({
+        success: true,
+        entityType,
+        id,
+        records: [
+          { field: "attributes (PCI, CBR, thickness, traffic)", dataStatus: segment.attributeStatus ?? "SYNTHETIC", source: "Bundled demo dataset", confidence: "LOW" },
+          { field: "geometry", dataStatus: segment.geometryStatus ?? "ILLUSTRATIVE", source: "Hand-placed points; digitisation DATA REQUIRED (G-01)", confidence: "LOW" },
+          { field: "WIM", dataStatus: "WIM_NOT_AVAILABLE", source: "No official WIM feed connected (G-02)", confidence: "LOW" }
+        ]
+      });
+    }
+    if (entityType === "assessment") {
+      const segment = segmentById(id);
+      if (!segment) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Use the road segment id for assessment provenance." } });
+      const a = assessSegment(segment, { now: new Date().toISOString(), cases: await runtime.service.listCases() });
+      return res.json({ success: true, entityType, id: a.id, engine: a.engine, modelVersion: a.modelVersion, validationStatus: a.validationStatus, inputs: a.inputProvenance, uncertainty: a.uncertaintyReasons });
+    }
+    if (entityType === "report") {
+      const c = await runtime.service.getCase(id);
+      if (!c) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Report not found." } });
+      const demo = c.dataStatus === "SYNTHETIC";
+      return res.json({
+        success: true,
+        entityType,
+        id,
+        records: [
+          { field: "report content", dataStatus: c.dataStatus, source: demo ? "Bundled demo dataset" : "Citizen submission" },
+          { field: "photo", dataStatus: demo ? "ILLUSTRATIVE" : "USER_GENERATED", source: demo ? "Stock image" : "Uploaded with the report" },
+          { field: "automated screening", dataStatus: c.screening ? c.screening.modelStatus : "NOT_RUN", source: c.screening?.modelVersion ?? "none" },
+          { field: "field inspection", dataStatus: c.inspection ? "OBSERVED" : "NOT_AVAILABLE", source: c.inspection ? "Assigned field engineer" : "No inspection yet" }
+        ]
+      });
+    }
+    res.status(400).json({ success: false, error: { code: "VALIDATION", message: "entity_type must be road_segment, assessment or report." } });
   });
 }

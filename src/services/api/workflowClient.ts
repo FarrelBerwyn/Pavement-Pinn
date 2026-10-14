@@ -19,7 +19,7 @@ import { DEMO_CV_PROVIDER } from '../../domain/workflow/screening';
 import { canEditReport, isOfficialRole } from '../../domain/access';
 import type { ReportDraft } from '../../domain/reports/reportFactory';
 import type { RoadSegment } from '../../types';
-import { assessSegment, type AssessmentInputs, type EngineeringAssessment } from '../../domain/intelligence/assessment';
+import { assessSegment, ENGINE_INPUT_RANGES, type AssessmentInputs, type EngineeringAssessment } from '../../domain/intelligence/assessment';
 import { explainAssessment, type StructuredExplanation } from '../../domain/intelligence/explain';
 import { runWhatIf, type WhatIfResult } from '../../domain/intelligence/whatIf';
 import { buildRoadStory, type StoryEntry } from '../../domain/intelligence/roadStory';
@@ -327,6 +327,14 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
 
   async simulate(segmentId: string, scenario: Partial<AssessmentInputs>): Promise<WhatIfResult> {
     await this.ready;
+    // Same rules as POST /api/simulations: engineers only, inputs inside the validated range.
+    if (this.actor.role !== 'FIELD_ENGINEER') throw new WorkflowApiError('FORBIDDEN', 'What-If simulation is limited to field engineers.', 403);
+    for (const [key, value] of Object.entries(scenario) as Array<[keyof typeof ENGINE_INPUT_RANGES, number]>) {
+      const range = ENGINE_INPUT_RANGES[key];
+      if (range && (value < range[0] || value > range[1])) {
+        throw new WorkflowApiError('OUTSIDE_VALIDATED_RANGE', `Outside validated range: ${key} must be ${range[0]}–${range[1]}.`, 422);
+      }
+    }
     const result = runWhatIf(this.segment(segmentId), scenario, { now: new Date().toISOString(), cases: await this.service.listCases() });
     const list = this.simulations.get(segmentId) ?? [];
     list.push({ at: new Date().toISOString(), summary: result.explanation });
