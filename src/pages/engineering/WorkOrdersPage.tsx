@@ -1,6 +1,7 @@
 import React from 'react';
 import { MyTasksView } from '../../features/work-orders/MyTasksView';
 import { usePageContext } from '../../app/pageContext';
+import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
 
 /**
  * Routes: /engineering/tasks/ and /operations/tasks/ — tasks, inspections and work
@@ -12,6 +13,8 @@ export const WorkOrdersPage: React.FC = () => {
 
   return (
     <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#f8fafc]">
+      {/* Shared workflow queue (server-backed). The task list below is the earlier demo planner. */}
+      <WorkflowQueueSection />
       <MyTasksView
         currentAccount={currentAccount}
         roadSegments={roadSegments}

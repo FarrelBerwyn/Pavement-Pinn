@@ -77,6 +77,8 @@ export interface WorkflowDeps {
 export type ServiceResult<T> = { ok: true; value: T } | { ok: false; code: WorkflowErrorCode | 'NOT_FOUND' | 'STORAGE'; message: string };
 
 const MAX_AUDIT_EVENTS = 5000;
+/** Format produced by the report factory (`REP-` + 16 uppercase hex characters). */
+const CLIENT_REPORT_ID = /^REP-[0-9A-F]{16}$/;
 
 function auditFrom(record: TransitionRecord, entityId: string): AuditEvent {
   return {
@@ -200,6 +202,12 @@ export class WorkflowService {
         throw error;
       }
       const snapshot = await this.store.load();
+      // Keep the client's factory id when it is well-formed and unused, so the UI can keep
+      // its optimistic selection; anything else gets the server-generated id.
+      const clientId = (draft as { id?: unknown }).id;
+      if (typeof clientId === 'string' && CLIENT_REPORT_ID.test(clientId) && !snapshot.cases.some((c) => c.id === clientId)) {
+        report = { ...report, id: clientId };
+      }
       const created = createReportCase(report, actor, { now, newId: this.deps.newId, claimTokenHash, dataStatus: 'USER_GENERATED' });
       const events = [auditFrom(created.record, created.next.id)];
 

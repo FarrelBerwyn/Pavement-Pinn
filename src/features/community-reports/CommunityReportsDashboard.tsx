@@ -30,13 +30,15 @@ import {
   ReportSeverity,
   ReportStatus,
   RoadSegment,
-  UserRole
+  UserRole,
+  ReportMutationHandler
 } from '../../types';
 import { UserAccount } from '../authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from './ReportDetailModal';
 import { resolveLiveReport } from './reportState';
 import { createSessionReport, ReportCreationError } from './reportFactory';
+import { settleMutation } from './reportMutations';
 import { canEditReport } from '../rbac/accessPolicy';
 import { ReportRoadIssueCard } from './ReportRoadIssueCard';
 
@@ -45,8 +47,10 @@ interface CommunityReportsDashboardProps {
   currentAccount: UserAccount;
   roadSegments: RoadSegment[];
   reports: DamageReport[];
-  onAddReport: (newReport: DamageReport) => void;
-  onEditReport?: (updatedReport: DamageReport) => void;
+  onAddReport: ReportMutationHandler;
+  onEditReport?: ReportMutationHandler;
+  /** Renders the workflow panel for a report (tracking timeline, staff actions). */
+  renderWorkflowPanel?: (reportId: string) => React.ReactNode;
   onUpvoteReport: (reportId: string) => void;
   onSelectSegmentForMap: (segmentId: string) => void;
   onRunSimulationForSegment: (segment: RoadSegment) => void;
@@ -59,6 +63,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
   reports,
   onAddReport,
   onEditReport,
+  renderWorkflowPanel,
   onUpvoteReport,
   onSelectSegmentForMap,
   onRunSimulationForSegment
@@ -137,7 +142,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
   };
 
   // Handle Edit Submission
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingReport || !onEditReport) return;
     // Same ownership rule as the edit button; a stale dialog saves nothing.
@@ -170,12 +175,16 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       photoUrl: PHOTO_PRESETS[editPhotoPresetIndex]?.url || editingReport.photoUrl
     };
 
-    onEditReport(updated);
+    const outcome = await settleMutation(onEditReport(updated), updated);
+    if (outcome.ok === false) {
+      alert(`Perubahan belum tersimpan: ${(outcome as { error: string }).error}`);
+      return;
+    }
     setEditingReport(null);
   };
 
   // Handle Form Submission for New Report
-  const handleSubmitReport = (e: React.FormEvent) => {
+  const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!description.trim()) {
@@ -260,7 +269,11 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       throw error;
     }
 
-    onAddReport(newReport);
+    const outcome = await settleMutation(onAddReport(newReport), newReport);
+    if (outcome.ok === false) {
+      alert(`Laporan belum tersimpan: ${(outcome as { error: string }).error}`);
+      return;
+    }
     setIsFormOpen(false);
     setDescription('');
   };
@@ -500,9 +513,10 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
         currentAccount={currentAccount}
         roadSegments={roadSegments}
         selectedSegment={currentSelectedSegment}
-        onAddReport={(newRep) => {
-          onAddReport(newRep);
-          setIsFormOpen(false);
+        onAddReport={async (newRep) => {
+          const outcome = await settleMutation(onAddReport(newRep), newRep);
+          if (outcome.ok) setIsFormOpen(false);
+          return outcome;
         }}
         onFocusMapLocation={(coords) => {
           setIsFormOpen(false);
@@ -732,6 +746,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
         onUpvote={onUpvoteReport}
         onStartEdit={(rep) => handleOpenEdit(rep)}
         currentAccount={currentAccount}
+        workflowPanel={selectedDetailReport && renderWorkflowPanel ? renderWorkflowPanel(selectedDetailReport.id) : null}
         onFocusMap={(rep) => {
           setSelectedDetailReport(null);
           onSelectSegmentForMap(rep.segmentId);

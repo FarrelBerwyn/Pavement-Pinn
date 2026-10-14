@@ -112,10 +112,11 @@ test('content-edit policy does not block Field Engineer verification through the
   );
   assert.equal(viewReportsAs(state, fe.id).find((r) => r.id === budiReport.id)!.status, 'VERIFIED_BY_ENGINEER');
 
-  // The verify button is gated by the engineer flag, not by canEditReport.
+  // Since P3 the engineer verifies through the workflow (assigned inspection), rendered in the
+  // sheet's workflow panel; the sheet no longer writes a verification status directly.
   const sheet = readFileSync('src/features/community-reports/ReportDetailBottomSheet.tsx', 'utf8');
-  assert.match(sheet, /\{isFieldEngineer && \(/);
-  assert.match(sheet, /status: 'VERIFIED_BY_ENGINEER'/);
+  assert.match(sheet, /\{workflowPanel\}/);
+  assert.doesNotMatch(sheet, /status: 'VERIFIED_BY_ENGINEER'/);
 });
 
 test('every edit gate and save handler uses canEditReport; no name or role-only gates remain', () => {

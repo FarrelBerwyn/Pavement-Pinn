@@ -21,7 +21,7 @@ import {
   clusterByPixelDistance,
   minZoomForViewportHeight
 } from './mapDetail';
-import { DamageReport, DamageType, ReportSeverity, RoadSegment, UserRole } from '../../types';
+import { DamageReport, DamageType, ReportMutationHandler, ReportSeverity, RoadSegment, UserRole } from '../../types';
 import { UserAccount } from '../../features/authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
@@ -30,6 +30,7 @@ import { Language, TRANSLATIONS } from '../../i18n/translations';
 import { DEMO_DATA_LABEL, DEMO_DATA_NOTE } from '../../data/provenance';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
 import { createSessionReport, ReportCreationError } from '../../features/community-reports/reportFactory';
+import { settleMutation } from '../../features/community-reports/reportMutations';
 import {
   Filter,
   Search,
@@ -71,7 +72,7 @@ export interface LeafletMapProps {
   activeRole?: UserRole;
   onNavigateToDashboard?: () => void;
   communityReports?: DamageReport[];
-  onAddReport?: (newReport: DamageReport) => void;
+  onAddReport?: ReportMutationHandler;
   onUpvoteReport?: (reportId: string) => void;
   currentAccount?: UserAccount;
   isCommunityReportCardOpen?: boolean;
@@ -279,7 +280,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         wim.province === activeFormSegment?.province
     ) || ALL_BINA_MARGA_WIM_STATIONS[0];
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formDescription.trim()) {
       alert('Mohon masukkan deskripsi kerusakan jalan!');
@@ -364,7 +365,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
 
     if (onAddReport) {
-      onAddReport(newReport);
+      const outcome = await settleMutation(onAddReport(newReport), newReport);
+      if (outcome.ok === false) {
+        alert(`Laporan belum tersimpan: ${(outcome as { error: string }).error}`);
+        return;
+      }
     }
 
     setIsReportFormOpen(false);

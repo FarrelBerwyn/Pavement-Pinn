@@ -77,6 +77,12 @@ test('server identity wins: client-sent ids and creator fields are discarded', a
   assert.equal(c.report.creatorRole, 'PUBLIC_VIEWER');
   assert.equal(c.claimTokenHash, 'hash');
   assert.equal(c.state, 'NEEDS_REVIEW');
+
+  // A well-formed, unused factory id is kept (UI selection); a reused one is replaced.
+  const kept = ok(await service.submitReport({ ...draft(), id: 'REP-00112233AABBCCDD' } as unknown as ReportDraft, CITIZEN, null));
+  assert.equal(kept.id, 'REP-00112233AABBCCDD');
+  const reused = ok(await service.submitReport({ ...draft(), id: 'REP-00112233AABBCCDD' } as unknown as ReportDraft, CITIZEN, null));
+  assert.notEqual(reused.id, 'REP-00112233AABBCCDD');
 });
 
 test('only a REAL model with enough confidence passes screening automatically', () => {

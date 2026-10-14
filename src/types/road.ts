@@ -51,4 +51,10 @@ export interface RoadSegment {
     timestamp: string;
   };
   wimDetails?: WimStationDetails;
+  /** Canonical Karawang pilot segment (spec v2.2 §6.0, KRW-001..004). */
+  pilot?: boolean;
+  /** Provenance of the segment attributes (PCI, CBR, thickness, traffic). */
+  attributeStatus?: 'SYNTHETIC' | 'ESTIMATED' | 'OBSERVED';
+  /** Provenance of the polyline: ILLUSTRATIVE until digitised from open road geometry. */
+  geometryStatus?: 'ILLUSTRATIVE' | 'DIGITISED';
 }

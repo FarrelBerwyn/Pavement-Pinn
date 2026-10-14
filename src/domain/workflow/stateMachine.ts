@@ -14,6 +14,7 @@
  * - The work order is an internal record, explicitly not an official SPK document.
  */
 import type { UserRole } from '../../types';
+import type { AssessmentSnapshot } from '../intelligence/assessment';
 import {
   Actor,
   ApprovalRecord,
@@ -75,7 +76,7 @@ export type WorkflowCommand =
       severity: InspectionRecord['severity'];
       notes: string;
     }
-  | { action: 'RECOMMEND_ACTION'; treatment: string; urgency: 'ROUTINE' | 'PRIORITY' | 'URGENT'; rationale: string; assessmentId: string | null }
+  | { action: 'RECOMMEND_ACTION'; treatment: string; urgency: 'ROUTINE' | 'PRIORITY' | 'URGENT'; rationale: string; assessmentId: string | null; assessment?: AssessmentSnapshot | null }
   | { action: 'START_WORK'; reason: string; contractorNote: string };
 
 export interface CommandContext {
@@ -107,6 +108,18 @@ function cleanText(value: unknown, field: string, required: boolean): string | C
   if (required && text === '') return fail('VALIDATION', `${field} is required.`);
   if (text.length > MAX_TEXT) return fail('VALIDATION', `${field} is longer than ${MAX_TEXT} characters.`);
   return text;
+}
+
+function validSnapshot(a: unknown): a is AssessmentSnapshot {
+  if (!a || typeof a !== 'object') return false;
+  const s = a as AssessmentSnapshot;
+  return (
+    typeof s.id === 'string' &&
+    (s.engine === 'PINN' || s.engine === 'RULE_BASED') &&
+    typeof s.modelVersion === 'string' &&
+    ['HIGH', 'WATCH', 'MODERATE', 'GOOD'].includes(s.risk) &&
+    s.validationStatus === 'VALIDATION_REQUIRED'
+  );
 }
 
 const isResult = (v: unknown): v is CommandResult => typeof v === 'object' && v !== null && 'ok' in v;
@@ -251,7 +264,8 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
         treatment,
         urgency: command.urgency,
         rationale,
-        assessmentId: typeof command.assessmentId === 'string' ? command.assessmentId : null
+        assessmentId: typeof command.assessmentId === 'string' ? command.assessmentId : null,
+        assessment: validSnapshot(command.assessment) ? { ...command.assessment! } : null
       };
       autoReason = `Recommended: ${treatment}.`;
       break;

@@ -1,10 +1,16 @@
 /**
- * Demo session — which stakeholder identity the UI is currently impersonating.
+ * Demo session — which stakeholder identity the UI is currently acting as.
  *
- * THIS IS NOT AUTHENTICATION. Identities come from the bundled demo account list and
- * are selected without credentials (the login form's password field is decorative).
- * The selected account id is remembered in sessionStorage only so that a page refresh
- * or a deep link keeps the same demo identity for the lifetime of the tab.
+ * Before anyone picks an account the visitor is ANONYMOUS: a public viewer that may
+ * report road damage without logging in (spec §22), never one of the named demo accounts.
+ * The workflow server gives the anonymous visitor its own server-issued id; this
+ * provider only tracks which identity the UI shows.
+ *
+ * THIS IS NOT AUTHENTICATION. Demo accounts come from the bundled catalogue and are picked
+ * without credentials (the login form's password field is decorative). The chosen account
+ * id is remembered in sessionStorage so a refresh or deep link keeps the same identity
+ * for the lifetime of the tab. Server-side actions are authorized against a token the
+ * server signs (src/services/api/workflowClient.ts), not against this state.
  */
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { UserRole } from '../../types';
@@ -12,9 +18,37 @@ import { USER_ACCOUNTS, UserAccount } from '../../features/authentication/demoAc
 
 const STORAGE_KEY = 'pavement-pinn.demo-session.account-id';
 
-/** Identity used before any login: the regular public reporter (unchanged default). */
-export const DEFAULT_PUBLIC_ACCOUNT: UserAccount =
-  USER_ACCOUNTS.find((acc) => acc.role === 'PUBLIC_REPORTER') || USER_ACCOUNTS[3] || USER_ACCOUNTS[0];
+/** Stable id of the local anonymous identity (the server issues its own anon-… id). */
+export const ANONYMOUS_ACCOUNT_ID = 'ANONYMOUS';
+
+const NEUTRAL_AVATAR =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#334155"/><circle cx="32" cy="25" r="11" fill="#94a3b8"/><path d="M12 56c3-11 11-17 20-17s17 6 20 17z" fill="#94a3b8"/></svg>'
+  );
+
+/** Visitor who has not picked an account: public viewer, can report, cannot edit. */
+export const ANONYMOUS_ACCOUNT: UserAccount = {
+  id: ANONYMOUS_ACCOUNT_ID,
+  name: 'Pengunjung Anonim',
+  title: 'Warga tanpa login',
+  role: 'PUBLIC_VIEWER',
+  agency: 'Publik',
+  agencyCode: 'ANONIM',
+  email: '',
+  nip: 'Tidak login',
+  clearanceLevel: 'Publik — tanpa akun (laporan anonim)',
+  avatarUrl: NEUTRAL_AVATAR,
+  allowedScopes: ['Lihat peta & laporan publik', 'Buat laporan kerusakan anonim', 'Lacak status laporan dengan ID laporan'],
+  restrictedScopes: ['Mengedit laporan', 'Data internal petugas & audit trail']
+};
+
+/** Identity before any login. */
+export const DEFAULT_PUBLIC_ACCOUNT: UserAccount = ANONYMOUS_ACCOUNT;
+
+export function isAnonymousAccount(account: Pick<UserAccount, 'id'>): boolean {
+  return account.id === ANONYMOUS_ACCOUNT_ID;
+}
 
 function readStoredAccount(): UserAccount {
   try {
@@ -27,7 +61,7 @@ function readStoredAccount(): UserAccount {
 
 function storeAccount(account: UserAccount | null): void {
   try {
-    if (account) {
+    if (account && !isAnonymousAccount(account)) {
       window.sessionStorage.setItem(STORAGE_KEY, account.id);
     } else {
       window.sessionStorage.removeItem(STORAGE_KEY);
@@ -44,25 +78,22 @@ export interface SessionValue {
   login: (account: UserAccount) => void;
   /** Switch role, selecting the first demo account that has it. */
   selectRole: (role: UserRole) => void;
-  /** Return to the default public identity and forget the stored one. */
+  /** Return to the anonymous visitor and forget the stored account. */
   logout: () => void;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Account & Role State (Default to Regular Public User)
   const [currentAccount, setCurrentAccount] = useState<UserAccount>(readStoredAccount);
   const [activeRole, setActiveRole] = useState<UserRole>(() => currentAccount.role);
 
-  // Synchronize login change with role
   const login = useCallback((account: UserAccount) => {
     setCurrentAccount(account);
     setActiveRole(account.role);
     storeAccount(account);
   }, []);
 
-  // Synchronize role change with account
   const selectRole = useCallback((role: UserRole) => {
     setActiveRole(role);
     const matchedAccount = USER_ACCOUNTS.find((acc) => acc.role === role);

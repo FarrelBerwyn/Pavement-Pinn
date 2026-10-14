@@ -109,3 +109,11 @@ export interface ReportReview {
   comment: string;
   likesCount?: number;
 }
+
+/** Result of a report create/edit, returned only after the workflow store saved it. */
+export type ReportMutationOutcome =
+  | { ok: true; report: DamageReport; claimToken?: string | null }
+  | { ok: false; error: string; code: string };
+
+/** Report create/edit callbacks may be synchronous (legacy) or return the saved outcome. */
+export type ReportMutationHandler = (report: DamageReport) => void | Promise<ReportMutationOutcome>;

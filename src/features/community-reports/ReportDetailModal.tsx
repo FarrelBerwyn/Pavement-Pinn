@@ -34,6 +34,8 @@ interface ReportDetailModalProps {
   onStartEdit?: (report: DamageReport) => void;
   currentAccount?: UserAccount;
   language?: Language;
+  /** Workflow status/timeline (and role actions for staff), rendered by the page. */
+  workflowPanel?: React.ReactNode;
 }
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
@@ -43,6 +45,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onUpvote,
   onFocusMap,
   onStartEdit,
+  workflowPanel,
   currentAccount,
   language = 'id'
 }) => {
@@ -350,6 +353,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             <p className="text-slate-300 leading-relaxed">{engineerNote}</p>
           </div>
         </div>
+
+        {workflowPanel}
 
         {/* Dedicated WIM Correlation Box */}
         {report.wimCorrelation && (

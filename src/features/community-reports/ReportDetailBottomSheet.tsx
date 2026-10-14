@@ -49,6 +49,8 @@ interface ReportDetailBottomSheetProps {
   currentAccount: UserAccount;
   isFieldEngineer: boolean;
   onEditReport?: (updated: DamageReport) => void;
+  /** Workflow panel for this report (state, evidence, role actions), rendered by the shell. */
+  workflowPanel?: React.ReactNode;
   onOpenSPK?: () => void;
   onOpenEditModal?: (report: DamageReport) => void;
   reviewsMap: Record<string, ReportReview[]>;
@@ -63,6 +65,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
   currentAccount,
   isFieldEngineer,
   onEditReport,
+  workflowPanel,
   onOpenSPK,
   onOpenEditModal,
   reviewsMap,
@@ -836,51 +839,19 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             </button>
           )}
 
-          {/* Field Engineer Actions Card */}
-          {isFieldEngineer && (
-            <div className="bg-amber-400/10 border border-amber-400/30 rounded-2xl p-2.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-amber-300 flex items-center gap-1.5">
-                  <HardHat className="w-3.5 h-3.5 text-amber-400" />
-                  Otorisasi Insinyur Lapangan PUPR
-                </span>
-                <span className="text-[9px] font-mono bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-bold">
-                  RBAC-3
-                </span>
-              </div>
+          {/* Workflow status and role actions (shared, server-backed). Field Engineer
+              verification happens here through the assigned inspection, not as a direct edit. */}
+          {workflowPanel}
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    if (onEditReport) {
-                      onEditReport({
-                        ...report,
-                        status: 'VERIFIED_BY_ENGINEER',
-                        repairDetails: {
-                          ...report.repairDetails,
-                          repairMethod: 'Hotmix Asphalt Overlay AC-WC 6cm + Tack Coat',
-                          engineerNote: `Diverifikasi di lapangan oleh ${currentAccount.name} (${currentAccount.nip}). Ruas dijadwalkan untuk penanganan hotmix.`,
-                          repairedPciImprovement: 'PCI 30 → 90 (Kondisi Prima)'
-                        }
-                      });
-                    }
-                    alert(`Laporan ${report.id} berhasil DIVERIFIKASI RESMI oleh Insinyur Lapangan PUPR!`);
-                  }}
-                  className="py-2 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] flex items-center justify-center space-x-1 shadow-md cursor-pointer transition-all active:scale-95"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Verifikasi</span>
-                </button>
-
-                <button
-                  onClick={onOpenSPK}
-                  className="py-2 px-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] flex items-center justify-center space-x-1 shadow-md cursor-pointer transition-all active:scale-95"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Terbitkan SPK</span>
-                </button>
-              </div>
-            </div>
+          {isFieldEngineer && onOpenSPK && (
+            <button
+              type="button"
+              onClick={onOpenSPK}
+              className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+            >
+              <HardHat className="w-3.5 h-3.5 text-amber-400" />
+              <span>Buka tugas inspeksi saya</span>
+            </button>
           )}
 
           {/* Secondary Footer Icons: Share, Save, Upvote */}

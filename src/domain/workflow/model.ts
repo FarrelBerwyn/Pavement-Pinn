@@ -10,6 +10,7 @@
  * offline demo store. No I/O, no clock, no randomness — callers pass `now` and ids.
  */
 import type { DamageReport, UserRole } from '../../types';
+import type { AssessmentSnapshot } from '../intelligence/assessment';
 
 /** Report lifecycle, verbatim from the spec (§24). */
 export const WORKFLOW_STATES = [
@@ -99,6 +100,8 @@ export interface MaintenanceRecommendation {
   rationale: string;
   /** Engineering assessment the recommendation is based on (PINN or labelled fallback). */
   assessmentId: string | null;
+  /** Snapshot of that assessment, so its engine, version and validation status travel with the decision. */
+  assessment: AssessmentSnapshot | null;
 }
 
 export interface ApprovalRecord {

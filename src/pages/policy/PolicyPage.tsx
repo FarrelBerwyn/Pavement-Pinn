@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExecutivePolicyView, PolicyTabType } from '../../features/policy-analysis/ExecutivePolicyView';
 import { usePageContext } from '../../app/pageContext';
+import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
 
 interface PolicyPageProps {
   /** Active executive tab — owned by the shell because its sidebar drives it. */
@@ -17,6 +18,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ policyNavTab, setPolicyN
 
   return (
     <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#07090e]">
+      <WorkflowQueueSection />
       <ExecutivePolicyView
         currentAccount={currentAccount}
         roadSegments={roadSegments}

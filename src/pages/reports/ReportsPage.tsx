@@ -2,6 +2,8 @@ import React from 'react';
 import { FileText, Map as MapIcon } from 'lucide-react';
 import { CommunityReportsDashboard } from '../../features/community-reports/CommunityReportsDashboard';
 import { usePageContext } from '../../app/pageContext';
+import { useAppState } from '../../app/providers/AppStateProvider';
+import { ReportWorkflowPanel } from '../../features/workflow/ReportWorkflowPanel';
 
 /**
  * Route: /reports/ — community road-damage reports (public).
@@ -9,7 +11,8 @@ import { usePageContext } from '../../app/pageContext';
  * Markup moved verbatim from the modern shell's "REPORTS" overlay.
  */
 export const ReportsPage: React.FC = () => {
-  const { activeRole, currentAccount, roadSegments, communityReports, onAddReport, onUpvoteReport, onSelectSegment, onLaunchSimulation, setActiveNav } = usePageContext();
+  const { activeRole, currentAccount, roadSegments, communityReports, onAddReport, onEditReport, onUpvoteReport, onSelectSegment, onLaunchSimulation, setActiveNav } = usePageContext();
+  const { workflow } = useAppState();
 
   return (
     <div className="fixed inset-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200">
@@ -39,6 +42,15 @@ export const ReportsPage: React.FC = () => {
           roadSegments={roadSegments}
           reports={communityReports}
           onAddReport={onAddReport}
+          onEditReport={onEditReport}
+          renderWorkflowPanel={(reportId) => (
+            <ReportWorkflowPanel
+              view={workflow.views[reportId] ?? null}
+              mode={workflow.mode}
+              engineers={workflow.engineers}
+              onRun={(command) => workflow.runTransition(reportId, command)}
+            />
+          )}
           onUpvoteReport={onUpvoteReport}
           onSelectSegmentForMap={(segmentId) => {
             const seg = roadSegments.find((s) => s.id === segmentId);

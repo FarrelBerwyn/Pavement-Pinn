@@ -9,6 +9,8 @@ import { OpenVINOModelDiagnosticsModal } from '../../features/openvino-diagnosti
 import { AuditTrailModal } from '../../features/audit-trail/AuditTrailModal';
 import { BinaMargaWimPipelineModal } from '../../features/wim/BinaMargaWimPipelineModal';
 import { useAppState } from './AppStateProvider';
+import { useSession } from './SessionProvider';
+import { can } from '../../features/rbac/accessPolicy';
 
 export interface GlobalModalsValue {
   openOpenvinoDiagnostics: () => void;
@@ -20,6 +22,9 @@ const GlobalModalsContext = createContext<GlobalModalsValue | null>(null);
 
 export const GlobalModalsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentResult, auditLogs } = useAppState();
+  const { currentAccount } = useSession();
+  // M1c: only official roles may open the audit trail; the API enforces the same rule.
+  const mayViewAudit = can(currentAccount.role, 'VIEW_AUDIT_TRAIL');
   const [isOpenOpenvinoModal, setIsOpenOpenvinoModal] = useState<boolean>(false);
   const [isOpenAuditModal, setIsOpenAuditModal] = useState<boolean>(false);
   const [isOpenBinaMargaModal, setIsOpenBinaMargaModal] = useState<boolean>(false);
@@ -27,10 +32,10 @@ export const GlobalModalsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const value = useMemo<GlobalModalsValue>(
     () => ({
       openOpenvinoDiagnostics: () => setIsOpenOpenvinoModal(true),
-      openAuditTrail: () => setIsOpenAuditModal(true),
+      openAuditTrail: () => setIsOpenAuditModal(mayViewAudit),
       openWimPipeline: () => setIsOpenBinaMargaModal(true)
     }),
-    []
+    [mayViewAudit]
   );
 
   return (
@@ -45,7 +50,7 @@ export const GlobalModalsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       />
 
       {/* Audit Trail Modal */}
-      <AuditTrailModal isOpen={isOpenAuditModal} onClose={() => setIsOpenAuditModal(false)} auditLogs={auditLogs} />
+      <AuditTrailModal isOpen={isOpenAuditModal && mayViewAudit} onClose={() => setIsOpenAuditModal(false)} auditLogs={auditLogs} />
 
       {/* Bina Marga WIM Scraper & PINN Training Pipeline Modal */}
       <BinaMargaWimPipelineModal isOpen={isOpenBinaMargaModal} onClose={() => setIsOpenBinaMargaModal(false)} />

@@ -113,7 +113,18 @@ test('cross-role golden path over HTTP, with public tracking and audit', async (
   assert.equal(wrongEngineer.status, 403);
 
   await act(eng, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 8, measuredAreaM2: 2.4, severity: 'SEVERE', notes: 'Lubang aktif, tepi retak.' });
-  await act(eng, { action: 'RECOMMEND_ACTION', treatment: 'Patching + overlay tipis AC-WC', urgency: 'PRIORITY', rationale: 'Kerusakan terkonfirmasi di lajur berat.', assessmentId: null });
+  // A client-sent "PINN" assessment is ignored: the server attaches its own RULE_BASED snapshot.
+  const recommended = await act(eng, {
+    action: 'RECOMMEND_ACTION',
+    treatment: 'Patching + overlay tipis AC-WC',
+    urgency: 'PRIORITY',
+    rationale: 'Kerusakan terkonfirmasi di lajur berat.',
+    assessmentId: 'ASM-FAKE',
+    assessment: { id: 'ASM-FAKE', engine: 'PINN', modelVersion: 'trained-v9', risk: 'GOOD', conditionScorePrototype: 99, confidence: 'HIGH', validationStatus: 'VALIDATION_REQUIRED', createdAt: DUE }
+  });
+  assert.equal(recommended.case.recommendation.assessment.engine, 'RULE_BASED');
+  assert.notEqual(recommended.case.recommendation.assessmentId, 'ASM-FAKE');
+  assert.equal(recommended.case.recommendation.assessment.confidence, 'LOW');
 
   // Policy Maker sees the same case and evidence but has no workflow actions.
   const policyView = await call('GET', `/api/workflow/reports/${id}`, undefined, policy);

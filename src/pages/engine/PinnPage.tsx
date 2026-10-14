@@ -4,6 +4,7 @@ import { PageOverlay, StatusBadge, ImplementationStatus } from '../../components
 import { usePageContext } from '../../app/pageContext';
 import { Link } from '../../app/router';
 import { buildPath } from '../../app/routeConfig';
+import { can } from '../../features/rbac/accessPolicy';
 
 /** Formulas exactly as implemented in src/engines/pinn/core/pinnEngine.ts. */
 const EQUATIONS: Array<{ name: string; formula: string }> = [
@@ -56,7 +57,7 @@ const buttonClass = 'px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border bo
 
 /** Route: /engine/pinn/ — model card for the PINN engine with accurate capability labels. */
 export const PinnPage: React.FC = () => {
-  const { closePage, onOpenOpenvinoModal, onOpenWimPipeline, onOpenAuditModal } = usePageContext();
+  const { closePage, onOpenOpenvinoModal, onOpenWimPipeline, onOpenAuditModal, currentAccount } = usePageContext();
 
   return (
     <PageOverlay
@@ -112,9 +113,11 @@ export const PinnPage: React.FC = () => {
         <button onClick={onOpenWimPipeline} className={buttonClass}>
           Pipeline WIM Bina Marga (simulasi)
         </button>
-        <button onClick={onOpenAuditModal} className={buttonClass}>
-          Jejak Audit
-        </button>
+        {can(currentAccount.role, 'VIEW_AUDIT_TRAIL') && (
+          <button onClick={onOpenAuditModal} className={buttonClass}>
+            Jejak Audit
+          </button>
+        )}
       </div>
     </PageOverlay>
   );

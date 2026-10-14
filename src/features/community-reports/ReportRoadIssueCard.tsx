@@ -26,9 +26,10 @@ import {
   Crosshair,
   Compass
 } from 'lucide-react';
-import { DamageReport, DamageType, ReportSeverity, RoadSegment } from '../../types';
+import { DamageReport, DamageType, ReportMutationHandler, ReportSeverity, RoadSegment } from '../../types';
 import { UserAccount } from '../authentication/demoAccounts';
 import { createSessionReport, ReportCreationError } from './reportFactory';
+import { settleMutation } from './reportMutations';
 import { CV_DAMAGE_CLASSES, CVDamageClassInfo, analyzeImageDamageClass } from '../../engines/computer-vision/classification/cvDamageClasses';
 
 export type ReportCardState =
@@ -46,7 +47,7 @@ interface ReportRoadIssueCardProps {
   currentAccount: UserAccount;
   roadSegments: RoadSegment[];
   selectedSegment?: RoadSegment | null;
-  onAddReport: (newReport: DamageReport) => void;
+  onAddReport: ReportMutationHandler;
   onFocusMapLocation?: (coords: [number, number], zoomLevel?: number, reportId?: string) => void;
   initialCoordinates?: [number, number] | null;
 }
@@ -103,7 +104,11 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   const [showTechnicalAnalysis, setShowTechnicalAnalysis] = useState<boolean>(false);
 
   // Success Created Report
-  const [createdReportId, setCreatedReportId] = useState<string>('RP-02491');
+  const [createdReportId, setCreatedReportId] = useState<string>('');
+  // Submission waits for the workflow store; success is shown only after it saved the report.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [savedState, setSavedState] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<boolean>(false);
 
   // Sync initial coordinates or segment
@@ -384,7 +389,8 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   };
 
   // Submit Final Report
-  const handleSubmitReport = () => {
+  const handleSubmitReport = async () => {
+    if (isSubmitting) return;
     const targetSeg =
       roadSegments.find((s) => {
         const dist = Math.hypot(s.coordinates[0] - coordinates[0], s.coordinates[1] - coordinates[1]);
@@ -461,8 +467,17 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
       throw error;
     }
 
-    setCreatedReportId(newReport.id);
-    onAddReport(newReport);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    const outcome = await settleMutation(onAddReport(newReport), newReport);
+    setIsSubmitting(false);
+    if (outcome.ok === false) {
+      setSubmitError((outcome as { error: string }).error);
+      return;
+    }
+    const saved = (outcome as { report: DamageReport }).report;
+    setCreatedReportId(saved.id);
+    setSavedState(saved.workflowState ?? null);
     setCurrentState('SUCCESS');
   };
 
@@ -1175,10 +1190,17 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                   <button
                     type="button"
                     onClick={handleSubmitReport}
-                    className="w-full h-12 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    disabled={isSubmitting}
+                    aria-busy={isSubmitting}
+                    className="w-full h-12 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] disabled:opacity-60 disabled:cursor-wait text-slate-950 font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
-                    <span>Submit Report</span>
+                    <span>{isSubmitting ? 'Menyimpan laporan…' : 'Submit Report'}</span>
                   </button>
+                  {submitError && (
+                    <p role="alert" className="text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2 text-center">
+                      Laporan belum tersimpan: {submitError}
+                    </p>
+                  )}
 
                   <p className="text-[11px] text-slate-400 text-center font-medium">
                     Your report helps improve our roads. Thank you! 💛
@@ -1202,6 +1224,11 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                     <p className="text-xs text-slate-300">
                       Your road issue has been reported and placed on the monitoring map.
                     </p>
+                    {savedState === 'NEEDS_REVIEW' && (
+                      <p className="text-[11px] text-amber-200">
+                        Status: menunggu peninjauan petugas. Klasifikasi AI berstatus DEMO, jadi laporan diperiksa manusia sebelum ditindaklanjuti.
+                      </p>
+                    )}
                   </div>
 
                   {/* Created Report Receipt Card */}

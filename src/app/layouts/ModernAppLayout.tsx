@@ -75,13 +75,17 @@ import {
   DamageType,
   ReportSeverity,
   SimulationResult,
-  ReportReview
+  ReportReview,
+  ReportMutationHandler
 } from '../../types';
 import { UserAccount, USER_ACCOUNTS } from '../../features/authentication/demoAccounts';
 import { LeafletMap, type LeafletMapProps } from '../../components/maps/LeafletMap';
 import { MAP_LAYER_PANEL_ID, MapLayerPanel } from '../../components/maps/MapLayerPanel';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
 import { createSessionReport, ReportCreationError } from '../../features/community-reports/reportFactory';
+import { settleMutation } from '../../features/community-reports/reportMutations';
+import { ReportWorkflowPanel } from '../../features/workflow/ReportWorkflowPanel';
+import { useAppState } from '../providers/AppStateProvider';
 import { canEditReport } from '../../features/rbac/accessPolicy';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { ReportDetailBottomSheet } from '../../features/community-reports/ReportDetailBottomSheet';
@@ -111,8 +115,8 @@ interface ModernAppLayoutProps {
   selectedSegment: RoadSegment;
   onSelectSegment: (segment: RoadSegment) => void;
   communityReports: DamageReport[];
-  onAddReport: (newReport: DamageReport) => void;
-  onEditReport?: (updatedReport: DamageReport) => void;
+  onAddReport: ReportMutationHandler;
+  onEditReport?: ReportMutationHandler;
   onUpvoteReport: (reportId: string) => void;
   onLaunchSimulation: (segment: RoadSegment) => void;
   currentResult: SimulationResult | null;
@@ -156,10 +160,12 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   onOpenSettings,
   children
 }) => {
-  // Check if current user is Field Engineer, Policy Maker, or Operations Manager in App layout mode
-  const isFieldEngineer = currentAccount.role === 'FIELD_ENGINEER' || currentAccount.id === 'USR-006';
-  const isPolicyMaker = currentAccount.role === 'POLICY_MAKER' || currentAccount.id === 'USR-007' || currentAccount.id === 'USR-003';
-  const isOperationsManager = currentAccount.role === 'OPERATIONS_MANAGER' || currentAccount.id === 'USR-008' || currentAccount.id === 'USR-002';
+  // Role predicates come from the account role only (one source of truth with the RBAC policy).
+  const isFieldEngineer = currentAccount.role === 'FIELD_ENGINEER';
+  const isPolicyMaker = currentAccount.role === 'POLICY_MAKER';
+  const isOperationsManager = currentAccount.role === 'OPERATIONS_MANAGER';
+  // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
+  const { workflow } = useAppState();
 
   // Navigation tab in Public User interface (defaults to DASHBOARD for Operations Manager, Field Engineer and Policy Maker, MAP for public users)
   const setActiveNav = onNavigate;
@@ -533,7 +539,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   };
 
   // Handle Form Submit
-  const handleCreateReportSubmit = (e: React.FormEvent) => {
+  const handleCreateReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formDescription.trim()) {
       alert('Mohon masukkan deskripsi singkat kerusakan jalan.');
@@ -616,7 +622,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       throw error;
     }
 
-    onAddReport(newReport);
+    // Shown on the map only after the workflow store saved it.
+    const outcome = await settleMutation(onAddReport(newReport), newReport);
+    if (outcome.ok === false) {
+      alert(`Laporan belum tersimpan: ${(outcome as { error: string }).error}`);
+      return;
+    }
+    newReport = (outcome as { report: DamageReport }).report;
     setSelectedIssueReport(newReport);
     setHighlightReportId(newReport.id);
     // Zoom in with close range (zoom 17) to pin point
@@ -642,7 +654,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   };
 
   // Handle Save Edited Report (For User 1: Budi Santoso)
-  const handleSaveReportEdit = (e: React.FormEvent) => {
+  const handleSaveReportEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editFormData || !selectedIssueReport) return;
     // Same ownership rule as the edit button; a stale or forged modal state saves nothing.
@@ -674,10 +686,15 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       damageTypeLabel: damageLabels[editFormData.damageType] || selectedIssueReport.damageTypeLabel
     };
 
-    setSelectedIssueReport(updatedReport);
-    // Persist the edit to the shared report list (it used to stay in this panel only).
-    onEditReport?.(updatedReport);
-    setLocalReports((prev) => prev.map((r) => (r.id === updatedReport.id ? updatedReport : r)));
+    // Saved through the workflow store (owner check and version check on the server).
+    const outcome = onEditReport ? await settleMutation(onEditReport(updatedReport), updatedReport) : { ok: true as const, report: updatedReport };
+    if (outcome.ok === false) {
+      alert(`Perubahan belum tersimpan: ${(outcome as { error: string }).error}`);
+      return;
+    }
+    const saved = (outcome as { report: DamageReport }).report;
+    setSelectedIssueReport(saved);
+    setLocalReports((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
     setIsEditReportModalOpen(false);
   };
 
@@ -1905,7 +1922,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     closeMapSheet();
                     const reportSegment = roadSegments.find((s) => s.id === rep.segmentId);
                     if (reportSegment) onSelectSegment(reportSegment);
-                    if (!isFieldEngineer) {
+                    {
                       setSelectedIssueReport(rep);
                       setDetailsTab('COMPARISON');
                       setIsDetailsPanelOpen(true);
@@ -2319,6 +2336,17 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               });
               setIsEditReportModalOpen(true);
             }}
+            workflowPanel={
+              selectedIssueReport ? (
+                <ReportWorkflowPanel
+                  compact
+                  view={workflow.views[selectedIssueReport.id] ?? null}
+                  mode={workflow.mode}
+                  engineers={workflow.engineers}
+                  onRun={(command) => workflow.runTransition(selectedIssueReport.id, command)}
+                />
+              ) : null
+            }
             reviewsMap={reviewsMap}
             onAddReview={(reportId, review) => {
               setReviewsMap((prev) => {
@@ -2541,8 +2569,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
         roadSegments={roadSegments}
         selectedSegment={selectedSegment}
         initialCoordinates={customCoordinates}
-        onAddReport={(newReport) => {
-          onAddReport(newReport);
+        onAddReport={async (submitted) => {
+          // The card waits on this promise and shows success only after the save.
+          const outcome = await settleMutation(onAddReport(submitted), submitted);
+          if (outcome.ok === false) return outcome;
+          const newReport = (outcome as { report: DamageReport }).report;
           setSelectedIssueReport(newReport);
           setHighlightReportId(newReport.id);
           setMapCenterTarget({
@@ -2561,6 +2592,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             setMobileSheetHeight('PEEK');
             setIsDetailsPanelOpen(true);
           }, 3300);
+          return outcome;
         }}
         onFocusMapLocation={(coords, zoom, reportId) => {
           setActiveNav('MAP');

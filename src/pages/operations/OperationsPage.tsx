@@ -4,6 +4,7 @@ import { OperationsManagerAppView } from '../../features/wim/OperationsManagerAp
 import { OperationsPosWimMapView } from '../../features/wim/OperationsPosWimMapView';
 import { usePageContext } from '../../app/pageContext';
 import type { WorkspaceNav } from '../../app/navigation';
+import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
 
 /** Shell view keys that the operations workspace renders. */
 export const OPERATIONS_WORKSPACE_NAVS: readonly WorkspaceNav[] = [
@@ -85,6 +86,8 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
   if (activeNav === 'DASHBOARD') {
     return (
       <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0f172a]">
+        {/* "Where should we act now?" — the shared report queue comes first. */}
+        <WorkflowQueueSection />
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}

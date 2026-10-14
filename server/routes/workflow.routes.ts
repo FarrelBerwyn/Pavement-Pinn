@@ -12,6 +12,9 @@ import { hashClaimToken, newClaimToken } from "../auth/sessionTokens";
 import { rateLimit } from "../middleware/rateLimit";
 import { checkPhotoReference } from "../services/photoValidation";
 import type { WorkflowRuntime } from "../services/workflowRuntime";
+import { actorFrom } from "../auth/actor";
+import { segmentById } from "../services/segments";
+import { assessSegment, snapshotOf } from "../../src/domain/intelligence/assessment";
 
 /**
  * Workflow API (docs/api/WORKFLOW_API.md). The server decides the actor from its own
@@ -43,12 +46,6 @@ function sendResult(res: Response, result: ServiceResult<ReportCase>, actor: Act
     return;
   }
   res.status(status).json({ success: true, report: viewFor(result.value, actor) });
-}
-
-export function actorFrom(req: Request, runtime: WorkflowRuntime): Actor | null {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) return null;
-  return runtime.signer.verify(header.slice(7).trim());
 }
 
 function isOfficial(actor: Actor | null): boolean {
@@ -162,6 +159,19 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
       return sendError(res, "VALIDATION", "Body must be { command: { action, ... }, expectedVersion }.");
     }
     if (expectedVersion === null) return sendError(res, "VALIDATION", "expectedVersion must be a positive integer.");
+    if (command.action === "RECOMMEND_ACTION") {
+      // The assessment behind a recommendation is computed here, never taken from the client.
+      const current = await service.getCase(req.params.id);
+      const segment = current ? segmentById(current.segmentId) : undefined;
+      if (segment) {
+        const assessment = assessSegment(segment, { now: new Date().toISOString(), cases: await service.listCases() });
+        command.assessmentId = assessment.id;
+        command.assessment = snapshotOf(assessment);
+      } else {
+        command.assessmentId = null;
+        command.assessment = null;
+      }
+    }
     sendResult(res, await service.transition(req.params.id, command, actor, expectedVersion), actor);
   });
 
