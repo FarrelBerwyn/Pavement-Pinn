@@ -2,35 +2,39 @@
 
 ## 1. What kind of access control this is
 
-Three layers must be kept apart. Only the first one exists as a control.
+Four layers must be kept apart.
 
 | Layer | Status | What it does |
 |---|---|---|
-| Frontend route guards (`src/app/guards/routeAccess.ts`, `src/features/rbac/accessPolicy.ts`) | IMPLEMENTED | decide which screens a demo identity can open and where it lands |
+| Frontend route guards (`src/app/guards/routeAccess.ts`, `src/features/rbac/accessPolicy.ts`) | IMPLEMENTED | decide which screens an identity can open and where it lands |
 | Demo account switching (`src/app/providers/SessionProvider.tsx`, `/login/`) | SIMULATED authentication | picks one of eight bundled accounts; no credential is checked |
-| Backend authorization (`server/`) | PLANNED, not implemented | every API endpoint answers any caller |
+| Workflow API authorization (`server/routes/workflow.routes.ts`, `src/domain/`) | IMPLEMENTED (since P2) | the server decides the actor from a token it signed and enforces roles, assignment, ownership, transitions and audit access |
+| Identity provider (real login) | NOT CONNECTED | Supabase Auth planned (G-SB-02); until then demo tokens are issued on request |
 
 Consequences that must not be glossed over:
 
-- **This is not security.** Anyone can select any account. The password field in the
-  login dialog is decorative and never read.
-- **The guards hide UI; they do not protect data.** All datasets ship inside the
-  public JavaScript bundle and `GET /api/roads` returns the full road dataset,
-  including WIM vehicle details, to anyone.
+- **Identity is still a demo.** Anyone can select any account, and
+  `/api/auth/demo-session` issues a token for it. The password field in the login dialog
+  is decorative. `DEMO_AUTH=false` switches the picker off on the server. What the server
+  does enforce is that *whoever holds a token* can only do what that role, assignment and
+  ownership allow — editing the UI or the request body cannot change that.
+- **Route guards hide UI; they do not protect bundled data.** Reference datasets still
+  ship inside the public JavaScript bundle and `GET /api/roads` (legacy contract)
+  returns WIM vehicle details to anyone. Workflow data (inspections, staff notes,
+  recommendations, audit) is served only by the API and only to official roles.
 - The demo identity is remembered in `sessionStorage` (key
   `pavement-pinn.demo-session.account-id`) only so that refresh and deep links keep
   the same identity within a browser tab. It is a convenience, not a session token.
-- No backend authorization was added during the restructure. Adding a header-based
-  "role check" on the server would have been fake security, so it was deliberately
-  left out. Real protection needs an identity provider, server-side sessions or
-  tokens, and per-endpoint role checks.
+- Before any login the visitor is an anonymous `PUBLIC_VIEWER` ("Pengunjung Anonim"),
+  not the Budi demo account. The server gives anonymous visitors their own `anon-…` id
+  and a claim token per report for tracking.
 
 ## 2. Role identifiers (unchanged)
 
 `FIELD_ENGINEER`, `OPERATIONS_MANAGER`, `POLICY_MAKER`, `PUBLIC_REPORTER`, `PUBLIC_VIEWER`,
 defined in `src/types/rbac.ts`. The eight demo accounts, their ids, `allowedScopes`,
 `restrictedScopes`, clearance levels and `layoutStyle` values are unchanged
-(`src/features/authentication/demoAccounts.ts`).
+(`src/data/reference/demoAccounts.ts`, re-exported by `src/features/authentication/demoAccounts.ts`).
 
 `allowedScopes` and `restrictedScopes` are descriptive strings shown in the login
 dialog. No code evaluates them, before or after the restructure. The enforced rules
@@ -93,12 +97,15 @@ Each row mirrors a gate that exists in the UI code (`ACTION_RULES` in `accessPol
 | Run a PINN simulation | yes | yes | yes | yes | yes | route `/engine/simulation/` |
 | Export the simulation PDF | yes | yes | yes | yes | yes | no role check on the button |
 | Use FWD and overlay tools | yes | yes | no | no | no | route `/engine/fwd/` |
-| Verify a damage report | yes | yes | no | no | no | `FieldEngineerTools` on `/engine/fwd/` |
+| Verify a damage report | yes | no | no | no | no | workflow `SUBMIT_INSPECTION` by the assigned engineer, enforced by the API |
 | Manage work orders (SPK) | yes | yes | no | no | no | routes `/engineering/tasks/`, `/operations/tasks/` |
 | View PCI trend history | yes | yes | no | no | no | route `/engine/prediction/` |
 | Monitor WIM operations | no | yes | no | no | no | routes under `/operations/` |
 | Issue ODOL enforcement (BATM, ETLE) | no | yes | no | no | no | `OperationsManagerAppView` under `/operations/monitoring/` |
 | View policy analysis | no | no | yes | no | no | route `/policy/` |
+| Triage reports (review, close, assign inspection) | no | yes | no | no | no | workflow actions, enforced by the API |
+| Approve/reject maintenance, start and complete work orders | no | yes | no | no | no | workflow actions; the recommender cannot approve |
+| View the audit trail | yes | yes | yes | no | no | `GET /api/workflow/audit` (403 otherwise); UI entry points hidden |
 
 ### Report creation and ownership (M1a)
 
@@ -165,17 +172,25 @@ demo state, not a security control.
 
 ## 6. Backend
 
-| Endpoint | Authentication | Role check |
+| Endpoint group | Session | Role / rule |
 |---|---|---|
-| all six `/api/*` endpoints | none | none |
+| six original `/api/*` endpoints | none | none (unchanged legacy contract) |
+| `POST /api/auth/demo-session`, `/api/auth/login` | none | demo picker; 403 when `DEMO_AUTH=false` |
+| `POST /api/auth/anonymous` | none | issues an anonymous public-viewer session |
+| `GET /api/workflow/reports`, `/:id`, `/api/risk-map`, `/api/road-segments/*`, `/api/provenance/*` | optional | staff get full cases; everyone else the public projection |
+| `POST /api/workflow/reports` (`/api/reports`) | required (anonymous allowed) | 10 per hour per client |
+| `POST /api/workflow/reports/:id/transitions` | required | transition table: role, assignment, separation of duty, reason, version |
+| `PATCH /api/workflow/reports/:id/content` | required | `canEditReport`: own report by id, PUBLIC_REPORTER, before human review |
+| `GET /api/workflow/audit`, `/api/workflow/engineers`, `GET /api/simulations/:id` | required | official roles only |
+| `POST /api/simulations` | required | FIELD_ENGINEER only |
 
-`tests/integration/api.test.ts` contains a test named "no endpoint requires
-authentication" that documents this state. When real authorization is introduced it
-must be replaced by a role-to-endpoint matrix.
+Matrix of workflow actions per role: docs/architecture/WORKFLOW_STATE_MACHINE.md.
+Tests: `tests/integration/workflow-api.test.ts`, `tests/integration/intelligence-api.test.ts`.
+`tests/integration/api.test.ts` still documents that the six legacy endpoints are open.
 
 ## 7. Test coverage
 
 `tests/unit/rbac.test.ts` (10 tests): the 27 by 5 route matrix written out
-independently of the route table, the 13 by 5 action matrix, the account catalogue,
+independently of the route table, the 16 by 5 action matrix, the account catalogue,
 the landing rules, the no-stale-permission sweep, and `next` sanitisation.
 Browser checks per role are listed in `docs/validation/RESTRUCTURE_TEST_REPORT.md`.

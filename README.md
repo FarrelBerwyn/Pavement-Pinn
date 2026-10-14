@@ -315,3 +315,19 @@ Agar tidak ada klaim yang berlebihan, status tiap kemampuan dicatat apa adanya:
 | `docs/validation/RESTRUCTURE_TEST_REPORT.md` | perintah, hasil uji, celah verifikasi, dan cara rollback |
 | `docs/validation/POST_RESTRUCTURE_HARDENING.md` | hasil pengerasan: perbaikan, keamanan backend, audit Git, daftar kesiapan |
 | `docs/validation/PINN_VALIDATION_GAP.md` | celah validasi ilmiah: klasifikasi model, ambang regangan, data minimum yang dibutuhkan |
+
+## 🔁 Alur Kerja Lintas Peran (workflow server)
+
+Laporan warga, triase Operations, inspeksi Field Engineer, rekomendasi, persetujuan,
+perintah kerja internal, verifikasi perbaikan, dan pelacakan status publik kini berjalan
+di atas **satu catatan bersama** yang disimpan server (`npm run dev` / `npm start`).
+Setiap perubahan status dicatat di audit trail (hanya untuk peran resmi).
+
+- Status implementasi vs validasi ilmiah: [`docs/FINAL_AUDIT.md`](docs/FINAL_AUDIT.md)
+- Kontrak API: [`docs/api/WORKFLOW_API.md`](docs/api/WORKFLOW_API.md) · state machine: [`docs/architecture/WORKFLOW_STATE_MACHINE.md`](docs/architecture/WORKFLOW_STATE_MACHINE.md)
+- Keputusan & celah: [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md), [`docs/GAP_REGISTER.md`](docs/GAP_REGISTER.md), [`docs/REQUIREMENT_TRACEABILITY.md`](docs/REQUIREMENT_TRACEABILITY.md)
+- AI/model: [`docs/AI.md`](docs/AI.md) — CV berstatus **DEMO**, PINN belum ada model terlatih (mesin **RULE_BASED**), OpenVINO belum dijalankan.
+- Deploy: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). GitHub Pages hanya statis: di sana alur kerja berjalan di memori browser dengan label **DEMO OFFLINE**.
+
+Identitas masih **demo** (pemilih akun tanpa kata sandi; `DEMO_AUTH=false` untuk mematikannya).
+Pengunjung tanpa login adalah **Pengunjung Anonim**, bukan akun Budi.
