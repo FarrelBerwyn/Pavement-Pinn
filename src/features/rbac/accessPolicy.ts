@@ -1,23 +1,34 @@
 /**
- * RBAC policy — pure functions over the five canonical role identifiers.
+ * RBAC policy for the UI — which screens and buttons a demo identity sees.
  *
- * SECURITY SCOPE: everything here is a FRONTEND convenience (which screens and buttons
- * a demo identity sees). It is not a security boundary: accounts are selected from a
- * demo switcher without credentials, and the backend performs no authorization at all.
- * See docs/architecture/RBAC_MATRIX.md.
+ * SECURITY SCOPE: these checks only shape the interface. The workflow API enforces the
+ * same rules on the server (server/services/workflowService.ts, src/domain/), and that
+ * is where report transitions, content edits and audit access are actually decided.
+ * Identities are still demo identities: see docs/architecture/RBAC_MATRIX.md.
  */
-import type { DamageReport, ReportStatus, UserRole } from '../../types';
+import type { UserRole } from '../../types';
+import {
+  ALL_ROLES,
+  canEditReport,
+  EDITABLE_REPORT_STATUSES,
+  EDITABLE_WORKFLOW_STATES,
+  isOfficialRole,
+  isPublicRole,
+  OFFICIAL_ROLES,
+  OWN_REPORT_EDITOR_ROLES,
+  PUBLIC_ROLES
+} from '../../domain/access';
 
-export const PUBLIC_ROLES: readonly UserRole[] = ['PUBLIC_REPORTER', 'PUBLIC_VIEWER'];
-export const OFFICIAL_ROLES: readonly UserRole[] = ['FIELD_ENGINEER', 'OPERATIONS_MANAGER', 'POLICY_MAKER'];
-
-export function isPublicRole(role: UserRole): boolean {
-  return PUBLIC_ROLES.includes(role);
-}
-
-export function isOfficialRole(role: UserRole): boolean {
-  return OFFICIAL_ROLES.includes(role);
-}
+export {
+  canEditReport,
+  EDITABLE_REPORT_STATUSES,
+  EDITABLE_WORKFLOW_STATES,
+  isOfficialRole,
+  isPublicRole,
+  OFFICIAL_ROLES,
+  OWN_REPORT_EDITOR_ROLES,
+  PUBLIC_ROLES
+};
 
 /**
  * - `ALLOW`          the role may open the resource;
@@ -32,8 +43,8 @@ export function evaluateAccess(allowedRoles: readonly UserRole[], role: UserRole
 }
 
 /**
- * Role-to-action matrix. Each entry mirrors a gate that exists in the UI code today;
- * `gate` names where it is enforced so the matrix can be audited against the source.
+ * Role-to-action matrix. Each entry names where it is enforced so the matrix can be
+ * audited against the source.
  */
 export type ActionId =
   | 'VIEW_PUBLIC_ROAD_HEALTH'
@@ -48,63 +59,40 @@ export type ActionId =
   | 'VIEW_PCI_TREND_HISTORY'
   | 'MONITOR_WIM_OPERATIONS'
   | 'ISSUE_ODOL_ENFORCEMENT'
-  | 'VIEW_POLICY_ANALYSIS';
+  | 'VIEW_POLICY_ANALYSIS'
+  | 'TRIAGE_REPORTS'
+  | 'APPROVE_MAINTENANCE'
+  | 'VIEW_AUDIT_TRAIL';
 
 export interface ActionRule {
   roles: readonly UserRole[];
   gate: string;
 }
 
-const EVERYONE: readonly UserRole[] = [...OFFICIAL_ROLES, ...PUBLIC_ROLES];
-
-/** Roles that may edit the content of a report they created themselves. */
-export const OWN_REPORT_EDITOR_ROLES: readonly UserRole[] = ['PUBLIC_REPORTER'];
-
-/** Statuses in which the creator may still edit a report's content. */
-export const EDITABLE_REPORT_STATUSES: readonly ReportStatus[] = ['PENDING'];
+const EVERYONE: readonly UserRole[] = ALL_ROLES;
 
 export const ACTION_RULES: Readonly<Record<ActionId, ActionRule>> = {
   VIEW_PUBLIC_ROAD_HEALTH: { roles: EVERYONE, gate: 'route /dashboard/ (public)' },
-  CREATE_DAMAGE_REPORT: { roles: EVERYONE, gate: 'ReportRoadIssueCard is offered in every shell; no role check' },
+  CREATE_DAMAGE_REPORT: { roles: EVERYONE, gate: 'POST /api/workflow/reports accepts any session, including anonymous' },
   EDIT_OWN_DAMAGE_REPORT: {
     roles: OWN_REPORT_EDITOR_ROLES,
-    gate: 'canEditReport(account, report): own session report by account id, status PENDING; used by ReportDetailBottomSheet, CommunityReportsDashboard, ReportDetailModal and both edit save handlers'
+    gate: 'canEditReport (src/domain/access.ts): UI buttons and PATCH /api/workflow/reports/:id/content'
   },
   UPVOTE_DAMAGE_REPORT: { roles: EVERYONE, gate: 'no role check on the upvote handlers' },
   RUN_PINN_SIMULATION: { roles: EVERYONE, gate: 'route /engine/simulation/ (public; public sidebar already exposed it)' },
   EXPORT_SIMULATION_PDF: { roles: EVERYONE, gate: 'SimulationPanel PDF button; no role check' },
   USE_FWD_OVERLAY_TOOLS: { roles: ['FIELD_ENGINEER', 'OPERATIONS_MANAGER'], gate: 'route /engine/fwd/' },
-  VERIFY_DAMAGE_REPORT: { roles: ['FIELD_ENGINEER', 'OPERATIONS_MANAGER'], gate: 'FieldEngineerTools (route /engine/fwd/)' },
+  VERIFY_DAMAGE_REPORT: { roles: ['FIELD_ENGINEER'], gate: 'workflow SUBMIT_INSPECTION (assigned engineer only), enforced by the API' },
   MANAGE_WORK_ORDERS: { roles: ['FIELD_ENGINEER', 'OPERATIONS_MANAGER'], gate: 'routes /engineering/tasks/ and /operations/tasks/' },
   VIEW_PCI_TREND_HISTORY: { roles: ['FIELD_ENGINEER', 'OPERATIONS_MANAGER'], gate: 'route /engine/prediction/' },
   MONITOR_WIM_OPERATIONS: { roles: ['OPERATIONS_MANAGER'], gate: 'routes /operations/**' },
   ISSUE_ODOL_ENFORCEMENT: { roles: ['OPERATIONS_MANAGER'], gate: 'OperationsManagerAppView (routes /operations/monitoring/**)' },
-  VIEW_POLICY_ANALYSIS: { roles: ['POLICY_MAKER'], gate: 'route /policy/' }
+  VIEW_POLICY_ANALYSIS: { roles: ['POLICY_MAKER'], gate: 'route /policy/' },
+  TRIAGE_REPORTS: { roles: ['OPERATIONS_MANAGER'], gate: 'workflow REVIEW_ACCEPT / CLOSE_INVALID / REQUEST_INSPECTION, enforced by the API' },
+  APPROVE_MAINTENANCE: { roles: ['OPERATIONS_MANAGER'], gate: 'workflow APPROVE_ACTION / REJECT_ACTION / START_WORK, enforced by the API (recommender cannot approve)' },
+  VIEW_AUDIT_TRAIL: { roles: OFFICIAL_ROLES, gate: 'GET /api/workflow/audit requires an official session; UI entry points hidden for public roles' }
 };
 
 export function can(role: UserRole, action: ActionId): boolean {
   return ACTION_RULES[action].roles.includes(role);
-}
-
-/**
- * May this demo account edit the CONTENT of this report? Fails closed on anything
- * missing or malformed. Only a report created in this session, by this account id, in an
- * editable status, by a role allowed to edit its own reports. Bundled demo reports have
- * no creator account and are never editable.
- *
- * Content editing only: Field Engineer verification is a separate action and is not
- * decided here. Frontend demo behaviour, not a security boundary (identities are picked
- * without credentials and the data lives in browser memory).
- */
-export function canEditReport(
-  account: { id?: unknown; role?: unknown } | null | undefined,
-  report: Pick<DamageReport, 'origin' | 'creatorAccountId' | 'creatorRole' | 'status'> | null | undefined
-): boolean {
-  if (!account || !report) return false;
-  if (typeof account.id !== 'string' || account.id === '') return false;
-  if (!OWN_REPORT_EDITOR_ROLES.includes(account.role as UserRole)) return false;
-  if (report.origin !== 'SESSION') return false;
-  if (typeof report.creatorAccountId !== 'string' || report.creatorAccountId !== account.id) return false;
-  if (report.creatorRole !== account.role) return false;
-  return EDITABLE_REPORT_STATUSES.includes(report.status);
 }

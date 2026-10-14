@@ -83,7 +83,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     PENDING: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     VERIFIED_BY_ENGINEER: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     SCHEDULED_FOR_REPAIR: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    REPAIRED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+    REPAIRED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    CLOSED: 'bg-slate-700/40 text-slate-300 border-slate-500/30'
   };
 
   // Fallback repair details if not populated

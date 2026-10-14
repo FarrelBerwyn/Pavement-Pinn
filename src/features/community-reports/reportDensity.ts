@@ -40,19 +40,9 @@ export function matchesSeverityFilter(severity: DamageReport['severity'], filter
   return true;
 }
 
-export function hasValidCoordinates(report: Pick<DamageReport, 'coordinates'>): boolean {
-  const coordinates = report.coordinates as unknown;
-  if (!Array.isArray(coordinates) || coordinates.length !== 2) return false;
-  const [lat, lng] = coordinates;
-  return (
-    typeof lat === 'number' &&
-    typeof lng === 'number' &&
-    Number.isFinite(lat) &&
-    Number.isFinite(lng) &&
-    Math.abs(lat) <= 90 &&
-    Math.abs(lng) <= 180
-  );
-}
+// Moved to the shared domain kernel (the server validates reports with it too); same function.
+import { hasValidCoordinates } from '../../domain/geo';
+export { hasValidCoordinates };
 
 /** A report without an origin is one of the bundled demo reports. */
 export function isSessionReport(report: DamageReport): boolean {

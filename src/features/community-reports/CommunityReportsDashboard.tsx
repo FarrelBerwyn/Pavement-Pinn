@@ -529,6 +529,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
             <option value="VERIFIED_BY_ENGINEER">✅ Terverifikasi Engineer</option>
             <option value="SCHEDULED_FOR_REPAIR">🚧 Dijadwalkan Penanganan</option>
             <option value="REPAIRED">🎉 Selesai Diperbaiki</option>
+            <option value="CLOSED">Ditutup</option>
           </select>
         </div>
 
@@ -612,6 +613,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                     {report.status === 'VERIFIED_BY_ENGINEER' && '✅ Diverifikasi'}
                     {report.status === 'SCHEDULED_FOR_REPAIR' && '🚧 Dijadwalkan'}
                     {report.status === 'PENDING' && '🕒 Menunggu'}
+                    {report.status === 'REPAIRED' && '🎉 Selesai'}
+                    {report.status === 'CLOSED' && 'Ditutup'}
                   </span>
                 </div>
 

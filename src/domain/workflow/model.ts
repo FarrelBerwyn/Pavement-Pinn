@@ -1,0 +1,180 @@
+/**
+ * Canonical cross-role workflow model (spec v2.2 §24, "State Machine Laporan").
+ *
+ * One report case links the citizen report to the inspection assignment, the field
+ * inspection, the engineering assessment, the maintenance recommendation, its human
+ * approval and the work order. Every role reads and changes the same record through the
+ * transitions in `stateMachine.ts`; nothing here is UI state.
+ *
+ * Pure and isomorphic: used by the Express API (authoritative) and by the browser's
+ * offline demo store. No I/O, no clock, no randomness — callers pass `now` and ids.
+ */
+import type { DamageReport, UserRole } from '../../types';
+
+/** Report lifecycle, verbatim from the spec (§24). */
+export const WORKFLOW_STATES = [
+  'SUBMITTED',
+  'AI_SCREENING',
+  'NEEDS_REVIEW',
+  'VERIFIED',
+  'FIELD_INSPECTION_REQUESTED',
+  'INSPECTED',
+  'ACTION_RECOMMENDED',
+  'ACTION_APPROVED',
+  'IN_PROGRESS',
+  'RESOLVED',
+  'CLOSED'
+] as const;
+export type WorkflowState = (typeof WORKFLOW_STATES)[number];
+
+/** Who acted. `SYSTEM` is the automated screening step; it never makes human decisions. */
+export type ActorKind = 'DEMO_ACCOUNT' | 'ANONYMOUS' | 'SYSTEM';
+export interface Actor {
+  id: string;
+  role: UserRole | 'SYSTEM';
+  kind: ActorKind;
+}
+
+export const SYSTEM_ACTOR: Actor = { id: 'system:screening', role: 'SYSTEM', kind: 'SYSTEM' };
+
+/** Data status labels (spec §28 + execution brief §P). */
+export type DataStatus =
+  | 'OBSERVED'
+  | 'USER_GENERATED'
+  | 'PUBLIC'
+  | 'INFERRED'
+  | 'ESTIMATED'
+  | 'SYNTHETIC'
+  | 'SIMULATED'
+  | 'ILLUSTRATIVE'
+  | 'RULE_BASED'
+  | 'DEMO'
+  | 'MODEL_UNAVAILABLE';
+
+/** Outcome of the automated screening step. Never a human verification. */
+export interface ScreeningResult {
+  /** `REAL` only when a trained model actually ran; the demo classifier is `DEMO`. */
+  modelStatus: 'REAL' | 'DEMO' | 'MODEL_UNAVAILABLE';
+  modelVersion: string | null;
+  detectedClass: string | null;
+  /** 0..1, null when no model output exists. */
+  confidence: number | null;
+  passed: boolean;
+  reasons: string[];
+  at: string;
+}
+
+export interface InspectionAssignment {
+  id: string;
+  engineerId: string;
+  assignedBy: string;
+  assignedAt: string;
+  dueAt: string;
+  instructions: string;
+}
+
+/** Structured field record written by the assigned engineer (human verification). */
+export interface InspectionRecord {
+  id: string;
+  engineerId: string;
+  inspectedAt: string;
+  /** Did the engineer confirm damage at the reported location? */
+  verdict: 'CONFIRMED' | 'NOT_CONFIRMED';
+  /** Engineer's review of the citizen/CV class: accepted as-is or corrected. */
+  cvReview: { accepted: boolean; correctedClass: string | null };
+  measuredDepthCm: number | null;
+  measuredAreaM2: number | null;
+  severity: 'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
+  notes: string;
+  /** Provenance of the measurements: observed in the field by a person. */
+  dataStatus: 'OBSERVED';
+}
+
+export interface MaintenanceRecommendation {
+  id: string;
+  recommendedBy: string;
+  recommendedAt: string;
+  treatment: string;
+  urgency: 'ROUTINE' | 'PRIORITY' | 'URGENT';
+  rationale: string;
+  /** Engineering assessment the recommendation is based on (PINN or labelled fallback). */
+  assessmentId: string | null;
+}
+
+export interface ApprovalRecord {
+  id: string;
+  decidedBy: string;
+  decidedAt: string;
+  decision: 'APPROVED' | 'REJECTED';
+  reason: string;
+}
+
+export type WorkOrderStatus = 'ISSUED' | 'IN_PROGRESS' | 'COMPLETED';
+export interface WorkOrder {
+  id: string;
+  issuedBy: string;
+  issuedAt: string;
+  status: WorkOrderStatus;
+  contractorNote: string;
+  completedAt: string | null;
+  /** This is an internal demo work order, not an official government SPK document. */
+  isOfficialDocument: false;
+}
+
+/** One state change, as recorded in the audit log. */
+export interface TransitionRecord {
+  id: string;
+  at: string;
+  action: WorkflowAction;
+  from: WorkflowState | null;
+  to: WorkflowState;
+  actor: Actor;
+  reason: string;
+  /** Short text the citizen may see for this step (no names, no staff notes). */
+  publicNote: string;
+}
+
+/** The canonical report case. `report` keeps the citizen-facing content as before. */
+export interface ReportCase {
+  id: string;
+  /** Optimistic-concurrency token: every accepted transition increments it. */
+  version: number;
+  state: WorkflowState;
+  segmentId: string;
+  report: DamageReport;
+  createdBy: Actor;
+  createdAt: string;
+  updatedAt: string;
+  /** SHA-256 of the anonymous claim token, when an anonymous visitor created the report. */
+  claimTokenHash: string | null;
+  dataStatus: DataStatus;
+  screening: ScreeningResult | null;
+  assignment: InspectionAssignment | null;
+  inspection: InspectionRecord | null;
+  recommendation: MaintenanceRecommendation | null;
+  approvals: ApprovalRecord[];
+  workOrder: WorkOrder | null;
+  history: TransitionRecord[];
+}
+
+export const WORKFLOW_ACTIONS = [
+  'SUBMIT',
+  'BEGIN_SCREENING',
+  'SCREENING_PASSED',
+  'SCREENING_NEEDS_REVIEW',
+  'REVIEW_ACCEPT',
+  'CLOSE_INVALID',
+  'REQUEST_INSPECTION',
+  'SUBMIT_INSPECTION',
+  'RECOMMEND_ACTION',
+  'CLOSE_NO_ACTION',
+  'APPROVE_ACTION',
+  'REJECT_ACTION',
+  'START_WORK',
+  'COMPLETE_WORK_ORDER',
+  'RESOLVE',
+  'CLOSE_RESOLVED',
+  /** Bundled demo report imported into the store with its existing state; never user-triggered. */
+  'SEED_IMPORT'
+] as const;
+export type WorkflowAction = (typeof WORKFLOW_ACTIONS)[number];

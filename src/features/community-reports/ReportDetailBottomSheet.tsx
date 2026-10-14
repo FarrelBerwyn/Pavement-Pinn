@@ -37,7 +37,8 @@ const STATUS_LABEL: Record<DamageReport['status'], string> = {
   PENDING: 'Menunggu verifikasi',
   VERIFIED_BY_ENGINEER: 'Terverifikasi',
   SCHEDULED_FOR_REPAIR: 'Dijadwalkan diperbaiki',
-  REPAIRED: 'Selesai diperbaiki'
+  REPAIRED: 'Selesai diperbaiki',
+  CLOSED: 'Ditutup'
 };
 
 interface ReportDetailBottomSheetProps {

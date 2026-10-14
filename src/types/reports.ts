@@ -14,7 +14,8 @@ export type DamageType =
   | 'PATCHING';
 
 export type ReportSeverity = 'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
-export type ReportStatus = 'PENDING' | 'VERIFIED_BY_ENGINEER' | 'SCHEDULED_FOR_REPAIR' | 'REPAIRED';
+/** Display status used by the report screens; derived from the workflow state (domain/workflow/projections.ts). */
+export type ReportStatus = 'PENDING' | 'VERIFIED_BY_ENGINEER' | 'SCHEDULED_FOR_REPAIR' | 'REPAIRED' | 'CLOSED';
 
 export interface DamageReport {
   id: string;
@@ -28,6 +29,10 @@ export interface DamageReport {
   creatorAccountId?: string;
   /** ISO 8601 creation time (session reports only). `timestamp` stays the display string. */
   createdAt?: string;
+  /** Canonical workflow state (domain/workflow/model.ts WorkflowState) when loaded from the workflow store. */
+  workflowState?: string;
+  /** Workflow case version, sent back as `expectedVersion` on the next transition. */
+  caseVersion?: number;
   reporterAvatar?: string;
   timestamp: string;
   segmentId: string;
