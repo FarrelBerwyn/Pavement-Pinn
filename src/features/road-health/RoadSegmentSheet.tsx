@@ -68,6 +68,8 @@ interface RoadSegmentSheetProps {
   onSelectReport: (report: DamageReport) => void;
   /** Opens the existing simulator for this segment. */
   onOpenSimulation?: (segment: RoadSegment) => void;
+  /** Opens the segment detail: estimated risk, Road Story and What-If. */
+  onOpenDetail?: (segment: RoadSegment) => void;
 }
 
 /**
@@ -79,7 +81,8 @@ export const RoadSegmentSheet: React.FC<RoadSegmentSheetProps> = ({
   reports,
   language,
   onSelectReport,
-  onOpenSimulation
+  onOpenSimulation,
+  onOpenDetail
 }) => {
   const en = language === 'en';
   const condition = CONDITION[segment.conditionCategory];
@@ -99,6 +102,16 @@ export const RoadSegmentSheet: React.FC<RoadSegmentSheetProps> = ({
           </p>
         </div>
       </div>
+
+      {onOpenDetail && (
+        <button
+          type="button"
+          onClick={() => onOpenDetail(segment)}
+          className="w-full rounded-xl border border-sky-400/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:bg-sky-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 transition-colors"
+        >
+          {en ? 'Risk, why, Road Story & What-If' : 'Risiko, alasan, Road Story & What-If'}
+        </button>
+      )}
 
       <dl className="divide-y divide-white/10 border-y border-white/10">
         <Row label={en ? 'Segment ID' : 'ID ruas'}>{segment.id}</Row>

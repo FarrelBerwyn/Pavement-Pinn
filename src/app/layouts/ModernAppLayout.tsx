@@ -86,6 +86,7 @@ import { createSessionReport, ReportCreationError } from '../../features/communi
 import { settleMutation } from '../../features/community-reports/reportMutations';
 import { ReportWorkflowPanel } from '../../features/workflow/ReportWorkflowPanel';
 import { useAppState } from '../providers/AppStateProvider';
+import { useRouter } from '../router';
 import { canEditReport } from '../../features/rbac/accessPolicy';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { ReportDetailBottomSheet } from '../../features/community-reports/ReportDetailBottomSheet';
@@ -166,6 +167,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const isOperationsManager = currentAccount.role === 'OPERATIONS_MANAGER';
   // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
   const { workflow } = useAppState();
+  const { navigateTo } = useRouter();
 
   // Navigation tab in Public User interface (defaults to DASHBOARD for Operations Manager, Field Engineer and Policy Maker, MAP for public users)
   const setActiveNav = onNavigate;
@@ -2299,6 +2301,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 language={language}
                 onSelectReport={openReportFromSheet}
                 onOpenSimulation={onLaunchSimulation}
+                onOpenDetail={(seg) => navigateTo('roadDetail', { roadId: seg.id })}
               />
             ) : (
               <ReportList

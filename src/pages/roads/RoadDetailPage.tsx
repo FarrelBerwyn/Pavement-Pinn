@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Route as RouteIcon } from 'lucide-react';
 import { PageOverlay } from '../../components/ui/PageOverlay';
 import { usePageContext } from '../../app/pageContext';
 import { Link } from '../../app/router';
 import { buildPath } from '../../app/routeConfig';
 import { RoadConditionCategory } from '../../types';
+import { useAppState } from '../../app/providers/AppStateProvider';
+import type { EngineeringAssessment } from '../../domain/intelligence/assessment';
+import type { StructuredExplanation } from '../../domain/intelligence/explain';
+import type { StoryEntry } from '../../domain/intelligence/roadStory';
+import { RoadStoryTimeline, SegmentRiskCard, WhatIfPanel } from '../../features/road-intelligence/SegmentInsight';
 
 const CONDITION_LABEL: Record<RoadConditionCategory, string> = {
   GOOD: 'Baik',
@@ -27,13 +32,43 @@ const Fact: React.FC<{ label: string; value: React.ReactNode }> = ({ label, valu
 /**
  * Route: /roads/:roadId/ — public-safe road segment detail.
  *
- * Deliberately limited to information that is already public on the map: identity,
- * condition index, survey date and community reports. WIM vehicle records (licence
- * plates, per-truck weights) and engineering diagnostics are NOT shown here.
+ * Public-safe facts, then the segment insight: estimated risk with reasons, confidence and
+ * provenance (rule-based, labelled), the Road Story and a What-If simulation. WIM vehicle
+ * records (licence plates, per-truck weights) are NOT shown here.
  */
 export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ params }) => {
   const { closePage, roadSegments, communityReports, onSelectSegment, onLaunchSimulation, setActiveNav } = usePageContext();
   const segment = roadSegments.find((item) => item.id === params.roadId);
+  const { workflow } = useAppState();
+  const [insight, setInsight] = useState<{ assessment: EngineeringAssessment; explanation: StructuredExplanation } | null>(null);
+  const [story, setStory] = useState<{ story: StoryEntry[]; note: string } | null>(null);
+  const [insightError, setInsightError] = useState<string | null>(null);
+  const segmentId = segment?.id;
+
+  const loadStory = () => {
+    if (!segmentId) return;
+    workflow.gateway.story(segmentId).then(setStory).catch((e) => setInsightError((e as Error).message));
+  };
+
+  useEffect(() => {
+    if (!segmentId) return;
+    let cancelled = false;
+    setInsight(null);
+    setStory(null);
+    setInsightError(null);
+    workflow.gateway
+      .assessment(segmentId)
+      .then((r) => !cancelled && setInsight(r))
+      .catch((e) => !cancelled && setInsightError((e as Error).message));
+    workflow.gateway
+      .story(segmentId)
+      .then((r) => !cancelled && setStory(r))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+    // Reload when the workflow records change (e.g. a new inspection on this segment).
+  }, [segmentId, workflow.gateway, workflow.views]);
 
   if (!segment) {
     return (
@@ -84,6 +119,31 @@ export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ p
           Semua laporan
         </Link>
       </div>
+
+      {segment.pilot && (
+        <p className="text-[11px] text-slate-400">
+          Ruas pilot Karawang. Geometri ILUSTRATIF; atribut PCI/CBR/lalu lintas SINTETIS (bukan pengukuran lapangan).
+        </p>
+      )}
+
+      {insightError && (
+        <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
+          Analisis ruas tidak tersedia: {insightError}
+        </p>
+      )}
+      {!insight && !insightError && <p className="text-[11px] text-slate-400">Memuat analisis ruas…</p>}
+      {insight && <SegmentRiskCard assessment={insight.assessment} explanation={insight.explanation} />}
+      {story && <RoadStoryTimeline story={story.story} note={story.note} />}
+      {insight && (
+        <WhatIfPanel
+          baseline={insight.assessment.inputs}
+          onRun={async (scenario) => {
+            const result = await workflow.gateway.simulate(segment.id, scenario);
+            loadStory();
+            return result;
+          }}
+        />
+      )}
 
       <div className={cardClass}>
         <h3 className="text-sm font-extrabold text-white">Laporan warga pada ruas ini</h3>
