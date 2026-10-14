@@ -74,11 +74,11 @@ export const WorkflowQueueSection: React.FC = () => {
         <PolicyPriorities cases={staffCases} onOpen={setSelectedId} selectedId={selectedId} />
       ) : (
         <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             {workflow.loading && staffCases.length === 0 && <p className="text-[11px] text-slate-400">Memuat antrian…</p>}
             {buckets.map((b) => (
-              <div key={b.key}>
-                <div className="flex items-baseline justify-between">
+              <div key={b.key} className="min-w-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                   <h3 className="text-xs font-semibold text-slate-100">
                     {b.title} <span className="ml-1 rounded bg-white/10 px-1.5 text-[10px] font-bold">{b.items.length}</span>
                   </h3>
@@ -87,8 +87,8 @@ export const WorkflowQueueSection: React.FC = () => {
                 {b.items.length === 0 ? (
                   <p className="mt-1 text-[11px] text-slate-500">Tidak ada.</p>
                 ) : (
-                  <ul className="mt-1.5 space-y-1">
-                    {b.items.slice(0, 12).map((c) => (
+                  <ul className="mt-1.5 max-h-72 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
+                    {b.items.map((c) => (
                       <li key={c.id}>
                         <button
                           type="button"
@@ -117,7 +117,7 @@ export const WorkflowQueueSection: React.FC = () => {
               </div>
             ))}
           </div>
-          <div className="lg:sticky lg:top-3 self-start">
+          <div className="min-w-0 lg:sticky lg:top-3 self-start">
             {selectedView ? (
               <ReportWorkflowPanel
                 view={selectedView}
