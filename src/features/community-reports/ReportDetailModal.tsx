@@ -22,6 +22,7 @@ import {
 import { DamageReport } from '../../types';
 import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
+import { canEditReport } from '../rbac/accessPolicy';
 import { Language, TRANSLATIONS } from '../../i18n/translations';
 
 interface ReportDetailModalProps {
@@ -53,7 +54,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const t = TRANSLATIONS[language];
   const isEn = language === 'en';
 
-  const isMyReport = Boolean(currentAccount && report.reporterName === currentAccount.name);
+  const canEdit = canEditReport(currentAccount, report);
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${report.coordinates[0]},${report.coordinates[1]}`;
 
@@ -138,8 +139,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-2 shrink-0">
-            {/* Edit Report Button (Visible if current user is the author) */}
-            {isMyReport && onStartEdit && (
+            {/* Edit Report Button (canEditReport: own session report, still PENDING) */}
+            {canEdit && onStartEdit && (
               <button
                 onClick={() => {
                   onClose();

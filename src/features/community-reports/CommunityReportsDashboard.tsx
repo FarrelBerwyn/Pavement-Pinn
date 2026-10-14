@@ -36,6 +36,8 @@ import { UserAccount } from '../authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from './ReportDetailModal';
 import { resolveLiveReport } from './reportState';
+import { createSessionReport, ReportCreationError } from './reportFactory';
+import { canEditReport } from '../rbac/accessPolicy';
 import { ReportRoadIssueCard } from './ReportRoadIssueCard';
 
 interface CommunityReportsDashboardProps {
@@ -117,11 +119,13 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
         (currentSelectedSegment && wim.province === currentSelectedSegment.province)
     ) || ALL_BINA_MARGA_WIM_STATIONS[0];
 
-  // Count reports created by current user
-  const myReportsCount = reports.filter((r) => r.reporterName === currentAccount.name).length;
+  // Reports created by this demo account (by account id, not display name) and those it may still edit
+  const myReportsCount = reports.filter((r) => r.creatorAccountId === currentAccount.id).length;
+  const editableReportsCount = reports.filter((r) => canEditReport(currentAccount, r)).length;
 
   // Open edit dialog with prefilled data
   const handleOpenEdit = (report: DamageReport) => {
+    if (!canEditReport(currentAccount, report)) return;
     setEditingReport(report);
     setEditDamageType(report.damageType);
     setEditSeverity(report.severity);
@@ -136,6 +140,11 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingReport || !onEditReport) return;
+    // Same ownership rule as the edit button; a stale dialog saves nothing.
+    if (!canEditReport(currentAccount, editingReport)) {
+      setEditingReport(null);
+      return;
+    }
 
     const damageLabels: Record<DamageType, string> = {
       POTHOLE: 'Lubang Dalam (Pothole)',
@@ -187,11 +196,10 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       PATCHING: 'Tambalan (Patching)'
     };
 
-    const newReport: DamageReport = {
-      id: `REP-${Date.now().toString().slice(-6)}`,
+    let newReport: DamageReport;
+    try {
+      newReport = createSessionReport({
       reporterName: currentAccount.name,
-      creatorRole: activeRole,
-      origin: 'SESSION',
       reporterRole:
         activeRole === 'PUBLIC_REPORTER'
           ? 'Pelapor Masyarakat Terverifikasi'
@@ -218,7 +226,6 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       estimatedAreaM2: Number(estimatedAreaM2),
       photoUrl: PHOTO_PRESETS[photoPresetIndex].url,
       description: description,
-      status: 'PENDING',
       upvotesCount: 1,
       userUpvoted: true,
       repairDetails: {
@@ -244,7 +251,14 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
         estimatedPinnContributionPercent: Math.floor(72 + Math.random() * 20),
         causeAnalysisSummary: `Korelasi PINN & WIM Otomatis: Kerusakan di ${currentSelectedSegment.name} dipercepat hingga ${Math.floor(72 + Math.random() * 20)}% oleh beban terdeteksi kendaraan ${matchedWimStation.vehicleClass} (${matchedWimStation.licensePlate}) berbeban ${matchedWimStation.maxAxleLoadTon} Ton (+${matchedWimStation.overloadPercent}% Overload) dari Stasiun WIM ${matchedWimStation.stationName}.`
       }
-    };
+      }, currentAccount);
+    } catch (error) {
+      if (error instanceof ReportCreationError) {
+        alert(error.message);
+        return;
+      }
+      throw error;
+    }
 
     onAddReport(newReport);
     setIsFormOpen(false);
@@ -288,7 +302,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                 {activeRole === 'PUBLIC_VIEWER' && (
                   <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
                     <Eye className="w-3 h-3 text-amber-400" />
-                    User 2 (Siti Aminah): Melihat & Bisa Lapor ({myReportsCount === 0 ? 'Belum Ada Laporan Dibuat' : `${myReportsCount} Laporan Dibuat (Dapat Diedit)`})
+                    User 2 (Siti Aminah): Melihat & Bisa Lapor ({myReportsCount === 0 ? 'Belum Ada Laporan Dibuat' : `${myReportsCount} Laporan Dibuat`})
                   </span>
                 )}
               </div>
@@ -332,7 +346,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
           <div className="bg-[#171d2e] p-2.5 rounded-2xl border border-white/10">
             <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Laporan Saya Sendiri:</span>
             <p className="text-base font-extrabold text-amber-400 font-mono">
-              {myReportsCount} Laporan ({myReportsCount > 0 ? 'Dapat Diedit' : 'Belum Ada'})
+              {myReportsCount} Laporan ({myReportsCount > 0 ? `${editableReportsCount} Dapat Diedit` : 'Belum Ada'})
             </p>
           </div>
         </div>
@@ -549,7 +563,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       {/* REPORTS LIST (FEED OF CITIZEN REPORTS) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredReports.map((report) => {
-          const isMyReport = report.reporterName === currentAccount.name;
+          const isMyReport = report.creatorAccountId === currentAccount.id;
+          const canEdit = canEditReport(currentAccount, report);
 
           return (
             <div
@@ -661,8 +676,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                     <span>{report.upvotesCount}</span>
                   </button>
 
-                  {/* EDIT BUTTON (Available only for the author of this report) */}
-                  {isMyReport && (
+                  {/* EDIT BUTTON (canEditReport: own session report, still PENDING) */}
+                  {canEdit && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

@@ -6,7 +6,7 @@
  * demo switcher without credentials, and the backend performs no authorization at all.
  * See docs/architecture/RBAC_MATRIX.md.
  */
-import type { UserRole } from '../../types';
+import type { DamageReport, ReportStatus, UserRole } from '../../types';
 
 export const PUBLIC_ROLES: readonly UserRole[] = ['PUBLIC_REPORTER', 'PUBLIC_VIEWER'];
 export const OFFICIAL_ROLES: readonly UserRole[] = ['FIELD_ENGINEER', 'OPERATIONS_MANAGER', 'POLICY_MAKER'];
@@ -57,10 +57,19 @@ export interface ActionRule {
 
 const EVERYONE: readonly UserRole[] = [...OFFICIAL_ROLES, ...PUBLIC_ROLES];
 
+/** Roles that may edit the content of a report they created themselves. */
+export const OWN_REPORT_EDITOR_ROLES: readonly UserRole[] = ['PUBLIC_REPORTER'];
+
+/** Statuses in which the creator may still edit a report's content. */
+export const EDITABLE_REPORT_STATUSES: readonly ReportStatus[] = ['PENDING'];
+
 export const ACTION_RULES: Readonly<Record<ActionId, ActionRule>> = {
   VIEW_PUBLIC_ROAD_HEALTH: { roles: EVERYONE, gate: 'route /dashboard/ (public)' },
   CREATE_DAMAGE_REPORT: { roles: EVERYONE, gate: 'ReportRoadIssueCard is offered in every shell; no role check' },
-  EDIT_OWN_DAMAGE_REPORT: { roles: ['PUBLIC_REPORTER'], gate: "ReportDetailBottomSheet: currentAccount.role === 'PUBLIC_REPORTER'" },
+  EDIT_OWN_DAMAGE_REPORT: {
+    roles: OWN_REPORT_EDITOR_ROLES,
+    gate: 'canEditReport(account, report): own session report by account id, status PENDING; used by ReportDetailBottomSheet, CommunityReportsDashboard, ReportDetailModal and both edit save handlers'
+  },
   UPVOTE_DAMAGE_REPORT: { roles: EVERYONE, gate: 'no role check on the upvote handlers' },
   RUN_PINN_SIMULATION: { roles: EVERYONE, gate: 'route /engine/simulation/ (public; public sidebar already exposed it)' },
   EXPORT_SIMULATION_PDF: { roles: EVERYONE, gate: 'SimulationPanel PDF button; no role check' },
@@ -75,4 +84,27 @@ export const ACTION_RULES: Readonly<Record<ActionId, ActionRule>> = {
 
 export function can(role: UserRole, action: ActionId): boolean {
   return ACTION_RULES[action].roles.includes(role);
+}
+
+/**
+ * May this demo account edit the CONTENT of this report? Fails closed on anything
+ * missing or malformed. Only a report created in this session, by this account id, in an
+ * editable status, by a role allowed to edit its own reports. Bundled demo reports have
+ * no creator account and are never editable.
+ *
+ * Content editing only: Field Engineer verification is a separate action and is not
+ * decided here. Frontend demo behaviour, not a security boundary (identities are picked
+ * without credentials and the data lives in browser memory).
+ */
+export function canEditReport(
+  account: { id?: unknown; role?: unknown } | null | undefined,
+  report: Pick<DamageReport, 'origin' | 'creatorAccountId' | 'creatorRole' | 'status'> | null | undefined
+): boolean {
+  if (!account || !report) return false;
+  if (typeof account.id !== 'string' || account.id === '') return false;
+  if (!OWN_REPORT_EDITOR_ROLES.includes(account.role as UserRole)) return false;
+  if (report.origin !== 'SESSION') return false;
+  if (typeof report.creatorAccountId !== 'string' || report.creatorAccountId !== account.id) return false;
+  if (report.creatorRole !== account.role) return false;
+  return EDITABLE_REPORT_STATUSES.includes(report.status);
 }

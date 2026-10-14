@@ -28,6 +28,7 @@ import {
 import { DamageReport, ReportReview } from '../../types';
 import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
+import { canEditReport } from '../rbac/accessPolicy';
 
 export type SheetSnapPoint = 'PEEK' | 'HALF' | 'FULL';
 
@@ -825,7 +826,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           )}
 
           {/* Citizen Reporter Edit Button */}
-          {currentAccount.role === 'PUBLIC_REPORTER' && onOpenEditModal && (
+          {canEditReport(currentAccount, report) && onOpenEditModal && (
             <button
               onClick={() => onOpenEditModal(report)}
               className="w-full py-2 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer"

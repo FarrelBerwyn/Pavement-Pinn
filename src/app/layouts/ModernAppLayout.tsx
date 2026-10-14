@@ -81,6 +81,8 @@ import { UserAccount, USER_ACCOUNTS } from '../../features/authentication/demoAc
 import { LeafletMap, type LeafletMapProps } from '../../components/maps/LeafletMap';
 import { MAP_LAYER_PANEL_ID, MapLayerPanel } from '../../components/maps/MapLayerPanel';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
+import { createSessionReport, ReportCreationError } from '../../features/community-reports/reportFactory';
+import { canEditReport } from '../../features/rbac/accessPolicy';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { ReportDetailBottomSheet } from '../../features/community-reports/ReportDetailBottomSheet';
 import { DEMO_DATA_LABEL } from '../../data/provenance';
@@ -555,11 +557,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
     const newReportCoords: [number, number] = customCoordinates || targetSegment.coordinates;
 
-    const newReport: DamageReport = {
-      id: `REP-${Date.now().toString().slice(-6)}`,
+    let newReport: DamageReport;
+    try {
+      newReport = createSessionReport({
       reporterName: currentAccount.name,
-      creatorRole: currentAccount.role,
-      origin: 'SESSION',
       reporterRole: currentAccount.role === 'PUBLIC_REPORTER' ? 'Public Reporter' : 'Public Viewer',
       reporterAvatar: currentAccount.avatarUrl,
       timestamp: new Date().toLocaleString('id-ID', {
@@ -581,7 +582,6 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       estimatedAreaM2: Number(formArea),
       photoUrl: PHOTO_PRESETS[formPhotoPreset].url,
       description: formDescription,
-      status: 'PENDING',
       upvotesCount: 1,
       userUpvoted: true,
       repairDetails: {
@@ -607,7 +607,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
         estimatedPinnContributionPercent: 82,
         causeAnalysisSummary: `Korelasi PINN & WIM: Kerusakan di ${targetSegment.name} dipicu oleh akumulasi lintasan truk overload berbeban >18.5 Ton.`
       }
-    };
+      }, currentAccount);
+    } catch (error) {
+      if (error instanceof ReportCreationError) {
+        alert(error.message);
+        return;
+      }
+      throw error;
+    }
 
     onAddReport(newReport);
     setSelectedIssueReport(newReport);
@@ -638,6 +645,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const handleSaveReportEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editFormData || !selectedIssueReport) return;
+    // Same ownership rule as the edit button; a stale or forged modal state saves nothing.
+    if (!canEditReport(currentAccount, selectedIssueReport)) {
+      setIsEditReportModalOpen(false);
+      return;
+    }
 
     const damageLabels: Record<DamageType, string> = {
       POTHOLE: 'Pothole (Lubang Dalam)',
@@ -2296,6 +2308,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               setIsDetailsPanelOpen(false);
             }}
             onOpenEditModal={(rep) => {
+              if (!canEditReport(currentAccount, rep)) return;
               setEditFormData({
                 id: rep.id,
                 description: rep.description,

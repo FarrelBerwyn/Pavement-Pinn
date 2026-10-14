@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { DamageReport, DamageType, ReportSeverity, RoadSegment } from '../../types';
 import { UserAccount } from '../authentication/demoAccounts';
+import { createSessionReport, ReportCreationError } from './reportFactory';
 import { CV_DAMAGE_CLASSES, CVDamageClassInfo, analyzeImageDamageClass } from '../../engines/computer-vision/classification/cvDamageClasses';
 
 export type ReportCardState =
@@ -384,9 +385,6 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
   // Submit Final Report
   const handleSubmitReport = () => {
-    const reportNum = `RP-${Math.floor(10000 + Math.random() * 90000)}`;
-    setCreatedReportId(reportNum);
-
     const targetSeg =
       roadSegments.find((s) => {
         const dist = Math.hypot(s.coordinates[0] - coordinates[0], s.coordinates[1] - coordinates[1]);
@@ -395,11 +393,10 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
     const effectiveSeverity: ReportSeverity = customSeverity || analyzedClass.defaultSeverity;
 
-    const newReport: DamageReport = {
-      id: reportNum,
+    let newReport: DamageReport;
+    try {
+      newReport = createSessionReport({
       reporterName: currentAccount.name,
-      creatorRole: currentAccount.role,
-      origin: 'SESSION',
       reporterRole: currentAccount.role === 'PUBLIC_REPORTER' ? 'Public Reporter' : 'Citizen User',
       reporterAvatar: currentAccount.avatarUrl,
       timestamp: new Date().toLocaleString('id-ID', {
@@ -421,7 +418,6 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
       estimatedAreaM2: analyzedClass.defaultAreaM2,
       photoUrl: selectedImage || analyzedClass.samplePhotoUrl,
       description: notes.trim() || `Laporan kerusakan jalan (${analyzedClass.label}) terdeteksi via Computer Vision.`,
-      status: 'PENDING',
       upvotesCount: 1,
       userUpvoted: true,
       aiAnalysis: {
@@ -456,8 +452,16 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
         estimatedPinnContributionPercent: 80,
         causeAnalysisSummary: `Korelasi Kerusakan: Penurunan struktur permukaan dipicu akumulasi beban kendaraan berat ODOL.`
       }
-    };
+      }, currentAccount);
+    } catch (error) {
+      if (error instanceof ReportCreationError) {
+        alert(error.message);
+        return;
+      }
+      throw error;
+    }
 
+    setCreatedReportId(newReport.id);
     onAddReport(newReport);
     setCurrentState('SUCCESS');
   };

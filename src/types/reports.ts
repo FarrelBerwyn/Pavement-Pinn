@@ -24,6 +24,10 @@ export interface DamageReport {
   creatorRole?: UserRole;
   /** 'SESSION': made in this browser session (not persisted). Absent: one of the bundled demo reports. */
   origin?: 'SESSION';
+  /** Demo account id of the creator (session reports only). Client-side attribution, not an authenticated owner. */
+  creatorAccountId?: string;
+  /** ISO 8601 creation time (session reports only). `timestamp` stays the display string. */
+  createdAt?: string;
   reporterAvatar?: string;
   timestamp: string;
   segmentId: string;

@@ -29,6 +29,7 @@ import { resolveLiveReport } from '../../features/community-reports/reportState'
 import { Language, TRANSLATIONS } from '../../i18n/translations';
 import { DEMO_DATA_LABEL, DEMO_DATA_NOTE } from '../../data/provenance';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
+import { createSessionReport, ReportCreationError } from '../../features/community-reports/reportFactory';
 import {
   Filter,
   Search,
@@ -304,11 +305,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&q=80&w=600'
     ];
 
-    const newReport: DamageReport = {
-      id: `REP-${Date.now().toString().slice(-6)}`,
+    let newReport: DamageReport;
+    try {
+      newReport = createSessionReport({
       reporterName: currentAccount?.name || 'Masyarakat Pelapor',
-      creatorRole: activeRole,
-      origin: 'SESSION',
       reporterRole:
         activeRole === 'PUBLIC_REPORTER'
           ? 'Pelapor Terverifikasi'
@@ -337,7 +337,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       estimatedAreaM2: Number(formEstimatedArea),
       photoUrl: photoPresets[formPhotoIndex] || photoPresets[0],
       description: formDescription,
-      status: 'PENDING',
       upvotesCount: 1,
       userUpvoted: true,
       wimCorrelation: {
@@ -355,7 +354,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         estimatedPinnContributionPercent: Math.floor(75 + Math.random() * 20),
         causeAnalysisSummary: `Korelasi PINN & WIM Otomatis: Laporan kerusakan di ${activeFormSegment.name} dikorelasikan dengan lintasan truk ${matchedWimStation.vehicleClass} (${matchedWimStation.licensePlate}) berbeban ${matchedWimStation.maxAxleLoadTon} Ton (+${matchedWimStation.overloadPercent}% Overload) dari Stasiun WIM ${matchedWimStation.stationName}.`
       }
-    };
+      }, currentAccount);
+    } catch (error) {
+      if (error instanceof ReportCreationError) {
+        alert(error.message);
+        return;
+      }
+      throw error;
+    }
 
     if (onAddReport) {
       onAddReport(newReport);

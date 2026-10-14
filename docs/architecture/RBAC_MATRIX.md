@@ -87,8 +87,8 @@ Each row mirrors a gate that exists in the UI code (`ACTION_RULES` in `accessPol
 | Action | FE | OM | PM | Reporter | Viewer | Where it is gated |
 |---|---|---|---|---|---|---|
 | View public road health | yes | yes | yes | yes | yes | route `/dashboard/` |
-| Create a damage report | yes | yes | yes | yes | yes | no role check on the report card |
-| Edit own damage report | no | no | no | yes | no | `ReportDetailBottomSheet`: role must be `PUBLIC_REPORTER` |
+| Create a damage report | yes | yes | yes | yes | yes | no role check; every creation path builds the report with `createSessionReport` (`features/community-reports/reportFactory.ts`) |
+| Edit own damage report | no | no | no | yes | no | `canEditReport(account, report)` in `accessPolicy.ts` (rules below), used by the map bottom sheet, `/reports/`, `ReportDetailModal` and both edit save handlers |
 | Upvote a damage report | yes | yes | yes | yes | yes | no role check |
 | Run a PINN simulation | yes | yes | yes | yes | yes | route `/engine/simulation/` |
 | Export the simulation PDF | yes | yes | yes | yes | yes | no role check on the button |
@@ -100,10 +100,38 @@ Each row mirrors a gate that exists in the UI code (`ACTION_RULES` in `accessPol
 | Issue ODOL enforcement (BATM, ETLE) | no | yes | no | no | no | `OperationsManagerAppView` under `/operations/monitoring/` |
 | View policy analysis | no | no | yes | no | no | route `/policy/` |
 
+### Report creation and ownership (M1a)
+
+Every new report is built by one factory, `createSessionReport`. It sets a random id
+(`REP-` plus 16 hex characters from `crypto.getRandomValues`), `creatorAccountId` and
+`creatorRole` from the selected demo account, `origin: 'SESSION'`, an ISO `createdAt`
+and status `PENDING`, and rejects reports without a valid account, segment, coordinates,
+depth or area. The bundled demo reports keep no owner and no `origin`.
+
+`canEditReport` allows a content edit only when all of these hold, and fails closed
+otherwise:
+
+1. the account has a non-empty id and the role `PUBLIC_REPORTER`;
+2. the report was created in this session (`origin: 'SESSION'`);
+3. `report.creatorAccountId` equals the account id (display names are never compared, so
+   USR-001 and USR-006, which share a name, cannot edit each other's reports);
+4. `report.creatorRole` equals the account role;
+5. the status is `PENDING`.
+
+Consequences: `PUBLIC_VIEWER` and the official roles cannot edit report content, not
+even reports they created; nobody can edit the bundled demo reports, including the one
+attributed to Budi Santoso by name. Field Engineer verification is a separate action
+(the engineer flag on the bottom sheet) and is not decided by `canEditReport`; the
+shared store is deliberately not gated, so verification keeps working.
+
+**Still not security.** The account is picked without credentials, `creatorAccountId` is
+written by the browser, and the reports live in browser memory. Real ownership needs
+authentication, server-side storage and a server check on every edit.
+
 Findings recorded honestly:
 
-- The `PUBLIC_VIEWER` demo account is described as view-only-plus-new-report, and the
-  only enforced difference from `PUBLIC_REPORTER` is the missing edit button.
+- The `PUBLIC_VIEWER` demo account is described as view-only-plus-new-report. With
+  M1a it may create reports but not edit them, own ones included.
 - "Create a damage report" has no role check anywhere, so the policy maker can create
   one too if they reach the report card.
 - The PDF content labels any role other than field engineer or operations manager as
