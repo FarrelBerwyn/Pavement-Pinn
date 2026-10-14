@@ -99,7 +99,8 @@ test('frontend never imports server-only code or Node built-ins', () => {
 });
 
 test('server imports from src/ are limited to the isomorphic shared kernel', () => {
-  const allowed = /^src\/(types\/|engines\/|data\/reference\/|constants\/)/;
+  // domain/ is the isomorphic workflow kernel; data/mock seeds the demo workflow store.
+  const allowed = /^src\/(types\/|engines\/|domain\/|data\/reference\/|data\/mock\/|constants\/)/;
   assert.deepEqual(
     violations((e) => e.from.startsWith('server/') && (e.target ?? '').startsWith('src/') && !allowed.test(e.target ?? '')),
     []

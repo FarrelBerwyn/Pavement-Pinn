@@ -16,6 +16,31 @@ export const API_PATHS = {
   generateNarrative: '/api/generate-narrative'
 } as const;
 
+/**
+ * Workflow, identity and system endpoints added for the cross-role workflow (P2).
+ * Kept separate from API_PATHS, whose six pre-restructure entries are a frozen contract.
+ * Contract details: docs/api/WORKFLOW_API.md.
+ */
+export const WORKFLOW_API_PATHS = {
+  demoSession: '/api/auth/demo-session',
+  anonymousSession: '/api/auth/anonymous',
+  me: '/api/auth/me',
+  reports: '/api/workflow/reports',
+  report: '/api/workflow/reports/:id',
+  transitions: '/api/workflow/reports/:id/transitions',
+  content: '/api/workflow/reports/:id/content',
+  audit: '/api/workflow/audit',
+  engineers: '/api/workflow/engineers',
+  systemHealth: '/api/system-health',
+  roadStory: '/api/road-segments/:id/story',
+  riskMap: '/api/risk-map'
+} as const;
+
+export interface ApiErrorBody {
+  success: false;
+  error: { code: string; message: string };
+}
+
 export interface HealthResponse {
   status: 'ok';
   appName: string;

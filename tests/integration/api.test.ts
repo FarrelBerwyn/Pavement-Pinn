@@ -209,7 +209,17 @@ test('no endpoint requires authentication (documents the absence of backend auth
 });
 
 test('server config: defaults preserve port 3000 and the GitHub Pages base path', () => {
-  assert.deepEqual(loadServerConfig({}), { port: 3000, host: '0.0.0.0', isProduction: false, basePath: '/PavementPinn/' });
+  assert.deepEqual(loadServerConfig({}), {
+    port: 3000,
+    host: '0.0.0.0',
+    isProduction: false,
+    basePath: '/PavementPinn/',
+    dataDir: '.data',
+    sessionSecret: undefined,
+    demoAuthEnabled: true
+  });
+  assert.equal(loadServerConfig({ SESSION_SECRET: 'too-short' }).sessionSecret, undefined);
+  assert.equal(loadServerConfig({ DEMO_AUTH: 'false' }).demoAuthEnabled, false);
   assert.equal(loadServerConfig({ PORT: '4317', NODE_ENV: 'production', VITE_BASE_PATH: '/' }).port, 4317);
   assert.equal(loadServerConfig({ NODE_ENV: 'production' }).isProduction, true);
   assert.equal(loadServerConfig({ VITE_BASE_PATH: '/' }).basePath, '/');

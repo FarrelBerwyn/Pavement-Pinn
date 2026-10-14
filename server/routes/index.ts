@@ -4,15 +4,19 @@ import { registerRoadsRoutes } from "./roads.routes";
 import { registerPinnRoutes } from "./pinn.routes";
 import { registerOpenvinoRoutes } from "./openvino.routes";
 import { registerNarrativeRoutes } from "./narrative.routes";
+import { registerWorkflowRoutes } from "./workflow.routes";
+import { registerSystemRoutes } from "./system.routes";
+import type { WorkflowRuntime } from "../services/workflowRuntime";
 
 /**
  * All HTTP API routes. Paths are the pre-restructure paths, taken from the shared
  * API_PATHS contract so server and client cannot drift apart.
  *
- * There is no authentication or authorization on any endpoint — see
- * docs/api/API_INVENTORY.md and docs/architecture/RBAC_MATRIX.md.
+ * The six original endpoints have no authentication. The workflow endpoints decide the
+ * actor from a server-signed session token and enforce roles, ownership and transitions
+ * (docs/api/WORKFLOW_API.md, docs/architecture/RBAC_MATRIX.md).
  */
-export function createApiRouter(): Router {
+export function createApiRouter(workflow: WorkflowRuntime): Router {
   const router = Router();
 
   // Same registration order as before the split.
@@ -21,6 +25,8 @@ export function createApiRouter(): Router {
   registerPinnRoutes(router);
   registerOpenvinoRoutes(router);
   registerNarrativeRoutes(router);
+  registerWorkflowRoutes(router, workflow);
+  registerSystemRoutes(router, workflow);
 
   // Anything else under /api is an API mistake, not a page: answer JSON 404 instead of
   // letting the request fall through to the SPA host (which replied with HTML, status 200).

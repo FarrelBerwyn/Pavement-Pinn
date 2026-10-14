@@ -17,3 +17,8 @@ export function getGeminiClient(): GoogleGenAI | null {
   }
   return aiClient;
 }
+
+/** True when a usable key is present (does not create the client or call the API). */
+export function isGeminiConfigured(): boolean {
+  return !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY";
+}
