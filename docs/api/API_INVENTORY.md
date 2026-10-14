@@ -2,7 +2,8 @@
 
 The backend is one Express 4 application. All six endpoints existed before the
 restructure with the same paths, methods and payloads; they were moved out of the
-single `server.ts` file into modules. Contract tests: `tests/integration/api.test.ts`.
+single `server.ts` file into modules. Contract tests: `tests/integration/api.test.ts`
+(17 tests) and `tests/integration/api-hardening.test.ts` (7 tests).
 
 ## Runtime layout
 
@@ -29,10 +30,13 @@ the server and the browser clients in `src/services/api/`.
   No role, token, cookie or header is read. See `docs/architecture/RBAC_MATRIX.md`.
 - **Persistence: none.** No database, no file writes, no cache. Nothing a client sends
   is stored. `server/database/` was deliberately not created.
-- No CORS configuration, rate limiting, request-size override, or input validation exists.
+- No CORS configuration, rate limiting or request-size override exists. Bodies above
+  the Express default of 100 kB are rejected with 413. Input validation exists only for
+  the narrative prompt fields (see that endpoint).
 - No API versioning; no `/api/v1` prefix was introduced.
-- Unknown `/api/...` paths are not answered with a JSON 404: they fall through to the
-  frontend host and return the SPA HTML with status 200 (pre-existing behaviour).
+- Unknown `/api/...` paths answer `404` with JSON `success` false and `error`
+  "Unknown API endpoint" (hardening pass). Before, they fell through to the frontend
+  host and returned the SPA HTML with status 200.
 - On GitHub Pages there is no backend at all. The frontend detects a `github.io` host
   (`isStaticHost()` in `src/services/api/client.ts`) and uses the narrative embedded in
   the simulation result. The two OpenVINO download links are dead on that host
@@ -107,8 +111,13 @@ the server and the browser clients in `src/services/api/`.
 - The offline text is the narrative embedded in `simulationData.aiNarrative` for the
   role, or a template. Any role other than `FIELD_ENGINEER` and `OPERATIONS_MANAGER`
   receives the policy narrative.
-- The `role` and `simulationData` values are interpolated into the Gemini prompt
-  without sanitisation; a caller controls the prompt content (pre-existing).
+- Prompt hygiene (hardening pass): every request value placed in the Gemini prompt is
+  first reduced to one short line (`promptField`: control characters and newlines
+  removed, 120-character cap, non-scalars replaced by "n/a"), and a `role` outside the
+  five known identifiers is answered from the offline text without calling Gemini.
+  Well-formed simulation results produce the same prompt lines as before.
+- Still true: the endpoint is unauthenticated and not rate limited, so any caller who
+  sends a valid role can make the server spend Gemini quota.
 - Errors: 400 for malformed JSON. Gemini failures are swallowed and logged with `console.warn`.
 - Implementation status: IMPLEMENTED with offline fallback. The Gemini path itself is
   NOT TESTED: in the audited environment the configured key was rejected by Google
@@ -117,14 +126,24 @@ the server and the browser clients in `src/services/api/`.
 
 ## Summary table
 
-| Method | Path | Auth | Role check | Frontend consumer | Status |
-|---|---|---|---|---|---|
-| GET | `/api/health` | none | none | none | IMPLEMENTED |
-| GET | `/api/roads` | none | none | none | IMPLEMENTED (static data) |
-| POST | `/api/simulate` | none | none | none | IMPLEMENTED |
-| GET | `/api/openvino/export-ir` | none | none | diagnostics modal link | SIMULATED artifact |
-| GET | `/api/openvino/export-config` | none | none | diagnostics modal link | SIMULATED artifact |
-| POST | `/api/generate-narrative` | none | none | simulation panel | IMPLEMENTED with fallback |
+Class: `public` means anyone can call it and that is acceptable for a demo;
+`demo-only` means it serves demonstration or simulated content that must not be
+mistaken for a production capability; `protected` would mean the server checks the
+caller, and no endpoint is.
+
+| Method | Path | Class | Auth | Role check | Frontend consumer | Status |
+|---|---|---|---|---|---|---|
+| GET | `/api/health` | public | none | none | none | IMPLEMENTED |
+| GET | `/api/roads` | public, demo-only data | none | none | none | IMPLEMENTED (static data) |
+| POST | `/api/simulate` | public, demo-only | none | none | none | IMPLEMENTED |
+| GET | `/api/openvino/export-ir` | public, demo-only | none | none | diagnostics modal link | SIMULATED artifact |
+| GET | `/api/openvino/export-config` | public, demo-only | none | none | diagnostics modal link | SIMULATED artifact |
+| POST | `/api/generate-narrative` | public (spends the owner's Gemini quota) | none | none | simulation panel | IMPLEMENTED with fallback |
+| any | other `/api/...` | public | none | none | none | JSON 404 |
+
+Sensitive exposure: `GET /api/roads` returns demonstration WIM records that include
+licence plates and vehicle weights. The values are synthetic, but a deployment with real
+WIM data must not serve them unauthenticated. No endpoint stores or modifies anything.
 
 ## Compatibility verification
 
@@ -143,11 +162,14 @@ the server and the browser clients in `src/services/api/`.
 
 - `GEMINI_API_KEY` is read only in `server/integrations/geminiClient.ts`, on the server.
   A source search and a search of the built bundle found no reference to it in frontend code.
-- `.github/workflows/deploy.yml` passes the secret to the static build as
-  `VITE_GEMINI_API_KEY`. Nothing reads that variable, so it is not in the published
-  bundle today. Because Vite inlines every referenced `VITE_*` variable into public
-  JavaScript, that line is a latent risk and is best removed. The workflow file was
-  left untouched.
+- `.github/workflows/deploy.yml` used to pass the secret to the static build as
+  `VITE_GEMINI_API_KEY`. Nothing ever read that variable, so it was never in a
+  published bundle: a local build with a unique canary value in it contained zero
+  occurrences, and the bundle served by GitHub Pages at the time contained no
+  Google-key-shaped string. Because Vite inlines every referenced `VITE_*` variable
+  into public JavaScript, the line was a latent risk; the two lines (`env:` and the
+  variable) were removed from the workflow on 2026-10-14. The static build now
+  receives no secret at all. Do not reintroduce a `VITE_*` secret.
 - The server does not load `.env` files (`dotenv` is installed but never imported).
 
 ## Recommended next steps (not done)
@@ -155,4 +177,3 @@ the server and the browser clients in `src/services/api/`.
 1. Real authentication and per-endpoint authorization before any non-demo deployment.
 2. Input validation on `POST /api/simulate` and a JSON 404 for unknown `/api/` paths.
 3. A public projection of the road dataset for `GET /api/roads`.
-4. Remove `VITE_GEMINI_API_KEY` from the deploy workflow.

@@ -474,7 +474,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   const mainRoadName = locationParts[0]?.trim() || selectedSegment?.name || 'Jl. Sudirman';
   const subLocationName =
     locationParts.slice(1).join(',').trim() ||
-    (selectedSegment ? `${selectedSegment.district || 'Jakarta'}, ${selectedSegment.province}` : 'Karet Tengsin, Jakarta Pusat');
+    (selectedSegment ? `${selectedSegment.corridor}, ${selectedSegment.province}` : 'Karet Tengsin, Jakarta Pusat');
 
   const effectiveSeverity: ReportSeverity = customSeverity || analyzedClass.defaultSeverity;
 

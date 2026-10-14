@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { attachMapResizeRecovery, safeFlyTo } from '../../components/maps/mapViewport';
 import {
   ResponsiveContainer,
   PieChart,
@@ -292,6 +293,7 @@ export const StrategicPolicyMapView: React.FC<StrategicPolicyMapViewProps> = ({
     overlaysGroupRef.current = L.featureGroup().addTo(map);
 
     mapInstanceRef.current = map;
+    attachMapResizeRecovery(map, mapContainerRef.current);
 
     return () => {
       map.remove();
@@ -557,7 +559,7 @@ export const StrategicPolicyMapView: React.FC<StrategicPolicyMapViewProps> = ({
   // Recenter map handler
   const handleRecenter = () => {
     if (!mapInstanceRef.current) return;
-    mapInstanceRef.current.flyTo([-6.2400, 106.9200], 10, { duration: 1.2 });
+    safeFlyTo(mapInstanceRef.current, [-6.2400, 106.9200], 10, { duration: 1.2 });
   };
 
   // Zoom controls

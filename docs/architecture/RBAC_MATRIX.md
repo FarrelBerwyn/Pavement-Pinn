@@ -118,15 +118,22 @@ Findings recorded honestly:
 | Landing never remains on `/login/` | PASS |
 | `next` parameter accepts only same-app paths | PASS (unit test with hostile values) |
 | Identity survives refresh within the tab | PASS (browser) |
+| Upvotes do not carry over between identities | PASS (unit tests and browser, hardening pass) |
 | Logout | `SessionProvider.logout()` resets to the default public identity and clears the stored id. The existing UI has no dedicated logout action: the "Keluar" button opens the account switcher, as it was designed to. |
 
 **Data shared across identities (by design, pre-existing).** Road segments, community
 reports, the latest simulation result and the audit trail live in one in-memory store
 that stands in for a backend, so they are intentionally shared between demo
-identities and reset on refresh. One side effect is a real leak of per-user state:
-the `userUpvoted` flag is stored on the report itself, so an upvote made as one
-identity appears as "already upvoted" for the next identity. This existed before the
-restructure and was not changed.
+identities and reset on refresh.
+
+**Per-identity state (fixed in the hardening pass).** Upvotes used to be stored on the
+report itself, so an upvote made as one identity appeared as "already upvoted" for the
+next one. They are now tracked per account in
+`src/features/community-reports/reportState.ts`: the count is shared, the "upvoted by
+me" flag belongs to the account that voted. Seed upvote flags are attributed to the
+default reporter account (USR-004). Verified by `tests/unit/report-state.test.ts` and
+in the browser across two identities. Like everything else here this is in-memory
+demo state, not a security control.
 
 ## 6. Backend
 

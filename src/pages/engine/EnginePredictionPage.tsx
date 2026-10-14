@@ -9,7 +9,7 @@ import { usePageContext } from '../../app/pageContext';
  * Markup moved verbatim from the modern shell's "ROAD_HISTORY" overlay.
  */
 export const EnginePredictionPage: React.FC = () => {
-  const { roadSegments, selectedSegment, onSelectSegment, isFieldEngineer, isOperationsManager, setActiveNav } = usePageContext();
+  const { roadSegments, selectedSegment, onSelectSegment, communityReports, isFieldEngineer, isOperationsManager, setActiveNav } = usePageContext();
 
   return (
     <div className="fixed inset-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200">
@@ -41,6 +41,7 @@ export const EnginePredictionPage: React.FC = () => {
           roadSegments={roadSegments}
           selectedSegment={selectedSegment}
           onSelectSegment={onSelectSegment}
+          communityReports={communityReports}
         />
       </div>
     </div>

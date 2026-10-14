@@ -7,12 +7,13 @@
  * The data is shared across demo identities by design (it stands in for a backend).
  */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { addReport, createReportState, replaceReport, ReportState, toggleUpvote, viewReportsAs } from '../../features/community-reports/reportState';
 import { RoadSegment, SimulationResult, AuditLogItem, DamageReport } from '../../types';
 import { INDONESIAN_ROAD_SEGMENTS } from '../../data/reference/indonesianRoads';
 import { INITIAL_COMMUNITY_REPORTS } from '../../data/mock/communityReports';
 import { INITIAL_AUDIT_LOGS } from '../../data/mock/auditLogs';
 import { runPinnSimulation } from '../../engines/pinn/core/pinnEngine';
-import { useSession } from './SessionProvider';
+import { DEFAULT_PUBLIC_ACCOUNT, useSession } from './SessionProvider';
 
 export interface AppStateValue {
   roadSegments: RoadSegment[];
@@ -35,8 +36,15 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [roadSegments] = useState<RoadSegment[]>(INDONESIAN_ROAD_SEGMENTS);
   const [selectedSegment, setSelectedSegment] = useState<RoadSegment>(INDONESIAN_ROAD_SEGMENTS[0]);
 
-  // Community Damage Reports State
-  const [communityReports, setCommunityReports] = useState<DamageReport[]>(INITIAL_COMMUNITY_REPORTS);
+  // Community Damage Reports State. Counts are shared; who upvoted what is tracked per
+  // account, so one demo identity's upvotes do not appear as another identity's.
+  const [reportState, setReportState] = useState<ReportState>(() =>
+    createReportState(INITIAL_COMMUNITY_REPORTS, DEFAULT_PUBLIC_ACCOUNT.id)
+  );
+  const communityReports = useMemo(
+    () => viewReportsAs(reportState, currentAccount.id),
+    [reportState, currentAccount.id]
+  );
 
   // Initial Simulation Result
   const [currentResult, setCurrentResult] = useState<SimulationResult | null>(null);
@@ -46,7 +54,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Add Community Damage Report
   const addCommunityReport = (newReport: DamageReport) => {
-    setCommunityReports((prev) => [newReport, ...prev]);
+    setReportState((prev) => addReport(prev, currentAccount.id, newReport));
 
     // Append to audit logs
     const newLog: AuditLogItem = {
@@ -64,7 +72,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Edit Community Damage Report
   const editCommunityReport = (updatedReport: DamageReport) => {
-    setCommunityReports((prev) => prev.map((rep) => (rep.id === updatedReport.id ? updatedReport : rep)));
+    setReportState((prev) => replaceReport(prev, updatedReport));
 
     const newLog: AuditLogItem = {
       id: `LOG-${Date.now()}`,
@@ -81,19 +89,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Upvote Community Damage Report
   const upvoteCommunityReport = (reportId: string) => {
-    setCommunityReports((prev) =>
-      prev.map((rep) => {
-        if (rep.id === reportId) {
-          const isUpvoted = rep.userUpvoted;
-          return {
-            ...rep,
-            upvotesCount: isUpvoted ? rep.upvotesCount - 1 : rep.upvotesCount + 1,
-            userUpvoted: !isUpvoted
-          };
-        }
-        return rep;
-      })
-    );
+    setReportState((prev) => toggleUpvote(prev, currentAccount.id, reportId));
   };
 
   // Run initial simulation on load

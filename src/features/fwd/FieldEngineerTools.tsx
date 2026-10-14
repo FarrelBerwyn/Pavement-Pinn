@@ -82,7 +82,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
   // Custom Overlay Calculator State
   const [calcSegmentLengthM, setCalcSegmentLengthM] = useState<number>(500);
   const [calcRoadWidthM, setCalcRoadWidthM] = useState<number>(7.0);
-  const [calcAcWcThicknessCm, setCalcAcWcThicknessCm] = useState<number>(result?.roleOutputs.fieldEngineer.overlayThicknessCm || 6.0);
+  const [calcAcWcThicknessCm, setCalcAcWcThicknessCm] = useState<number>(result?.roleOutputs.fieldEngineer.recommendedOverlayThicknessCm || 6.0);
   const [calcAcBcThicknessCm, setCalcAcBcThicknessCm] = useState<number>(4.0);
   const [calcAsphaltDensity, setCalcAsphaltDensity] = useState<number>(2.3); // Ton/m3
 
@@ -562,7 +562,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
             <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fungsi Objektif Total</h4>
             <p className="text-2xl font-black text-emerald-400 font-mono">
-              {result ? result.lossMetrics.totalLoss.toFixed(5) : '0.00342'}
+              {result ? (result.telemetry.physicsLossValue + result.telemetry.dataLossValue).toFixed(5) : '0.00342'}
             </p>
             <p className="text-xs text-slate-400">Konvergensi Adam Optimizer epoch 1500.</p>
           </div>
@@ -570,7 +570,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
             <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fisika PDE (Burmister)</h4>
             <p className="text-2xl font-black text-cyan-300 font-mono">
-              {result ? result.lossMetrics.pdeLoss.toFixed(5) : '0.00185'}
+              {result ? result.telemetry.physicsLossValue.toFixed(5) : '0.00185'}
             </p>
             <p className="text-xs text-slate-400">Kesesuaian persamaan diferensial elastisitas berlapis.</p>
           </div>
@@ -578,7 +578,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
             <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Data Observasi Sensor</h4>
             <p className="text-2xl font-black text-amber-400 font-mono">
-              {result ? result.lossMetrics.dataLoss.toFixed(5) : '0.00157'}
+              {result ? result.telemetry.dataLossValue.toFixed(5) : '0.00157'}
             </p>
             <p className="text-xs text-slate-400">Kesesuaian dengan sensor regangan WIM & FWD.</p>
           </div>

@@ -35,6 +35,7 @@ import {
 import { UserAccount } from '../authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from './ReportDetailModal';
+import { resolveLiveReport } from './reportState';
 import { ReportRoadIssueCard } from './ReportRoadIssueCard';
 
 interface CommunityReportsDashboardProps {
@@ -707,7 +708,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       <ReportDetailModal
         isOpen={!!selectedDetailReport}
         onClose={() => setSelectedDetailReport(null)}
-        report={selectedDetailReport}
+        report={resolveLiveReport(selectedDetailReport, reports)}
         onUpvote={onUpvoteReport}
         onStartEdit={(rep) => handleOpenEdit(rep)}
         currentAccount={currentAccount}

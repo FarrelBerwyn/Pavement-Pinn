@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { API_PATHS } from "../../src/types";
 import { getHealth } from "../controllers/healthController";
 import { listRoads } from "../controllers/roadsController";
@@ -22,6 +22,12 @@ export function createApiRouter(): Router {
   router.get(API_PATHS.openvinoExportIr, exportIr);
   router.get(API_PATHS.openvinoExportConfig, exportConfig);
   router.post(API_PATHS.generateNarrative, postGenerateNarrative);
+
+  // Anything else under /api is an API mistake, not a page: answer JSON 404 instead of
+  // letting the request fall through to the SPA host (which replied with HTML, status 200).
+  router.use("/api", function apiNotFound(_req: Request, res: Response) {
+    res.status(404).json({ success: false, error: "Unknown API endpoint" });
+  });
 
   return router;
 }

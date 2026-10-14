@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { recoverMapSize, safeFitBounds } from '../../components/maps/mapViewport';
 import {
   NATIONAL_ROAD_HEALTH_CORRIDORS,
   NationalRoadCorridor,
@@ -68,7 +69,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
       [-10.8, 95.0], // Southwest (below Timor/Java/Sumatra)
       [5.9, 141.0]   // Northeast (above Aceh/Papua border)
     );
-    map.fitBounds(indonesiaBounds, {
+    safeFitBounds(map, indonesiaBounds, {
       padding: [20, 20],
       maxZoom: 6
     });
@@ -76,7 +77,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
     // Handle container resize
     const resizeObserver = new ResizeObserver(() => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+        recoverMapSize(mapInstanceRef.current);
       }
     });
     resizeObserver.observe(mapContainerRef.current);
@@ -203,7 +204,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
         [-10.8, 95.0],
         [5.9, 141.0]
       );
-      mapInstanceRef.current.fitBounds(indonesiaBounds, {
+      safeFitBounds(mapInstanceRef.current, indonesiaBounds, {
         padding: [20, 20],
         maxZoom: 6
       });

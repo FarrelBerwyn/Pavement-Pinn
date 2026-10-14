@@ -148,8 +148,8 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
       spkNumber: `SPK/PUPR/${currentSegment.id}/2024`,
       budget: 'Rp 185.000.000',
       volume: '240 m²',
-      pciBefore: currentSegment.pci - 15,
-      pciAfter: currentSegment.pci + 10,
+      pciBefore: currentSegment.currentPci - 15,
+      pciAfter: currentSegment.currentPci + 10,
       status: 'IN_WARRANTY',
       warrantyEnd: 'Okt 2025',
       notes: 'Penanganan kerusakan permukaan sebelum musim penghujan tinggi.',
@@ -191,7 +191,7 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
     { year: '2022', pci: 82, status: 'Mantap', action: 'Inspeksi Rutin' },
     { year: '2023', pci: 73, status: 'Sedang', action: 'Crack Sealing' },
     { year: '2024', pci: 62, status: 'Sedang', action: 'Patching Ringan' },
-    { year: '2025 (Kini)', pci: currentSegment.pci, status: currentSegment.pci > 70 ? 'Mantap' : currentSegment.pci > 50 ? 'Sedang' : 'Rusak Ringan', action: 'Perlu Penanganan' }
+    { year: '2025 (Kini)', pci: currentSegment.currentPci, status: currentSegment.currentPci > 70 ? 'Mantap' : currentSegment.currentPci > 50 ? 'Sedang' : 'Rusak Ringan', action: 'Perlu Penanganan' }
   ];
 
   return (
@@ -228,7 +228,7 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
           >
             {roadSegments.map((seg) => (
               <option key={seg.id} value={seg.id}>
-                {seg.name} (STA {seg.sta})
+                {seg.name} ({seg.kmPost})
               </option>
             ))}
           </select>
@@ -242,8 +242,8 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
             <span>PCI Saat Ini</span>
             <Activity className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-2xl font-black text-white">{currentSegment.pci} <span className="text-xs font-normal text-slate-400">/ 100</span></div>
-          <p className="text-[10px] text-amber-300 mt-0.5">Kondisi {currentSegment.pci > 70 ? 'Mantap' : currentSegment.pci > 50 ? 'Sedang' : 'Kritis'}</p>
+          <div className="text-2xl font-black text-white">{currentSegment.currentPci} <span className="text-xs font-normal text-slate-400">/ 100</span></div>
+          <p className="text-[10px] text-amber-300 mt-0.5">Kondisi {currentSegment.currentPci > 70 ? 'Mantap' : currentSegment.currentPci > 50 ? 'Sedang' : 'Kritis'}</p>
         </div>
 
         <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-3.5 shadow-lg">
@@ -269,8 +269,8 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
             <span>Beban Historis</span>
             <TrendingDown className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="text-2xl font-black text-white">{currentSegment.esalDaily * 365 > 1000000 ? `${((currentSegment.esalDaily * 365) / 1000000).toFixed(1)}M` : `${((currentSegment.esalDaily * 365) / 1000).toFixed(0)}k`} <span className="text-xs font-normal text-slate-400">ESAL/thn</span></div>
-          <p className="text-[10px] text-rose-300 mt-0.5">Trafik Golongan V Heavy</p>
+          <div className="text-2xl font-black text-white">— <span className="text-xs font-normal text-slate-400">ESAL/thn</span></div>
+          <p className="text-[10px] text-rose-300 mt-0.5">Data ESAL belum tersedia</p>
         </div>
       </div>
 

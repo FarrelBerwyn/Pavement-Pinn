@@ -247,7 +247,7 @@ Server Express dan Vite berjalan di `http://localhost:3000/PavementPinn/`.
 |---|---|
 | `npm run dev` | server pengembangan (Express dan Vite middleware) |
 | `npm run lint` | pemeriksaan tipe (`tsc --noEmit`) |
-| `npm test` | 61 tes otomatis: regresi PINN, kontrak API, rute, RBAC, batas modul |
+| `npm test` | 92 tes otomatis: regresi PINN, kontrak API, rute, RBAC, batas modul, status laporan, peta |
 | `npm run build` | build produksi ke `dist/` (termasuk `404.html` untuk GitHub Pages) |
 | `npm start` | menjalankan build produksi |
 
@@ -301,3 +301,4 @@ Agar tidak ada klaim yang berlebihan, status tiap kemampuan dicatat apa adanya:
 | `docs/api/API_INVENTORY.md` | kontrak keenam endpoint |
 | `docs/validation/PINN_REGRESSION_REPORT.md` | rumus, konstanta, dan hasil regresi numerik |
 | `docs/validation/RESTRUCTURE_TEST_REPORT.md` | perintah, hasil uji, celah verifikasi, dan cara rollback |
+| `docs/validation/POST_RESTRUCTURE_HARDENING.md` | hasil pengerasan: perbaikan, keamanan backend, temuan ambang regangan |

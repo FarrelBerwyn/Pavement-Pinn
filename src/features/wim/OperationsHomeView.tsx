@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { attachMapResizeRecovery } from '../../components/maps/mapViewport';
 import {
   AlertTriangle,
   CloudRain,
@@ -234,6 +235,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
     markersGroupRef.current = L.featureGroup().addTo(map);
 
     mapInstanceRef.current = map;
+    attachMapResizeRecovery(map, mapContainerRef.current);
 
     return () => {
       map.remove();

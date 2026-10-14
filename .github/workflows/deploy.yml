@@ -26,8 +26,6 @@ jobs:
 
       - name: Build Web Application
         run: npx vite build
-        env:
-          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Deploy to gh-pages Branch
         uses: JamesIves/github-pages-deploy-action@v4

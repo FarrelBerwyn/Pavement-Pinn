@@ -1,5 +1,7 @@
 # Restructure Test Report
 
+_This report records the restructure as it stood. A later hardening pass fixed several items listed here as open (stale upvote count, shared upvote state, the map zero-size crash, the missing `@types/react`) and raised the test count from 61 to 92. See `POST_RESTRUCTURE_HARDENING.md` for the current state._
+
 Date: 2026-10-14. Baseline: commit `fffa344` plus seven uncommitted user edits
 (checkpoint `refs/backup/pre-restructure`).
 

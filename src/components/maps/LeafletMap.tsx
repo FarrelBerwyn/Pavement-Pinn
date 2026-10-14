@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet.heat';
+import { attachMapResizeRecovery, safeFlyTo } from './mapViewport';
 import { DamageReport, DamageType, ReportSeverity, RoadSegment, UserRole } from '../../types';
 import { UserAccount } from '../../features/authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
+import { resolveLiveReport } from '../../features/community-reports/reportState';
 import { Language, TRANSLATIONS } from '../../i18n/translations';
 import {
   Filter,
@@ -139,7 +141,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         // Step 3: Fly from Karawang regional view into the target location with close range (Zoom in)
         const flyTimeout = setTimeout(() => {
-          map.flyTo(targetCoords, targetZoom, {
+          safeFlyTo(map, targetCoords, targetZoom, {
             duration: 2.2,
             easeLinearity: 0.25
           });
@@ -165,7 +167,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         };
       } else {
         // Standard navigation flyTo
-        map.flyTo(targetCoords, targetZoom, {
+        safeFlyTo(map, targetCoords, targetZoom, {
           duration: 1.4
         });
       }
@@ -400,6 +402,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       layerGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
+      attachMapResizeRecovery(map, mapContainerRef.current);
     }
 
     return () => {
@@ -1276,7 +1279,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             const targetPoint = map.project(report.coordinates, targetZoom);
             const offsetPoint = L.point(targetPoint.x, targetPoint.y + 195);
             const unprojected = map.unproject(offsetPoint, targetZoom);
-            map.flyTo([unprojected.lat, unprojected.lng], targetZoom, { duration: 1.0 });
+            safeFlyTo(map, [unprojected.lat, unprojected.lng], targetZoom, { duration: 1.0 });
           }
           if (onSelectReport) {
             onSelectReport(report);
@@ -1390,7 +1393,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Center on selected segment
   useEffect(() => {
     if (selectedSegment && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(selectedSegment.coordinates, 12, {
+      safeFlyTo(mapInstanceRef.current, selectedSegment.coordinates, 12, {
         duration: 1.2
       });
     }
@@ -1399,7 +1402,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Recenter Map to Karawang with wide view of Karawang Regency
   useEffect(() => {
     if (recenterKey > 0 && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([-6.3050, 107.3180], 12, {
+      safeFlyTo(mapInstanceRef.current, [-6.3050, 107.3180], 12, {
         duration: 1.2
       });
     }
@@ -1915,7 +1918,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       <ReportDetailModal
         isOpen={!!detailModalReport}
         onClose={() => setDetailModalReport(null)}
-        report={detailModalReport}
+        report={resolveLiveReport(detailModalReport, communityReports)}
         language={language}
         onUpvote={onUpvoteReport}
         onFocusMap={(rep) => {
@@ -1923,7 +1926,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           if (seg) {
             onSelectSegment(seg);
           } else if (mapInstanceRef.current) {
-            mapInstanceRef.current.flyTo(rep.coordinates, 10, { duration: 1.2 });
+            safeFlyTo(mapInstanceRef.current, rep.coordinates, 10, { duration: 1.2 });
           }
         }}
       />

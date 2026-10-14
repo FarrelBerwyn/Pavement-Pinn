@@ -8,6 +8,33 @@ export interface NarrativeResult {
 
 export const NARRATIVE_MODEL = "gemini-3.7-flash";
 
+/** The only role values that are ever forwarded to the language model. */
+const KNOWN_ROLES: readonly string[] = [
+  "FIELD_ENGINEER",
+  "OPERATIONS_MANAGER",
+  "POLICY_MAKER",
+  "PUBLIC_REPORTER",
+  "PUBLIC_VIEWER"
+];
+
+export function isKnownRole(role: unknown): role is string {
+  return typeof role === "string" && KNOWN_ROLES.includes(role);
+}
+
+/**
+ * Reduce a client-supplied value to one short line before it goes into the prompt.
+ * The endpoint is unauthenticated, so everything in the request body is untrusted:
+ * control characters (including newlines) are removed and the length is capped, which
+ * stops a caller from appending their own instructions or an arbitrarily long prompt.
+ * Well-formed simulation values (finite numbers, short labels) pass through unchanged.
+ */
+export function promptField(value: unknown, maxLength = 120): string {
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "n/a";
+  if (typeof value !== "string") return "n/a";
+  const singleLine = value.replace(/[\u0000-\u001f\u007f]+/g, " ").trim();
+  return singleLine.slice(0, maxLength) || "n/a";
+}
+
 /**
  * Deterministic, offline narrative (the "rule engine" text). Prefers the narrative the
  * PINN engine already embedded in the simulation result; otherwise fills a template.
@@ -35,21 +62,21 @@ export function buildFallbackNarrative(role: string, simulationData: any): strin
 export function buildNarrativePrompt(role: string, simulationData: any): string {
   const prompt = `Anda adalah Asisten Kecerdasan Buatan PAVEMENT-PINN (Physics-Informed Neural Network + Intel OpenVINO Edge AI) untuk pengelolaan infrastruktur jalan nasional Indonesia.
 
-Berikan analisis dan rekomendasi yang sangat ringkas, profesional, dan dapat ditindaklanjuti (actionable) khusus untuk peran: ${role}.
+Berikan analisis dan rekomendasi yang sangat ringkas, profesional, dan dapat ditindaklanjuti (actionable) khusus untuk peran: ${promptField(role, 40)}.
 
 Data Hasil Simulasi:
-- Ruas Jalan: ${simulationData?.roadSegment?.name} (${simulationData?.roadSegment?.province})
-- Beban Sumbu: ${simulationData?.params?.axleLoadTon} Ton (Batas ODOL: 10 Ton)
-- Intensitas Hujan: ${simulationData?.params?.rainIntensityMmHr} mm/jam
-- Subgrade CBR: ${simulationData?.params?.subgradeCbrPercent}%
-- Prediksi PCI: ${simulationData?.predictedPci}/100
-- Regangan Tarik dasar Aspal (εt): ${simulationData?.tensors?.tensileStrainEt} µε
-- Tegangan Tekan Subgrade (εv): ${simulationData?.tensors?.compressiveStrainEv} µε
-- Estimasi Hari Pembentukan Lubang: ${simulationData?.roleOutputs?.fieldEngineer?.potholeHorizonDays} hari
-- Rekomendasi Overlay: ${simulationData?.roleOutputs?.fieldEngineer?.recommendedOverlayThicknessCm} cm
-- Status Alert WIM: ${simulationData?.roleOutputs?.operationsManager?.alertStatus}
-- Tindakan Penindakan WIM: ${simulationData?.roleOutputs?.operationsManager?.wimActionRequired}
-- Potensi Penghematan Anggaran Preservasi: Rp ${simulationData?.roleOutputs?.policyMaker?.preventiveCostSavingsRupiahBillions} Miliar
+- Ruas Jalan: ${promptField(simulationData?.roadSegment?.name)} (${promptField(simulationData?.roadSegment?.province)})
+- Beban Sumbu: ${promptField(simulationData?.params?.axleLoadTon)} Ton (Batas ODOL: 10 Ton)
+- Intensitas Hujan: ${promptField(simulationData?.params?.rainIntensityMmHr)} mm/jam
+- Subgrade CBR: ${promptField(simulationData?.params?.subgradeCbrPercent)}%
+- Prediksi PCI: ${promptField(simulationData?.predictedPci)}/100
+- Regangan Tarik dasar Aspal (εt): ${promptField(simulationData?.tensors?.tensileStrainEt)} µε
+- Tegangan Tekan Subgrade (εv): ${promptField(simulationData?.tensors?.compressiveStrainEv)} µε
+- Estimasi Hari Pembentukan Lubang: ${promptField(simulationData?.roleOutputs?.fieldEngineer?.potholeHorizonDays)} hari
+- Rekomendasi Overlay: ${promptField(simulationData?.roleOutputs?.fieldEngineer?.recommendedOverlayThicknessCm)} cm
+- Status Alert WIM: ${promptField(simulationData?.roleOutputs?.operationsManager?.alertStatus)}
+- Tindakan Penindakan WIM: ${promptField(simulationData?.roleOutputs?.operationsManager?.wimActionRequired)}
+- Potensi Penghematan Anggaran Preservasi: Rp ${promptField(simulationData?.roleOutputs?.policyMaker?.preventiveCostSavingsRupiahBillions)} Miliar
 
 Instruksi Format:
 - Untuk FIELD_ENGINEER: Fokus pada kriteria rekayasa struktur, regangan kritis, dan spesifikasi tebal overlay.
@@ -71,7 +98,8 @@ export async function generateNarrative(
 ): Promise<NarrativeResult> {
   const getFallbackNarrative = () => buildFallbackNarrative(role, simulationData);
 
-  if (!ai) {
+  // Unknown roles are answered from the offline text and never forwarded to Gemini.
+  if (!ai || !isKnownRole(role)) {
     return { narrative: getFallbackNarrative(), source: "rule-engine-offline" };
   }
 

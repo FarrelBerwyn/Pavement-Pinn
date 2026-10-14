@@ -82,7 +82,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
     );
   }
 
-  if (activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI') {
+  if (activeNav === 'DASHBOARD') {
     return (
       <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0f172a]">
         <OperationsHomeView

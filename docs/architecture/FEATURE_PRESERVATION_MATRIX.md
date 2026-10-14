@@ -1,5 +1,7 @@
 # Feature Preservation Matrix
 
+_Updated by the hardening pass: the upvote defect, the map zero-size crash, the missing React types and a crash in the FWD diagnostics tab are fixed. Details: `docs/validation/POST_RESTRUCTURE_HARDENING.md`. The summary counts at the end of this file describe the state before that pass._
+
 Inventory of every capability that existed before the restructure, with its state afterwards.
 
 ## How to read the status
@@ -91,7 +93,7 @@ A PASS based on **C** alone is never claimed: those rows are marked NOT TESTED.
 | Damage classification | SIMULATED | B: result "Pothole 94%" came from the keyword heuristic and taxonomy table |
 | Report detail panel with before and after view | PASS | B: opens from a marker; the comparison slider was not dragged |
 | Edit button only for `PUBLIC_REPORTER` | PASS | B: visible for USR-004 |
-| Upvote | KNOWN DEFECT | B: the click reaches the shared state, but the open detail panel shows a stale count (snapshot not refreshed). Pre-existing |
+| Upvote | FIXED (hardening pass) | T and B: per-identity upvotes; the open panel shows the live count. See `docs/validation/POST_RESTRUCTURE_HARDENING.md` |
 | Edit report form, reviews and comments, share, copy location | NOT TESTED | C |
 | Device camera capture | NOT TESTED | needs camera permission; only the upload path was exercised |
 | Geolocation | NOT TESTED | needs location permission; the flow fell back to default coordinates |

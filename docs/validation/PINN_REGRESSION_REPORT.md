@@ -171,11 +171,13 @@ These are questions about scientific plausibility noticed during the audit. They
 outside the scope of a refactor and are recorded so they are not lost.
 
 1. **Strain magnitudes versus the alert thresholds.** Across the 15 default scenarios
-   the tensile strain ranges from 10 to 59 microstrain, and the largest value in all 61
-   in-range scenarios is 145 (asphalt thinned to 5 cm). The engineering notes trigger
-   at 180 and 250, so the "watch" and "critical" notes are never produced inside the
-   documented input ranges. A seed audit entry in the UI mentions 245 microstrain,
-   which the engine does not produce for any in-range scenario tested.
+   the tensile strain ranges from 10 to 59 microstrain, far below the levels at which
+   the engineering notes switch (180 and 250). The thresholds are reachable, but only
+   in a small corner of the input space; section 8a quantifies this. (An earlier
+   version of this report said they are never reached. That was wrong: it was based on
+   one-at-a-time sweeps, whose largest value was 145.) A seed audit entry in the UI
+   mentions 245 microstrain, which needs 5 cm asphalt, a 25 t axle, low modulus and a
+   hot surface at the same time.
 2. **Formulas are not dimensionally homogeneous.** They combine tonnes, centimetres
    and megapascals through fitted exponents, so unit consistency cannot be checked by
    dimensional analysis; correctness depends entirely on calibration that is not in
@@ -189,6 +191,55 @@ outside the scope of a refactor and are recorded so they are not lost.
    implementation is a set of power-law fits, not a layered elastic solution.
 
 The figures in items 1 and 3 were computed from the golden file.
+
+## 8a. Threshold reachability analysis (added in the hardening pass)
+
+Method: `scripts/analyze-pinn-thresholds.ts` runs the unchanged engine over full input
+grids and counts how often the tensile strain exceeds each threshold used in the code.
+
+| Input space | Grid points | Maximum | Above 180 | Above 200 | Above 250 |
+|---|---|---|---|---|---|
+| Simulation panel: axle 8 to 25 t, thickness 5 to 25 cm (temperature fixed at 42 C and modulus fixed at 2400 MPa, no controls) | 735 | 183 | 1 | 0 | 0 |
+| Documented ranges: axle 10 to 25 t, thickness 5 to 25 cm, modulus 1200 to 3500 MPa, temperature 25 to 60 C | 124,992 | 274 | 819 | 364 | 15 |
+| 15 reference segments at their defaults (asphalt 8 to 18 cm) | 15 | 59 | 0 | 0 | 0 |
+
+The single panel setting above 180 is a 25 t axle on 5 cm of asphalt. In the documented
+ranges every exceedance needs asphalt of 6 cm or thinner (5 cm for the 200 and 250 levels).
+
+Why, from the formula `120 x P / (h^1.75 x (E1 / 2000)^0.4)`:
+
+- Tensile strain depends only on axle load, thickness, modulus and temperature. Rain,
+  flood duration and CBR have no effect on it.
+- Thickness enters with exponent 1.75, so doubling the asphalt divides the strain by
+  about 3.4. For a legal 10 t axle at panel defaults the engine returns 73 microstrain
+  at 5 cm, 32 at 8 cm, 22 at 10 cm, 16 at 12 cm, 11 at 15 cm, 8 at 18 cm and 4 at 25 cm.
+- The panel cannot change temperature or modulus, the two inputs needed for the
+  highest values, so its ceiling is 183.
+
+Threshold inconsistency: the engine switches its notes at 180 ("WASPADA") and 250
+("KRITIS"), while the text of the critical note cites a limit of 200; the simulation
+panel and the PDF both mark "exceeds the limit" at 200.
+
+Consequences in the product today:
+
+- all 15 reference segments receive the "STABIL" note;
+- the "Melebihi Ijin" label in the panel and the PDF cannot appear from the panel;
+- the alerts users actually see come from the axle-load, rain and PCI rules, not from strain.
+
+What cannot be concluded: whether the response coefficients are too small or the
+thresholds too high. The repository has no calibration data and no reference
+layered-elastic solution to compare with. **Nothing was changed**: no coefficient, no
+threshold, no range. Options for the model owner:
+
+1. calibrate the response formulas against FWD or strain-gauge measurements, or against a reference solver;
+2. adopt one documented strain criterion and use it in the engine, the panel and the PDF;
+3. expose temperature and modulus in the panel if they are meant to vary;
+4. until then, describe the strain notes as illustrative.
+
+The numbers above are pinned by
+`tests/physics-validation/pinn-threshold-characterization.test.ts` (5 tests). Those
+tests describe current behaviour and must be updated together with any deliberate
+recalibration.
 
 ## 9. Maintaining the baseline
 

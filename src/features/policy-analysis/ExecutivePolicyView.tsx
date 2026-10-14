@@ -961,7 +961,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
                     return (
                       <tr key={seg.id} className="hover:bg-slate-50">
                         <td className="py-3 px-3 font-bold text-slate-800">{seg.name}</td>
-                        <td className="py-3 px-3 text-slate-600">{seg.province} (PCI: {seg.pci})</td>
+                        <td className="py-3 px-3 text-slate-600">{seg.province} (PCI: {seg.currentPci})</td>
                         <td className="py-3 px-3">
                           <input
                             type="number"
@@ -1145,7 +1145,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
               />
               <div>
                 <h3 className="font-extrabold text-base text-slate-900">{currentAccount.name}</h3>
-                <p className="text-xs text-slate-500">{currentAccount.organization}</p>
+                <p className="text-xs text-slate-500">{currentAccount.agency}</p>
                 <span className="inline-block mt-1 text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
                   Policy Maker (Bappenas / Ditjen Bina Marga)
                 </span>

@@ -8,6 +8,7 @@ import { PageHostContext, PageHostValue, useWorkspaceNavigation } from './pageCo
 import { ModernAppLayout } from './layouts/ModernAppLayout';
 import { ClassicPortalLayout } from './layouts/ClassicPortalLayout';
 import { PAGE_COMPONENTS } from './pageRegistry';
+import { AppErrorBoundary } from './AppErrorBoundary';
 import { NotFoundPage, ForbiddenPage, ModernAppOnlyPage } from '../pages/not-found/NotFoundPage';
 import { buildPath, matchRoute } from './routeConfig';
 import { ClassicTab, classicTabForRoute, navForRoute, routeForClassicTab, routeForNav, WorkspaceNav } from './navigation';
@@ -164,7 +165,9 @@ export default function App() {
       <SessionProvider>
         <AppStateProvider>
           <GlobalModalsProvider>
-            <AppShell />
+            <AppErrorBoundary>
+              <AppShell />
+            </AppErrorBoundary>
           </GlobalModalsProvider>
         </AppStateProvider>
       </SessionProvider>

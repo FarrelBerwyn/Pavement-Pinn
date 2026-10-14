@@ -87,6 +87,7 @@ import { generateOfficialReportPdf } from '../../services/reporting/pdfGenerator
 import { runPinnSimulation } from '../../engines/pinn/core/pinnEngine';
 import { TRANSLATIONS, Language } from '../../i18n/translations';
 import type { WorkspaceNav } from '../navigation';
+import { resolveLiveReport } from '../../features/community-reports/reportState';
 import { PolicyPage } from '../../pages/policy/PolicyPage';
 import { OperationsPage, OPERATIONS_WORKSPACE_NAVS } from '../../pages/operations/OperationsPage';
 import { EngineeringPage } from '../../pages/engineering/EngineeringPage';
@@ -347,7 +348,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
     const newRev: ReportReview = {
       id: `rev-${Date.now()}`,
       userName: currentAccount.name || 'Warga Karawang',
-      userAvatar: currentAccount.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+      userAvatar: currentAccount.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
       userBadge: currentAccount.role === 'PUBLIC_REPORTER' ? 'Warga Pelapor' : 'Warga Terverifikasi',
       rating: newReviewRating,
       timeAgo: 'Baru saja',
@@ -437,6 +438,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
   // Full Details / Before-After modal
   const [detailModalReport, setDetailModalReport] = useState<DamageReport | null>(null);
+
+  // The two panels above hold a copy of a report. Refresh the copy whenever the shared
+  // list changes (upvotes, verification, edits) so they never show stale values.
+  useEffect(() => {
+    setSelectedIssueReport((prev) => resolveLiveReport(prev, communityReports));
+    setDetailModalReport((prev) => resolveLiveReport(prev, communityReports));
+  }, [communityReports]);
 
   // Global search input
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -613,6 +621,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
     };
 
     setSelectedIssueReport(updatedReport);
+    // Persist the edit to the shared report list (it used to stay in this panel only).
+    onEditReport?.(updatedReport);
     setLocalReports((prev) => prev.map((r) => (r.id === updatedReport.id ? updatedReport : r)));
     setIsEditReportModalOpen(false);
   };
@@ -2644,7 +2654,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-slate-900 dark:text-white truncate">{seg.name}</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{seg.district} &bull; {seg.damageSeverity}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{seg.province} &bull; {seg.conditionCategory}</p>
                   </div>
                   <span className="text-amber-500 font-bold text-[10px] shrink-0 ml-2">Pilih →</span>
                 </div>
