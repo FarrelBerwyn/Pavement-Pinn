@@ -223,3 +223,81 @@ Police / Operations → Kendaraan mana yang harus ditindak?
 ```
 
 Itulah inti **PAVEMENT-PINN**: bukan sekadar AI untuk mendeteksi jalan rusak, tetapi AI untuk memprediksi kerusakan dan mengubah prediksi tersebut menjadi keputusan yang tepat untuk setiap *stakeholder*.
+
+
+---
+
+## 🧭 Panduan Developer: Menjalankan, Struktur Kode, dan Rute
+
+Bagian di atas menjelaskan konsep. Bagian ini menjelaskan kode yang ada di repositori.
+
+### Menjalankan
+
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Server Express dan Vite berjalan di `http://localhost:3000/PavementPinn/`.
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | server pengembangan (Express dan Vite middleware) |
+| `npm run lint` | pemeriksaan tipe (`tsc --noEmit`) |
+| `npm test` | 61 tes otomatis: regresi PINN, kontrak API, rute, RBAC, batas modul |
+| `npm run build` | build produksi ke `dist/` (termasuk `404.html` untuk GitHub Pages) |
+| `npm start` | menjalankan build produksi |
+
+Variabel lingkungan opsional: `PORT` (bawaan 3000), `VITE_BASE_PATH` (bawaan
+`/PavementPinn/`), `GEMINI_API_KEY` (hanya di server). Lihat `.env.example`.
+
+### Struktur kode
+
+```text
+server/            backend Express: routes, controllers, services, repositories, integrations
+src/app/           router, tabel rute, guard, provider, dua shell aplikasi
+src/pages/         komposisi tingkat rute
+src/features/      alur kerja per pemangku kepentingan (laporan warga, WIM, kebijakan, FWD, ...)
+src/engines/       logika numerik (PINN) dan taksonomi computer vision, tanpa React
+src/runtime/       deteksi perangkat keras dan benchmark OpenVINO (simulasi)
+src/services/      klien API, PDF, pipeline WIM (simulasi)
+src/components/    komponen bersama (peta, panel simulasi, kerangka halaman)
+src/data/          data referensi dan data demonstrasi
+src/types/         kontrak tipe, dipakai juga oleh server
+tests/             tes unit, integrasi, dan validasi fisika
+docs/              dokumentasi arsitektur, API, dan validasi
+```
+
+### Rute utama
+
+`/dashboard/`, `/reports/`, `/roads/:roadId/`, `/login/`, `/settings/`,
+`/engine/` (`pinn`, `simulation`, `fwd`, `prediction`),
+`/computer-vision/` (`detection`, `history`),
+`/engineering/`, `/operations/`, `/policy/`.
+
+### Status kemampuan (penting untuk dibaca)
+
+Agar tidak ada klaim yang berlebihan, status tiap kemampuan dicatat apa adanya:
+
+- **Mesin PINN** saat ini adalah perhitungan deterministik berbentuk rumus tertutup
+  (lihat `/engine/pinn/`). Jaringan saraf terlatih belum ada di repositori.
+- **Telemetri OpenVINO, benchmark perangkat, ekspor model IR, klasifikasi computer
+  vision, dan pipeline WIM Bina Marga** bersifat simulasi.
+- **Login** adalah pemilih akun demo, bukan autentikasi. Backend belum memiliki otorisasi.
+- **Tidak ada basis data**: laporan dan jejak audit tersimpan di memori dan hilang saat halaman dimuat ulang.
+
+### Dokumentasi
+
+| Dokumen | Isi |
+|---|---|
+| `docs/architecture/BASELINE_AUDIT.md` | kondisi repositori sebelum restrukturisasi |
+| `docs/architecture/ROUTE_MAP.md` | semua URL, komponen, dan aturan akses |
+| `docs/architecture/DEPENDENCY_MAP.md` | struktur akhir, aturan dependensi, tabel migrasi berkas |
+| `docs/architecture/RBAC_MATRIX.md` | matriks peran terhadap rute dan aksi, serta batasannya |
+| `docs/architecture/FEATURE_PRESERVATION_MATRIX.md` | status setiap fitur setelah restrukturisasi |
+| `docs/api/API_INVENTORY.md` | kontrak keenam endpoint |
+| `docs/validation/PINN_REGRESSION_REPORT.md` | rumus, konstanta, dan hasil regresi numerik |
+| `docs/validation/RESTRUCTURE_TEST_REPORT.md` | perintah, hasil uji, celah verifikasi, dan cara rollback |
