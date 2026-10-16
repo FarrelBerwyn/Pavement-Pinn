@@ -1,0 +1,10 @@
+{
+  "id": "KRW",
+  "order": 2,
+  "name": "Karawang Klari – Jatisari",
+  "trackingPrefix": "KRW",
+  "bounds": { "minLat": -6.45, "maxLat": -6.25, "minLng": 107.25, "maxLng": 107.65 },
+  "managingAuthority": null,
+  "dataStatus": "APPROXIMATE",
+  "notes": "Corridor 2 per Dokumen Induk v3 D-03. Bounding box is approximate (gap G-01); segments KRW-001..004 live in src/data/reference/karawangPilot.ts."
+}

@@ -11,6 +11,7 @@ import type { DamageReport } from '../../types';
 import { hasValidCoordinates } from '../geo';
 import type { ReportCase, ScreeningResult } from './model';
 import { SCREENING_CONFIDENCE_THRESHOLD } from './stateMachine';
+import { findCorridor, PILOT_CORRIDORS } from '../corridors';
 
 /** Contract a real CV service must fulfil (see docs/AI.md, "CV model-loading contract"). */
 export interface CvScreeningProvider {
@@ -33,11 +34,6 @@ export const DEMO_CV_PROVIDER: CvScreeningProvider = {
   }
 };
 
-/**
- * Pilot corridor bounding box (approximate; precise geometry is DATA REQUIRED, gap G-01).
- * Reports outside are flagged OUT_OF_SCOPE for the reviewer, not rejected (spec Lampiran L).
- */
-export const PILOT_BOUNDS = { minLat: -6.45, maxLat: -6.25, minLng: 107.25, maxLng: 107.65 };
 
 /** Indonesia's rough bounding box; anything outside is not plausible for this system. */
 const INDONESIA_BOUNDS = { minLat: -11.5, maxLat: 6.5, minLng: 94.5, maxLng: 141.5 };
@@ -79,8 +75,10 @@ export function screenReport(report: DamageReport, createdAt: string, existing: 
     lat >= INDONESIA_BOUNDS.minLat && lat <= INDONESIA_BOUNDS.maxLat &&
     lng >= INDONESIA_BOUNDS.minLng && lng <= INDONESIA_BOUNDS.maxLng;
   if (!inIndonesia) reasons.push('Lokasi di luar wilayah yang masuk akal untuk sistem ini.');
-  const inPilot = lat >= PILOT_BOUNDS.minLat && lat <= PILOT_BOUNDS.maxLat && lng >= PILOT_BOUNDS.minLng && lng <= PILOT_BOUNDS.maxLng;
-  if (inIndonesia && !inPilot) reasons.push('OUT_OF_SCOPE: di luar koridor pilot Klari–Jatisari (tetap diterima untuk ditinjau).');
+  // Reports outside every pilot corridor are flagged OUT_OF_SCOPE for the reviewer, not rejected (spec Lampiran L).
+  if (inIndonesia && !findCorridor(lat, lng)) {
+    reasons.push(`OUT_OF_SCOPE: di luar koridor pilot (${PILOT_CORRIDORS.map((c) => c.name).join('; ')}); tetap diterima untuk ditinjau.`);
+  }
 
   const duplicates = findPossibleDuplicates(report, createdAt, existing);
   if (duplicates.length > 0) reasons.push(`Kemungkinan duplikat dari ${duplicates.join(', ')}.`);

@@ -219,4 +219,12 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
   comparison now pins every numeric leaf outside `telemetry` at tolerance 0 (strings were reworded);
   the jitter-band telemetry test became a NOT_MEASURED test. `api.test.ts`: OpenVINO export tests
   now assert 404. New gate: `tests/unit/no-fake-claims.test.ts`.
-- **Not done.** Narogong corridor config (needs real geometry/authority data, HD-07).
+- **Not done.** Narogong corridor config — done in D-036.
+
+## D-036 Pilot corridors as configuration (V3-D-03)
+
+- **Decision.** `config/corridors/narogong.json` (corridor 1) and `karawang.json` (corridor 2),
+  loaded by `src/domain/corridors.ts`. Screening flags `OUT_OF_SCOPE` only outside every corridor.
+- **Limits.** Both bounding boxes are approximate; segment geometry and managing authority are
+  `null` / DATA REQUIRED until surveyed (HD-07, G-01). Only Karawang has seeded segments.
+- **Tests.** `tests/unit/corridors.test.ts`.

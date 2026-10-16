@@ -1,0 +1,10 @@
+{
+  "id": "NRG",
+  "order": 1,
+  "name": "Jalan Raya Narogong (Bekasi – Cileungsi)",
+  "trackingPrefix": "NRG",
+  "bounds": { "minLat": -6.42, "maxLat": -6.24, "minLng": 106.93, "maxLng": 107.04 },
+  "managingAuthority": null,
+  "dataStatus": "APPROXIMATE",
+  "notes": "Corridor 1 per Dokumen Induk v3 D-03. Bounding box is approximate; segment geometry and managing authority are DATA REQUIRED (HD-07)."
+}
