@@ -22,7 +22,7 @@ export function createApiRouter(workflow: WorkflowRuntime): Router {
   // Same registration order as before the split.
   registerHealthRoutes(router);
   registerRoadsRoutes(router);
-  registerPinnRoutes(router);
+  registerPinnRoutes(router, workflow);
   registerNarrativeRoutes(router);
   registerWorkflowRoutes(router, workflow);
   registerSystemRoutes(router, workflow);

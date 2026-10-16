@@ -228,3 +228,17 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
 - **Limits.** Both bounding boxes are approximate; segment geometry and managing authority are
   `null` / DATA REQUIRED until surveyed (HD-07, G-01). Only Karawang has seeded segments.
 - **Tests.** `tests/unit/corridors.test.ts`.
+
+## D-037 Python inference service with the MLET reference solver (V3-D-04, D-23, M1)
+
+- **Decision.** `inference/` (FastAPI, Python 3.11, `.venv`, `requirements.lock`) serves
+  `GET /v1/health` and `POST /v1/assess`. PyMastic is vendored unmodified at commit `be301be`.
+  Express forwards `GET /api/engine/health` and `POST /api/engine/assess` (Field Engineer only)
+  to `INFERENCE_URL` (default `http://127.0.0.1:8100`); when the service is down it answers 503
+  `INFERENCE_UNAVAILABLE`, never a locally computed substitute. `POST /api/simulate` returns 410.
+- **Evidence.** `inference/tests` (pytest, 14 tests): reference strains 303/793 µε (10 t),
+  274/663 µε (8.16 t), 227/876 µε (8.16 t dual, 330 mm) within 1 %, elastic similarity ×3 exact,
+  out-of-range input → 422. Re-run on the team machine on 2026-10-16.
+- **Not done (M2).** Life index uncertainty covers the traffic range only (`TRAFFIC_ONLY`);
+  materials Monte Carlo, PI-surrogate and OpenVINO are not built. The browser engine
+  `runPinnSimulation` (RULE_BASED) still drives the legacy screens and What-If.

@@ -68,47 +68,12 @@ test('GET /api/roads returns the full reference dataset, byte-identical to basel
   assert.deepEqual(JSON.parse(text), JSON.parse(JSON.stringify(INDONESIAN_ROAD_SEGMENTS)));
 });
 
-test('POST /api/simulate: success envelope and result shape', async () => {
-  const segment = INDONESIAN_ROAD_SEGMENTS[0];
-  const res = await postJson('/api/simulate', { params: defaultParamsFor(segment) });
-  assert.equal(res.status, 200);
+test('POST /api/simulate is retired: 410 pointing to the MLET engine (F-03, F-11, v3 M1)', async () => {
+  const res = await postJson('/api/simulate', { params: defaultParamsFor(INDONESIAN_ROAD_SEGMENTS[0]) });
+  assert.equal(res.status, 410);
   const body = await res.json();
-  assert.deepEqual(Object.keys(body), ['success', 'result']);
-  assert.equal(body.success, true);
-  assert.deepEqual(Object.keys(body.result), [
-    'id', 'timestamp', 'params', 'roadSegment', 'predictedPci', 'pciDropPoints',
-    'pavementLifeRemainingYears', 'tensors', 'roleOutputs', 'telemetry', 'aiNarrative'
-  ]);
-  assert.equal(body.result.roadSegment.id, segment.id);
-  // Deterministic part of the baseline response for this exact request.
-  assert.equal(body.result.predictedPci, 10);
-  assert.equal(body.result.pciDropPoints, 28);
-  assert.deepEqual(body.result.tensors, {
-    tensileStrainEt: 24,
-    compressiveStrainEv: 46,
-    surfaceDeflectionMaxMicron: 883,
-    stressTopMpa: 1.29,
-    stressBottomMpa: 0.24
-  });
-});
-
-test('POST /api/simulate: unknown segmentId falls back to the first segment', async () => {
-  const res = await postJson('/api/simulate', { params: { segmentId: 'NOPE', axleLoadTon: 12 } });
-  assert.equal(res.status, 200);
-  const body = await res.json();
-  assert.equal(body.success, true);
-  assert.equal(body.result.roadSegment.id, INDONESIAN_ROAD_SEGMENTS[0].id);
-  // Missing numeric inputs propagate NaN, which JSON serialises as null (no validation).
-  assert.equal(body.result.predictedPci, null);
-});
-
-test('POST /api/simulate: missing params yields HTTP 500 with the runtime error message', async () => {
-  const res = await postJson('/api/simulate', {});
-  assert.equal(res.status, 500);
-  assert.deepEqual(await res.json(), {
-    success: false,
-    error: "Cannot read properties of undefined (reading 'segmentId')"
-  });
+  assert.equal(body.error.code, 'GONE');
+  assert.match(body.error.message, /\/api\/engine\/assess/);
 });
 
 test('GET /api/openvino/export-ir and export-config are removed: 404 (F-13, v3 Phase 0)', async () => {
