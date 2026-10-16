@@ -12,7 +12,8 @@ import {
 } from '../../../types';
 
 /**
- * Runs the Physics-Informed Neural Network (PINN) simulation
+ * Runs the RULE_BASED pavement formula engine (heuristic; not a trained network and
+ * not a layered-elastic solver — see docs/audit F-01/F-03). Outputs are indicative only.
  * combining Burmister Layered Elasticity, Fourth Power Law,
  * Environmental Saturation Decay, and Intel OpenVINO Edge Execution.
  */
@@ -126,10 +127,10 @@ export function runPinnSimulation(
 
   const fieldNotes =
     tensileStrainEt > 250
-      ? `KRITIS: Regangan tarik dasar aspal (${tensileStrainEt} µε) melebihi batas ijin Bina Marga (200 µε). Risiko retak lelah (fatigue cracking) sangat tinggi.`
+      ? `Regangan tarik dasar aspal (${tensileStrainEt} µε, RULE_BASED) termasuk tinggi pada skala mesin ini. Kriteria fungsi transfer belum dipilih (HD-04); indikatif, bukan desain.`
       : tensileStrainEt > 180
-      ? `WASPADA: Regangan tarik dasar aspal (${tensileStrainEt} µε) mendekati ambang lelah. Disarankan perkuatan struktur.`
-      : `STABIL: Regangan tarik (${tensileStrainEt} µε) dan tekan subgrade (${compressiveStrainEv} µε) berada dalam batas elastis aman.`;
+      ? `Regangan tarik dasar aspal (${tensileStrainEt} µε, RULE_BASED) menengah pada skala mesin ini; indikatif, bukan desain.`
+      : `Regangan tarik (${tensileStrainEt} µε) dan tekan subgrade (${compressiveStrainEv} µε) dihitung mesin RULE_BASED; indikatif, bukan desain.`;
 
   // 7. Role 2: Operations Manager Outputs
   let alertStatus: AlertSeverity = 'GREEN';
@@ -164,10 +165,10 @@ export function runPinnSimulation(
 
   const operationalAlertSummary =
     alertStatus === 'RED'
-      ? `PERINGATAN BAHAYA ODOL: Beban sumbu ${axleLoadTon} Ton + hujan ${rainIntensityMmHr} mm/jam mempercepat kerusakan ${odolLoadFactor.toFixed(1)}x lipat. Wajib penindakan di WIM!`
+      ? `Sinyal tinggi (RULE_BASED): beban sumbu ${axleLoadTon} Ton dan hujan ${rainIntensityMmHr} mm/jam menaikkan faktor kerusakan relatif ${odolLoadFactor.toFixed(1)}x. Keputusan tindakan ada pada petugas.`
       : alertStatus === 'YELLOW'
-      ? `MODERAT: Beban sumbu ${axleLoadTon} Ton melebihi batas standar (10 Ton). Tingkatkan pengawasan WIM.`
-      : `OPERASIONAL AMAN: Beban sumbu dan kondisi cuaca berada dalam toleransi jalan.`;
+      ? `Sinyal sedang (RULE_BASED): beban sumbu ${axleLoadTon} Ton di atas sumbu standar 8,16 t.`
+      : `Sinyal rendah (RULE_BASED) untuk input yang dimasukkan; bukan pernyataan keselamatan.`;
 
   // 8. Role 3: Executive Policy Maker Outputs
   const baseYear = 2026;
@@ -198,45 +199,22 @@ export function runPinnSimulation(
     Math.round((1 - 1 / odolLoadFactor) * 100)
   );
 
-  const executiveBrief = `Analisis PAVEMENT-PINN menunjukkan bahwa dengan menegakkan Zero ODOL 2027 dan melakukan preservasi preventif pada ${roadSegment.name}, pemerintah berpotensi menghemat anggaran pemeliharaan sebesar Rp ${preventiveCostSavingsRupiahBillions} Miliar dan memperpanjang umur layan jalan hingga ${remainingYears + 3.5} tahun.`;
+  const executiveBrief = `Ringkasan RULE_BASED untuk ${roadSegment.name}: beban sumbu dan kondisi hujan yang dimasukkan menaikkan indeks kerusakan relatif. Dampak biaya belum dihitung; hasil indikatif dan perlu tinjauan insinyur.`;
 
-  // 9. Intel OpenVINO Edge Telemetry Simulation
-  const deviceBaseLatency =
-    targetDevice === 'NPU'
-      ? 6.5
-      : targetDevice === 'iGPU'
-      ? 12.8
-      : targetDevice === 'MULTI'
-      ? 8.1
-      : targetDevice === 'AUTO'
-      ? 7.2
-      : 24.5; // CPU
-  const precisionMultiplier =
-    precisionMode === 'INT8_NNCF' ? 0.8 : precisionMode === 'FP16' ? 1.0 : 1.4;
-  const inferenceLatencyMs = Number(
-    (deviceBaseLatency * precisionMultiplier + (Math.random() * 0.8 - 0.4)).toFixed(1)
-  );
-
+  // 9. Runtime telemetry. Nothing is measured by this rule-based engine, so every
+  // performance field is null and the UI shows "belum diukur" (AGENTS.md rule 1,
+  // F-02/F-14/F-21). Real figures may only come from measurements/*.json.
   const telemetry: IntelTelemetry = {
     deviceUsed: targetDevice,
     precisionUsed: precisionMode,
-    inferenceLatencyMs,
-    powerConsumptionWatts:
-      targetDevice === 'NPU'
-        ? 4.2
-        : targetDevice === 'iGPU'
-        ? 12.5
-        : targetDevice === 'MULTI'
-        ? 14.8
-        : targetDevice === 'AUTO'
-        ? 8.5
-        : 28.0,
-    cpuUtilizationPercent: targetDevice === 'CPU' ? 68 : targetDevice === 'AUTO' ? 22 : 14,
-    npuUtilizationPercent:
-      targetDevice === 'NPU' ? 82 : targetDevice === 'MULTI' ? 65 : targetDevice === 'AUTO' ? 74 : 0,
-    throughputSps: Math.round(1000 / inferenceLatencyMs),
-    physicsLossValue: Number((0.0018 + Math.random() * 0.0006).toFixed(5)),
-    dataLossValue: Number((0.0011 + Math.random() * 0.0004).toFixed(5))
+    measurementStatus: 'NOT_MEASURED',
+    inferenceLatencyMs: null,
+    powerConsumptionWatts: null,
+    cpuUtilizationPercent: null,
+    npuUtilizationPercent: null,
+    throughputSps: null,
+    physicsLossValue: null,
+    dataLossValue: null
   };
 
   const tensors: TensorResults = {
@@ -275,9 +253,12 @@ export function runPinnSimulation(
 
   // AI Narrative (Role specific)
   const aiNarrative = {
-    fieldEngineerNarrative: `[ANALISIS REKAYASA STRUKTURAL BBPJN]\nSimulasi PINN mendeteksi tegangan tarik dasar aspal $\\epsilon_t$ sebesar ${tensileStrainEt} µε dan regangan tekan tanah dasar $\\epsilon_v$ sebesar ${compressiveStrainEv} µε pada CBR ${effectiveCbr.toFixed(1)}%. Laju deteriorasi eksponensial akibat Hukum Pangkat Empat (${odolLoadFactor.toFixed(1)}x) memproyeksikan pembentukan retak lelah dalam ${potholeHorizonDays} hari. Rekomendasi perbaikan: Tebal overlay ${overlayThicknessCm} cm (${overlayType}).`,
-    operationsNarrative: `[SINYAL OPERASIONAL WIM KEMENHUB / BPTD]\nSTATUS: ${alertStatus}. Kendaraan ODOL dengan beban sumbu ${axleLoadTon} Ton melintas pada kondisi curah hujan ${rainIntensityMmHr} mm/jam. Batas aman tonase dinamis saat ini adalah ${maxAllowedDynamicTonnageTon} Ton. Tindakan langsung: ${wimActionRequired} dan berlakukan pembatasan kecepatan ${speedRestrictionKmh} km/jam.`,
-    policyMakerNarrative: `[RINGKASAN EKSEKUTIF KEBIJAKAN PRESERVASI]\nInisiasi kebijakan Zero ODOL pada ruas ${roadSegment.name} akan mencegah potensi kerugian ekonomi sebesar Rp ${estimatedEconomicLossRupiahBillions} Miliar. Tanpa intervensi, PCI diproyeksikan turun dari ${roadSegment.currentPci} menjadi ${pci5YearProjection[5].pciNoAction} dalam 5 tahun. Penghematan netto pemeliharaan preventif diperkirakan mencapai Rp ${preventiveCostSavingsRupiahBillions} Miliar.`
+    fieldEngineerNarrative: `[CATATAN TEKNIS — RULE_BASED, INDIKATIF]
+Mesin rumus menghitung regangan tarik dasar aspal ${tensileStrainEt} µε dan regangan tekan tanah dasar ${compressiveStrainEv} µε pada CBR ${effectiveCbr.toFixed(1)}%. Faktor beban relatif (pangkat empat) ${odolLoadFactor.toFixed(1)}x. Opsi overlay yang dipertimbangkan: ${overlayThicknessCm} cm (${overlayType}); perlu verifikasi insinyur.`,
+    operationsNarrative: `[SINYAL OPERASIONAL — RULE_BASED]
+STATUS: ${alertStatus}. Input: beban sumbu ${axleLoadTon} Ton, curah hujan ${rainIntensityMmHr} mm/jam. Tindakan apa pun diputuskan petugas melalui alur kerja, bukan oleh sistem.`,
+    policyMakerNarrative: `[RINGKASAN KEBIJAKAN — RULE_BASED]
+Ruas ${roadSegment.name}: indeks kerusakan relatif meningkat seiring beban berlebih. Dampak biaya belum dihitung. Bukan dokumen resmi.`
   };
 
   return {

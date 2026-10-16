@@ -29,7 +29,7 @@ export function registerSystemRoutes(router: Router, runtime: WorkflowRuntime): 
       storage,
       cloudDatabase: { status: "NOT_CONFIGURED", detail: "Supabase PostgreSQL schema exists in supabase/migrations; no credentials configured." },
       objectStorage: { status: "NOT_CONFIGURED", detail: "Photos are kept inside report records (base64, max 5 MB)." },
-      authentication: { status: runtime.demoAuthEnabled ? "DEMO" : "DISABLED", detail: "Server-signed demo sessions; no identity provider configured." },
+      authentication: { status: runtime.demoAuthEnabled ? "DEMO" : "DISABLED", detail: "Demo credential login with dummy accounts and server-signed sessions; no identity provider configured, not production authentication." },
       ai: {
         computerVision: { status: DEMO_CV_PROVIDER.status, modelVersion: DEMO_CV_PROVIDER.modelVersion },
         pinn: { status: "RULE_BASED", detail: "Deterministic formula in src/engines/pinn; no trained PINN weights." },

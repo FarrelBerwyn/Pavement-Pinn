@@ -78,7 +78,9 @@ import {
   ReportReview,
   ReportMutationHandler
 } from '../../types';
-import { UserAccount, USER_ACCOUNTS } from '../../features/authentication/demoAccounts';
+import { UserAccount } from '../../features/authentication/demoAccounts';
+import { ROLE_LABELS } from '../../features/authentication/roleLabels';
+import { isAnonymousAccount } from '../providers/SessionProvider';
 import { LeafletMap, type LeafletMapProps } from '../../components/maps/LeafletMap';
 import { MAP_LAYER_PANEL_ID, MapLayerPanel } from '../../components/maps/MapLayerPanel';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
@@ -110,8 +112,8 @@ import { WorkOrdersPage } from '../../pages/engineering/WorkOrdersPage';
 interface ModernAppLayoutProps {
   currentAccount: UserAccount;
   activeRole: UserRole;
-  onSelectRole: (role: UserRole) => void;
-  onLoginAccount: (account: UserAccount) => void;
+  /** End the session and return to the login page. */
+  onLogout: () => void;
   roadSegments: RoadSegment[];
   selectedSegment: RoadSegment;
   onSelectSegment: (segment: RoadSegment) => void;
@@ -141,8 +143,7 @@ const MapLibreMap = React.lazy(() => import('../../components/maps/MapLibreMap')
 export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   currentAccount,
   activeRole,
-  onSelectRole,
-  onLoginAccount,
+  onLogout,
   roadSegments,
   selectedSegment,
   onSelectSegment,
@@ -163,6 +164,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 }) => {
   // Role predicates come from the account role only (one source of truth with the RBAC policy).
   const isFieldEngineer = currentAccount.role === 'FIELD_ENGINEER';
+  // Visitor without a login (public map, anonymous reports); everyone else signed in with credentials.
+  const isAnonymousIdentity = isAnonymousAccount(currentAccount);
   const isPolicyMaker = currentAccount.role === 'POLICY_MAKER';
   const isOperationsManager = currentAccount.role === 'OPERATIONS_MANAGER';
   // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
@@ -199,7 +202,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const [notifications, setNotifications] = useState([
     {
       id: 'notif-1',
-      titleId: 'Laporan Diverifikasi PUPR',
+      titleId: 'Laporan Diverifikasi Petugas',
       titleEn: 'Report Verified by Agency',
       descId: 'Laporan lubang di Ruas Cikarang Raya telah diverifikasi oleh tim teknis.',
       descEn: 'Pothole report at Cikarang Raya has been verified by the engineering team.',
@@ -320,7 +323,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
         rating: 5,
         timeAgo: '2 hari lalu',
         dateFormatted: '21 Agu 2026',
-        comment: 'Lubang ini sempat sangat dalam dan rawan bikin velg pecah. Terima kasih warga dan PUPR respon laporannya cepat.',
+        comment: 'Lubang ini sempat sangat dalam dan rawan bikin velg pecah. Terima kasih warga dan petugas respon laporannya cepat.',
         likesCount: 14
       },
       {
@@ -594,26 +597,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       userUpvoted: true,
       repairDetails: {
         afterPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800',
-        repairDate: 'Proyeksi Restorasi PUPR',
+        repairDate: 'Proyeksi Restorasi (belum dijadwalkan)',
         repairMethod: 'Hotmix Asphalt Overlay & Patching AC-WC 6cm',
         repairedPciImprovement: 'Target: PCI >85 (Mulus)',
-        engineerNote: 'Standar perbaikan rekonstruksi perkerasan jalan terverifikasi Bina Marga.',
-        agencyInCharge: 'Dinas PUPR & BBPJN'
-      },
-      wimCorrelation: {
-        hasWimData: true,
-        stationId: targetSegment.wimDetails?.stationId || 'WIM-JAKARTA-01',
-        stationName: targetSegment.wimDetails?.stationName || 'Stasiun WIM Sudirman-Thamrin',
-        corridor: targetSegment.corridor,
-        recentTruckPlate: targetSegment.wimDetails?.licensePlate || 'B 9481 UYT',
-        recentTruckClass: targetSegment.wimDetails?.vehicleClass || 'Golongan 6B - Truk Tronton 3 Sumbu',
-        maxAxleLoadTon: targetSegment.wimDetails?.maxAxleLoadTon || 18.5,
-        legalLimitTon: 10.0,
-        overloadPercent: targetSegment.wimDetails?.overloadPercent || 85,
-        overloadCategory: 'HEAVY',
-        correlatedOverloadTrucksCount: 142,
-        estimatedPinnContributionPercent: 82,
-        causeAnalysisSummary: `Korelasi PINN & WIM: Kerusakan di ${targetSegment.name} dipicu oleh akumulasi lintasan truk overload berbeban >18.5 Ton.`
+        engineerNote: 'Contoh catatan perbaikan (DEMO).',
+        agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
       }
       }, currentAccount);
     } catch (error) {
@@ -1402,7 +1390,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 alert(
                   isOperationsManager
                     ? 'Pusat Bantuan Operasional WIM & Dephub siap melayani 24/7 melalui hotline 1500-228 atau email ops-support@dephub.go.id'
-                    : 'Pusat Bantuan Eksekutif Bappenas & Bina Marga siap melayani 24/7 melalui hotline 1500-619 atau email bappenas-support@pavement.go.id'
+                    : 'Pusat bantuan prototipe (DEMO) — kontak resmi belum tersedia.'
                 );
               }}
               className={`w-full max-w-full flex items-center ${
@@ -1421,16 +1409,16 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               )}
             </button>
 
-            {/* Keluar */}
+            {/* Keluar (signed in) or Masuk (anonymous visitor) */}
             <button
-              onClick={onOpenLoginModal}
+              onClick={isAnonymousIdentity ? onOpenLoginModal : onLogout}
               className={`w-full max-w-full flex items-center ${
                 isSidebarCollapsed ? 'justify-center px-2 py-2' : 'space-x-2.5 px-3.5 py-2'
               } rounded-2xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all cursor-pointer`}
-              title="Keluar"
+              title={isAnonymousIdentity ? 'Masuk ke Sistem' : 'Keluar'}
             >
               <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
-              {!isSidebarCollapsed && <span className="truncate">Keluar</span>}
+              {!isSidebarCollapsed && <span className="truncate">{isAnonymousIdentity ? 'Masuk' : 'Keluar'}</span>}
             </button>
 
             {/* Collapse toggle */}
@@ -1709,155 +1697,65 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
-              {/* Fast User Role Switcher Dropdown (With All 3 Official Roles & 2 Public Accounts) */}
+              {/* Account menu: who is signed in, profile/settings and logout. No account switching. */}
               {isUserMenuOpen && (
-                <div className={`absolute right-0 mt-2 w-72 border rounded-3xl p-3.5 shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl ${
-                  theme === 'dark' ? 'bg-[#141a29]/98 border-white/15 text-slate-200' : 'bg-white/98 border-slate-200 text-slate-800'
-                }`}>
-                  <div className="px-2 py-1.5 border-b border-white/10 mb-2">
-                    <p className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{currentAccount.name}</p>
-                    <p className="text-[10px] text-slate-400">{currentAccount.email}</p>
-                    <span className="inline-block mt-1 text-[9px] bg-amber-400/20 text-amber-400 px-2 py-0.5 rounded-full font-mono font-bold border border-amber-400/30">
-                      {currentAccount.clearanceLevel}
-                    </span>
+                <div
+                  role="menu"
+                  aria-label="Menu akun"
+                  className={`absolute right-0 mt-2 w-72 border rounded-2xl p-3 shadow-lg z-[100] ${
+                    theme === 'dark' ? 'bg-[#141a29] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <div className={`px-1 pb-2.5 mb-2 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                    <p className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{currentAccount.name}</p>
+                    <p className="text-[11px] text-slate-400">
+                      {ROLE_LABELS[currentAccount.role]} · {currentAccount.title}
+                    </p>
+                    {currentAccount.agency && <p className="text-[11px] text-slate-400">{currentAccount.agency}</p>}
+                    {!isAnonymousIdentity && (
+                      <span className="inline-block mt-1.5 text-[10px] font-semibold text-sky-300 border border-sky-400/40 rounded px-1.5 py-0.5">
+                        Akun demo · identitas fiktif
+                      </span>
+                    )}
                   </div>
-
-                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase px-2 mb-1.5">
-                    {t.switchAccount}:
-                  </p>
-
-                  <div className="space-y-1 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                    {/* Akun Baru: Executive Policy Maker (App Eksekutif Bappenas & Bina Marga / Layout Modern) */}
+                  {isAnonymousIdentity ? (
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => {
-                        const acc = USER_ACCOUNTS.find((a) => a.id === 'USR-007') || USER_ACCOUNTS[2];
-                        onLoginAccount(acc);
-                        setPolicyNavTab('PETA_STRATEGIS');
                         setIsUserMenuOpen(false);
+                        onOpenLoginModal();
                       }}
-                      className={`w-full flex items-center space-x-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
-                        currentAccount.id === 'USR-007'
-                          ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30'
-                          : 'hover:bg-white/5 text-slate-300'
-                      }`}
+                      className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
                     >
-                      <img
-                        src={USER_ACCOUNTS.find((a) => a.id === 'USR-007')?.avatarUrl}
-                        alt="Retno Policy Maker"
-                        className="w-7 h-7 rounded-full object-cover shrink-0 border border-indigo-400/60"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-1">
-                          <p className="text-xs font-bold truncate">Dr. Ir. Retno Wulandari</p>
-                          <span className="text-[8px] bg-indigo-500/30 text-indigo-300 px-1 rounded font-mono font-bold">PM-APP</span>
-                        </div>
-                        <p className="text-[10px] text-indigo-300 font-medium truncate">Policy Maker (App Eksekutif Bappenas)</p>
-                      </div>
+                      Masuk ke Sistem
                     </button>
-
-                    {/* Akun Baru: Field Civil Engineer (App Lapangan PUPR / Layout Modern) */}
-                    <button
-                      onClick={() => {
-                        const acc = USER_ACCOUNTS.find((a) => a.id === 'USR-006') || USER_ACCOUNTS[0];
-                        onLoginAccount(acc);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
-                        currentAccount.id === 'USR-006'
-                          ? 'bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30'
-                          : 'hover:bg-white/5 text-slate-300'
-                      }`}
-                    >
-                      <img
-                        src={USER_ACCOUNTS.find((a) => a.id === 'USR-006')?.avatarUrl}
-                        alt="Ahmad FE"
-                        className="w-7 h-7 rounded-full object-cover shrink-0 border border-amber-400/60"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-1">
-                          <p className="text-xs font-bold truncate">Ir. Ahmad Subagyo, M.T.</p>
-                          <span className="text-[8px] bg-amber-400/30 text-amber-300 px-1 rounded font-mono font-bold">FE-APP</span>
-                        </div>
-                        <p className="text-[10px] text-amber-400 font-medium truncate">Field Engineer (App Lapangan PUPR)</p>
-                      </div>
-                    </button>
-
-                    {/* Akun Baru: Operations Manager (App Operasional WIM & Dephub / Layout Modern) */}
-                    <button
-                      onClick={() => {
-                        const acc = USER_ACCOUNTS.find((a) => a.id === 'USR-008') || USER_ACCOUNTS[1];
-                        onLoginAccount(acc);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
-                        currentAccount.id === 'USR-008'
-                          ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30'
-                          : 'hover:bg-white/5 text-slate-300'
-                      }`}
-                    >
-                      <img
-                        src={USER_ACCOUNTS.find((a) => a.id === 'USR-008')?.avatarUrl}
-                        alt="Hendra OM"
-                        className="w-7 h-7 rounded-full object-cover shrink-0 border border-rose-400/60"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-1">
-                          <p className="text-xs font-bold truncate">Drs. Hendra Gunawan, S.Si.</p>
-                          <span className="text-[8px] bg-rose-500/30 text-rose-300 px-1 rounded font-mono font-bold">OM-APP</span>
-                        </div>
-                        <p className="text-[10px] text-rose-400 font-medium truncate">Operations Manager (WIM & Dephub)</p>
-                      </div>
-                    </button>
-
-                    {/* User 1: Budi Santoso (Public Reporter - Bisa Lapor & Edit) */}
-                    <button
-                      onClick={() => {
-                        const acc = USER_ACCOUNTS.find((a) => a.id === 'USR-004') || currentAccount;
-                        onLoginAccount(acc);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
-                        currentAccount.id === 'USR-004'
-                          ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30'
-                          : 'hover:bg-white/5 text-slate-300'
-                      }`}
-                    >
-                      <img
-                        src={USER_ACCOUNTS.find((a) => a.id === 'USR-004')?.avatarUrl}
-                        alt="Budi"
-                        className="w-7 h-7 rounded-full object-cover shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate">User 1: Budi Santoso, S.T.</p>
-                        <p className="text-[10px] text-emerald-400 font-medium">Bisa Lapor & Edit Laporan</p>
-                      </div>
-                    </button>
-
-                    {/* User 2: Siti Aminah (Public Viewer - Lihat & Lapor Baru) */}
-                    <button
-                      onClick={() => {
-                        const acc = USER_ACCOUNTS.find((a) => a.id === 'USR-005') || currentAccount;
-                        onLoginAccount(acc);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
-                        currentAccount.id === 'USR-005'
-                          ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
-                          : 'hover:bg-white/5 text-slate-300'
-                      }`}
-                    >
-                      <img
-                        src={USER_ACCOUNTS.find((a) => a.id === 'USR-005')?.avatarUrl}
-                        alt="Siti"
-                        className="w-7 h-7 rounded-full object-cover shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate">User 2: Siti Aminah, S.E.</p>
-                        <p className="text-[10px] text-cyan-300 font-medium">Lihat & Lapor (Belum Edit)</p>
-                      </div>
-                    </button>
-
-                  </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenSettings();
+                        }}
+                        className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
+                      >
+                        Profil & pengaturan
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
+                      >
+                        Keluar
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -2440,7 +2338,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       ? 'text-amber-500 font-black scale-105'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title="Profil & Ganti Akun"
+                  title="Profil"
                 >
                   <Users className="w-5 h-5" />
                   <span className="text-[10px] font-bold tracking-tight">Profile</span>
@@ -2787,7 +2685,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   </span>
                   <span className="text-[10px] font-mono text-slate-400">1 jam lalu</span>
                 </div>
-                <p className="text-xs text-slate-700 dark:text-slate-300">Tim Bina Marga Balai Wilayah VI menyelesaikan patching di Jl. Tuparev Karawang Barat.</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300">Contoh (DEMO): tim pemeliharaan menyelesaikan patching di Jl. Tuparev Karawang Barat.</p>
               </div>
 
               {/* Activity item 3 */}
@@ -2832,8 +2730,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 />
                 <div className="min-w-0">
                   <h3 className="text-sm font-black text-slate-900 dark:text-white truncate">{currentAccount.name}</h3>
-                  <p className="text-[11px] text-amber-500 font-bold truncate">{currentAccount.title}</p>
+                  <p className="text-[11px] text-amber-500 font-bold truncate">
+                    {ROLE_LABELS[currentAccount.role]} · {currentAccount.title}
+                  </p>
                   <p className="text-[10px] text-slate-400 truncate">{currentAccount.agency}</p>
+                  {!isAnonymousIdentity && (
+                    <p className="text-[10px] font-semibold text-sky-500">Akun demo · identitas fiktif</p>
+                  )}
                 </div>
               </div>
               <button
@@ -2861,43 +2764,17 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               </button>
             </div>
 
-            {/* Role Switcher */}
-            <div className="space-y-2 shrink-0">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Ganti Peran / Akun Pengguna</p>
-              <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar">
-                {USER_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.id}
-                    onClick={() => {
-                      onLoginAccount(acc);
-                      setIsProfileModalOpen(false);
-                    }}
-                    className={`w-full flex items-center space-x-3 p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                      currentAccount.id === acc.id
-                        ? 'bg-amber-400/20 border-amber-400 text-slate-950 dark:text-white font-black'
-                        : 'bg-slate-50 dark:bg-[#181f33] border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-amber-400/50'
-                    }`}
-                  >
-                    <img src={acc.avatarUrl} alt={acc.name} className="w-8 h-8 rounded-full object-cover shrink-0 border border-amber-400/50" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold truncate">{acc.name}</p>
-                      <p className="text-[10px] text-amber-500 font-mono truncate">{acc.title}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Quick Action Footer */}
             <div className="pt-2 border-t border-slate-200 dark:border-white/10 shrink-0 flex gap-2">
               <button
                 onClick={() => {
                   setIsProfileModalOpen(false);
-                  onOpenLoginModal();
+                  if (isAnonymousIdentity) onOpenLoginModal();
+                  else onLogout();
                 }}
                 className="flex-1 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-400/20 cursor-pointer"
               >
-                Ganti Akun Lain
+                {isAnonymousIdentity ? 'Masuk ke Sistem' : 'Keluar'}
               </button>
               <button
                 onClick={() => setIsProfileModalOpen(false)}

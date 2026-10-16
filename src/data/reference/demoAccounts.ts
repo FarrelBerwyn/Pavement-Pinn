@@ -1,5 +1,10 @@
 import type { UserRole } from '../../types';
 
+/**
+ * Demo identities. The people, emails and ID numbers are fictional and exist only for the
+ * demonstration; agency names describe the kind of stakeholder each role stands for, not an
+ * account issued by that agency. Sign-in credentials: ./demoCredentials.ts.
+ */
 export interface UserAccount {
   id: string;
   name: string;
@@ -24,8 +29,8 @@ export const USER_ACCOUNTS: UserAccount[] = [
     role: 'FIELD_ENGINEER',
     agency: 'Balai Besar Pelaksanaan Jalan Nasional (BBPJN DKI-Jabar)',
     agencyCode: 'BBPJN-PU',
-    email: 'ahmad.subagyo@pu.go.id',
-    nip: '19820415 200801 1 003',
+    email: 'ahmad.subagyo@pavement-pinn.example',
+    nip: 'DEMO-0001 (bukan NIP asli)',
     clearanceLevel: 'Level 3 - Spesialis Keteknikan Jalan (Portal Klasik)',
     avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=200',
     layoutStyle: 'CLASSIC_PORTAL',
@@ -50,8 +55,8 @@ export const USER_ACCOUNTS: UserAccount[] = [
     role: 'FIELD_ENGINEER',
     agency: 'Balai Besar Pelaksanaan Jalan Nasional (BBPJN DKI-Jabar)',
     agencyCode: 'BBPJN-FE',
-    email: 'ahmad.subagyo.lapangan@pu.go.id',
-    nip: '19820415 200801 1 003 (Insinyur Lapangan)',
+    email: 'ahmad.subagyo.lapangan@pavement-pinn.example',
+    nip: 'DEMO-0002 (bukan NIP asli)',
     clearanceLevel: 'Level 3 - Spesialis Keteknikan Jalan & Verifikasi Lapangan (Mobile App)',
     avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=200',
     layoutStyle: 'MODERN_APP',
@@ -79,8 +84,8 @@ export const USER_ACCOUNTS: UserAccount[] = [
     role: 'OPERATIONS_MANAGER',
     agency: 'Balai Pengelola Transportasi Darat (BPTD Wilayah VIII)',
     agencyCode: 'BPTD-HUB',
-    email: 'hendra.gunawan@dephub.go.id',
-    nip: '19791102 200502 1 001',
+    email: 'hendra.gunawan@pavement-pinn.example',
+    nip: 'DEMO-0003 (bukan NIP asli)',
     clearanceLevel: 'Level 2 - Penyidik & Pengawas Operasional WIM (Portal Klasik)',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
     layoutStyle: 'CLASSIC_PORTAL',
@@ -104,8 +109,8 @@ export const USER_ACCOUNTS: UserAccount[] = [
     role: 'OPERATIONS_MANAGER',
     agency: 'Balai Pengelola Transportasi Darat (BPTD Wilayah VIII) & Kemenhub',
     agencyCode: 'BPTD-OPS',
-    email: 'hendra.gunawan.operasional@dephub.go.id',
-    nip: '19791102 200502 1 001 (Pengawas Lapangan WIM)',
+    email: 'hendra.gunawan.operasional@pavement-pinn.example',
+    nip: 'DEMO-0004 (bukan NIP asli)',
     clearanceLevel: 'Level 2 - Pengawas Operasional WIM & Penindakan ODOL (Modern App)',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
     layoutStyle: 'MODERN_APP',
@@ -120,7 +125,7 @@ export const USER_ACCOUNTS: UserAccount[] = [
       'Penilangan Elektronik (ETLE WIM) & Rekapitulasi Denda Pelanggaran Overload',
       'Korelasi Kerusakan Jalan Terhadap Akumulasi Lintasan Truk Overload WIM',
       'Export & Cetak PDF Dokumen Sinyal WIM & Berita Acara Penindakan Resmi',
-      'Intel OpenVINO Edge Telemetry Pos Jembatan Timbang (Latensi <10 ms, NPU/CPU)'
+      'Intel OpenVINO Edge Telemetry Pos Jembatan Timbang (Latensi belum diukur, NPU/CPU)'
     ],
     restrictedScopes: [
       'Kalibrasi Mikro Sensor Deflektometer FWD (Khusus Field Engineer)',
@@ -129,13 +134,13 @@ export const USER_ACCOUNTS: UserAccount[] = [
   },
   {
     id: 'USR-003',
-    name: 'Dr. Ir. Retno Wulandari, M.Sc.',
+    name: 'Dr. Ir. Retno Wulandari',
     title: 'Direktur Ketahanan Perkerasan Jalan & Anggaran (Portal Klasik)',
     role: 'POLICY_MAKER',
     agency: 'Direktorat Jenderal Bina Marga & Bappenas RI',
     agencyCode: 'DITJEN-BM',
-    email: 'retno.wulandari@bappenas.go.id',
-    nip: '19750318 199903 2 002',
+    email: 'retno.wulandari@pavement-pinn.example',
+    nip: 'DEMO-0005 (bukan NIP asli)',
     clearanceLevel: 'Level 1 - Otoritas Eksekutif & Pengambil Kebijakan APBN (Portal Klasik)',
     avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200',
     layoutStyle: 'CLASSIC_PORTAL',
@@ -154,13 +159,13 @@ export const USER_ACCOUNTS: UserAccount[] = [
   },
   {
     id: 'USR-007',
-    name: 'Dr. Ir. Retno Wulandari, M.Sc.',
+    name: 'Dr. Ir. Retno Wulandari',
     title: 'Executive Policy Maker (App Eksekutif Bappenas & Bina Marga)',
     role: 'POLICY_MAKER',
     agency: 'Kementerian PPN/Bappenas & Ditjen Bina Marga PU',
     agencyCode: 'BAPPENAS-PM',
-    email: 'retno.wulandari.eksekutif@bappenas.go.id',
-    nip: '19750318 199903 2 002 (Otoritas Eksekutif)',
+    email: 'retno.wulandari.eksekutif@pavement-pinn.example',
+    nip: 'DEMO-0006 (bukan NIP asli)',
     clearanceLevel: 'Level 1 - Otoritas Eksekutif & Pengambil Kebijakan APBN (Modern App)',
     avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200',
     layoutStyle: 'MODERN_APP',
@@ -186,8 +191,8 @@ export const USER_ACCOUNTS: UserAccount[] = [
     role: 'PUBLIC_REPORTER',
     agency: 'Komunitas Pengguna Jalan & Logistik',
     agencyCode: 'WARGA-AKTIF',
-    email: 'budi.santoso@penggunajalan.or.id',
-    nip: 'Pelapor Terverifikasi #4829',
+    email: 'budi.santoso@pavement-pinn.example',
+    nip: 'DEMO-0007 (bukan NIP asli)',
     clearanceLevel: 'Level 4 - Pelapor Aktif (Bisa Lapor & Edit Laporannya)',
     avatarUrl: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?auto=format&fit=crop&q=80&w=200',
     allowedScopes: [
@@ -211,8 +216,8 @@ export const USER_ACCOUNTS: UserAccount[] = [
     role: 'PUBLIC_VIEWER',
     agency: 'Masyarakat Pengamat Trans-Jawa',
     agencyCode: 'WARGA-BARU',
-    email: 'siti.aminah@pengamatjalan.id',
-    nip: 'Pengamat Terdaftar #1024',
+    email: 'siti.aminah@pavement-pinn.example',
+    nip: 'DEMO-0008 (bukan NIP asli)',
     clearanceLevel: 'Level 5 - Warga Baru (Melihat & Bisa Lapor Baru)',
     avatarUrl: 'https://images.unsplash.com/photo-1598550874175-4d0ef436c909?auto=format&fit=crop&q=80&w=200',
     allowedScopes: [

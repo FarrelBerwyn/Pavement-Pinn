@@ -32,6 +32,7 @@ import {
   WorkflowGateway
 } from '../../services/api/workflowClient';
 import { isAnonymousAccount, useSession } from './SessionProvider';
+import { offlineDemoVerifier } from '../../features/authentication/demoAccess';
 
 /** Seed upvote flags belong to the reporter persona the demo data was written for. */
 const SEED_UPVOTE_OWNER = 'USR-004';
@@ -100,7 +101,7 @@ function auditToLogItem(e: AuditEvent): AuditLogItem {
 }
 
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { activeRole, currentAccount } = useSession();
+  const { activeRole, currentAccount, logout } = useSession();
 
   const [roadSegments] = useState<RoadSegment[]>(ROAD_SEGMENTS);
   const [selectedSegment, setSelectedSegment] = useState<RoadSegment>(ROAD_SEGMENTS[0]);
@@ -110,7 +111,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [reportState, setReportState] = useState<ReportState>(() => createReportState(INITIAL_COMMUNITY_REPORTS, SEED_UPVOTE_OWNER));
   const communityReports = useMemo(() => viewReportsAs(reportState, currentAccount.id), [reportState, currentAccount.id]);
 
-  const gateway = useMemo(() => createWorkflowGateway(INITIAL_COMMUNITY_REPORTS, roleOfDemoAccount, LOCAL_ENGINEERS, ROAD_SEGMENTS), []);
+  const gateway = useMemo(() => createWorkflowGateway(INITIAL_COMMUNITY_REPORTS, roleOfDemoAccount, LOCAL_ENGINEERS, ROAD_SEGMENTS, offlineDemoVerifier), []);
   const [views, setViews] = useState<Record<string, ReportView>>({});
   const [actor, setActor] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,6 +188,12 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       })
       .catch((e) => {
         if (cancelled) return;
+        // A named account without a valid session (expired, or an identity set in browser
+        // storage by hand) is signed out instead of being trusted.
+        if (account && e instanceof WorkflowApiError && e.code === 'UNAUTHENTICATED') {
+          logout();
+          return;
+        }
         setActor(null);
         setError((e as Error).message);
         setLoading(false);
@@ -194,7 +201,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => {
       cancelled = true;
     };
-  }, [gateway, currentAccount, refresh]);
+  }, [gateway, currentAccount, refresh, logout]);
 
   // Initial Simulation Result
   const [currentResult, setCurrentResult] = useState<SimulationResult | null>(null);

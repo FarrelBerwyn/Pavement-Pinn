@@ -2,7 +2,6 @@ import { Router, type Request, type Response } from "express";
 import { registerHealthRoutes } from "./health.routes";
 import { registerRoadsRoutes } from "./roads.routes";
 import { registerPinnRoutes } from "./pinn.routes";
-import { registerOpenvinoRoutes } from "./openvino.routes";
 import { registerNarrativeRoutes } from "./narrative.routes";
 import { registerWorkflowRoutes } from "./workflow.routes";
 import { registerSystemRoutes } from "./system.routes";
@@ -24,7 +23,6 @@ export function createApiRouter(workflow: WorkflowRuntime): Router {
   registerHealthRoutes(router);
   registerRoadsRoutes(router);
   registerPinnRoutes(router);
-  registerOpenvinoRoutes(router);
   registerNarrativeRoutes(router);
   registerWorkflowRoutes(router, workflow);
   registerSystemRoutes(router, workflow);

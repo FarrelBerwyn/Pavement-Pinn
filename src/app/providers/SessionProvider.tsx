@@ -6,11 +6,14 @@
  * The workflow server gives the anonymous visitor its own server-issued id; this
  * provider only tracks which identity the UI shows.
  *
- * THIS IS NOT AUTHENTICATION. Demo accounts come from the bundled catalogue and are picked
- * without credentials (the login form's password field is decorative). The chosen account
- * id is remembered in sessionStorage so a refresh or deep link keeps the same identity
- * for the lifetime of the tab. Server-side actions are authorized against a token the
- * server signs (src/services/api/workflowClient.ts), not against this state.
+ * This provider does not authenticate anyone. An identity is set here only after the
+ * login page has had the credentials checked (by the server, or in the static demo build
+ * by the demo verifier) and received the account they open; nothing in the UI switches
+ * accounts any more. The account id is remembered in sessionStorage so a refresh keeps the
+ * identity, and the app state provider signs the identity out again when no valid session
+ * belongs to it (an id written into storage by hand gets no further than that). Server
+ * actions are authorized against the server-signed token, not against this state.
+ * Limits: docs/LOGIN_AND_DEMO_AUTH.md.
  */
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { UserRole } from '../../types';
@@ -74,10 +77,8 @@ function storeAccount(account: UserAccount | null): void {
 export interface SessionValue {
   currentAccount: UserAccount;
   activeRole: UserRole;
-  /** Switch to a demo account (also updates the active role). */
-  login: (account: UserAccount) => void;
-  /** Switch role, selecting the first demo account that has it. */
-  selectRole: (role: UserRole) => void;
+  /** Show the account a credential check returned. Call only after a successful login. */
+  establishSession: (account: UserAccount) => void;
   /** Return to the anonymous visitor and forget the stored account. */
   logout: () => void;
 }
@@ -88,19 +89,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentAccount, setCurrentAccount] = useState<UserAccount>(readStoredAccount);
   const [activeRole, setActiveRole] = useState<UserRole>(() => currentAccount.role);
 
-  const login = useCallback((account: UserAccount) => {
+  const establishSession = useCallback((account: UserAccount) => {
     setCurrentAccount(account);
     setActiveRole(account.role);
     storeAccount(account);
-  }, []);
-
-  const selectRole = useCallback((role: UserRole) => {
-    setActiveRole(role);
-    const matchedAccount = USER_ACCOUNTS.find((acc) => acc.role === role);
-    if (matchedAccount) {
-      setCurrentAccount(matchedAccount);
-      storeAccount(matchedAccount);
-    }
   }, []);
 
   const logout = useCallback(() => {
@@ -110,8 +102,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ currentAccount, activeRole, login, selectRole, logout }),
-    [currentAccount, activeRole, login, selectRole, logout]
+    () => ({ currentAccount, activeRole, establishSession, logout }),
+    [currentAccount, activeRole, establishSession, logout]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

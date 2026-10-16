@@ -278,7 +278,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
               <h1 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
                 <span>Pusat Kendali Operasional WIM & Penindakan ODOL</span>
                 <span className="text-xs font-mono font-normal text-slate-400 hidden sm:inline">
-                  (Gateway Real-Time Bina Marga & Kemenhub)
+                  (data DEMO)
                 </span>
               </h1>
             </div>
@@ -290,7 +290,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
               <button
                 onClick={() => generateOfficialReportPdf(simulationResult, 'OPERATIONS_MANAGER')}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-indigo-500 flex items-center space-x-1.5 transition-colors cursor-pointer"
-                title="Cetak Sinyal WIM & Ringkasan Penindakan Format PDF Resmi Kemenhub"
+                title="Cetak Sinyal WIM & Ringkasan Penindakan Format PDF (DEMO)"
               >
                 <FileDown className="w-4 h-4 text-indigo-200" />
                 <span>Cetak Sinyal WIM PDF</span>
@@ -366,7 +366,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                         : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     }`}
                   >
-                    STATUS {alertStatus} (Kemenhub Decision Matrix)
+                    STATUS {alertStatus} (matriks keputusan DEMO)
                   </span>
                 </div>
 
@@ -866,7 +866,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 {/* Slider 1: Curah Hujan */}
                 <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-200">Intensitas Hujan (BMKG)</span>
+                    <span className="font-semibold text-slate-200">Intensitas Hujan (DEMO)</span>
                     <span className="font-mono font-bold text-cyan-300">{simRainMmHr} mm/jam</span>
                   </div>
                   <input

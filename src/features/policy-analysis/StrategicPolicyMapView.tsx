@@ -160,7 +160,7 @@ export const StrategicPolicyMapView: React.FC<StrategicPolicyMapViewProps> = ({
       case 'PREVENTIVE_AND_ODOL':
         return {
           title: 'Preservasi + Penegakan ODOL (Optimal)',
-          description: 'Rekomendasi Bappenas & PUPR: Kemantapan jalan 88%, BCR 2.8x, hemat Rp 38.5 Miliar.',
+          description: 'Skenario contoh (DEMO): dampak biaya belum dihitung.',
           rhiModifier: +19,
           ruasKritisModifier: -10,
           budgetMultiplier: 0.95,

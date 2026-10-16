@@ -16,6 +16,7 @@ import { createWorkflowRuntime } from '../../server/services/workflowRuntime';
 import { FileCaseStore } from '../../server/repositories/fileCaseStore';
 import { MemoryCaseStore } from '../../src/domain/workflow/service';
 import { INITIAL_COMMUNITY_REPORTS } from '../../src/data/mock/communityReports';
+import { demoLoginFor } from '../../src/data/reference/demoCredentials';
 
 // 1x1 transparent PNG.
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
@@ -51,7 +52,12 @@ async function call(method: string, p: string, body?: unknown, token?: string, e
   return { status: res.status, body: (await res.json()) as any };
 }
 
-const session = async (accountId: string) => (await call('POST', '/api/auth/demo-session', { accountId })).body.token as string;
+const credentialsFor = (accountId: string) => {
+  const credentials = demoLoginFor(accountId);
+  if (!credentials) throw new Error('No demo credentials for ' + accountId);
+  return credentials;
+};
+const session = async (accountId: string) => (await call('POST', '/api/auth/login', credentialsFor(accountId))).body.token as string;
 
 function draft() {
   const { id, status, creatorAccountId, creatorRole, origin, createdAt, ...content } = INITIAL_COMMUNITY_REPORTS[0];
@@ -259,7 +265,7 @@ test('a failed write returns 503 and leaves the stored case unchanged', async ()
   await runtime.ready;
   const s = await listen(createApp({ workflow: runtime }));
   try {
-    const opsTok = ((await (await fetch(`${s.base}/api/auth/demo-session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: 'USR-008' }) })).json()) as any).token;
+    const opsTok = ((await (await fetch(`${s.base}/api/auth/demo-session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentialsFor('USR-008')) })).json()) as any).token;
     const before = ((await (await fetch(`${s.base}/api/workflow/reports?limit=1`, { headers: { Authorization: `Bearer ${opsTok}` } })).json()) as any).items[0].case;
     store.failNextCommit = true;
     const r = await fetch(`${s.base}/api/workflow/reports/${before.id}/transitions`, {
@@ -275,11 +281,11 @@ test('a failed write returns 503 and leaves the stored case unchanged', async ()
   }
 });
 
-test('DEMO_AUTH=false switches off the demo account picker; anonymous sessions remain', async () => {
+test('DEMO_AUTH=false switches off demo login; anonymous sessions remain', async () => {
   const runtime = createWorkflowRuntime({ demoAuthEnabled: false, seed: false });
   const s = await listen(createApp({ workflow: runtime }));
   try {
-    const r = await fetch(`${s.base}/api/auth/demo-session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: 'USR-008' }) });
+    const r = await fetch(`${s.base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentialsFor('USR-008')) });
     assert.equal(r.status, 403);
     const a = await fetch(`${s.base}/api/auth/anonymous`, { method: 'POST' });
     assert.equal(a.status, 200);

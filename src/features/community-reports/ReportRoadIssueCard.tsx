@@ -423,41 +423,20 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
       estimatedDepthCm: analyzedClass.defaultDepthCm,
       estimatedAreaM2: analyzedClass.defaultAreaM2,
       photoUrl: selectedImage || analyzedClass.samplePhotoUrl,
-      description: notes.trim() || `Laporan kerusakan jalan (${analyzedClass.label}) terdeteksi via Computer Vision.`,
+      description: notes.trim() || `Laporan kerusakan jalan (${analyzedClass.label}) dari warga.`,
       upvotesCount: 1,
       userUpvoted: true,
       aiAnalysis: {
         class: analyzedClass.modelClass,
         label: analyzedClass.label,
         icon: analyzedClass.icon,
-        confidence: analyzedClass.defaultConfidence,
+        // No trained detector exists yet (Module C). The class is the reporter-facing
+        // guess; confidence stays null until a versioned model produces it (F-05).
+        confidence: null,
+        modelStatus: 'NOT_CLASSIFIED',
         severity: effectiveSeverity.toLowerCase(),
-        characteristics: analyzedClass.characteristics,
-        detectionBox: analyzedClass.detectionBox
+        characteristics: analyzedClass.characteristics
       },
-      repairDetails: {
-        afterPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800',
-        repairDate: 'Dijadwalkan Verifikasi & Perbaikan PUPR',
-        repairMethod: 'Hotmix Asphalt Overlay & Patching AC-WC 6cm',
-        repairedPciImprovement: 'Proyeksi: PCI 32 → 90 (Mulus)',
-        engineerNote: 'Tercatat dalam sistem pemantauan Bina Marga AI & WIM Telemetry.',
-        agencyInCharge: 'Dinas PUPR & BBPJN'
-      },
-      wimCorrelation: {
-        hasWimData: true,
-        stationId: 'WIM-STN-01',
-        stationName: 'Stasiun WIM Sudirman-Thamrin',
-        corridor: targetSeg.corridor,
-        recentTruckPlate: 'B 9182 KXA',
-        recentTruckClass: 'Golongan V - Truk Tronton',
-        maxAxleLoadTon: 18.2,
-        legalLimitTon: 10.0,
-        overloadPercent: 82,
-        overloadCategory: 'HEAVY',
-        correlatedOverloadTrucksCount: 128,
-        estimatedPinnContributionPercent: 80,
-        causeAnalysisSummary: `Korelasi Kerusakan: Penurunan struktur permukaan dipicu akumulasi beban kendaraan berat ODOL.`
-      }
       }, currentAccount);
     } catch (error) {
       if (error instanceof ReportCreationError) {
@@ -1035,28 +1014,11 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                       className="w-full h-full object-cover"
                     />
 
-                    {/* AI Detection Area Overlay Box - Clean Amber, No Neon */}
-                    <div
-                      className="absolute border-2 border-dashed border-amber-400 bg-amber-400/10 rounded-lg flex flex-col justify-start p-1 pointer-events-none"
-                      style={{
-                        left: `${analyzedClass.detectionBox.xPercent}%`,
-                        top: `${analyzedClass.detectionBox.yPercent}%`,
-                        width: `${analyzedClass.detectionBox.widthPercent}%`,
-                        height: `${analyzedClass.detectionBox.heightPercent}%`
-                      }}
-                    >
-                      <div className="bg-slate-950/90 backdrop-blur-md text-amber-300 px-1.5 py-0.5 rounded text-[8.5px] sm:text-[9.5px] font-black font-mono tracking-wider self-start border border-amber-400/60 shadow-lg flex items-center gap-1">
-                        <span>{analyzedClass.icon}</span>
-                        <span>
-                          {analyzedClass.label.toUpperCase()} {analyzedClass.defaultConfidence}%
-                        </span>
-                      </div>
-                    </div>
                   </div>
 
                   {/* 1. AI Detection Section */}
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-slate-400 px-0.5">AI Detection</p>
+                    <p className="text-xs font-semibold text-slate-400 px-0.5">Jenis kerusakan (perkiraan)</p>
                     <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-3 flex items-center justify-between">
                       <div className="flex items-center space-x-3 min-w-0">
                         <div className="w-9 h-9 rounded-2xl bg-white/10 border border-white/15 text-white flex items-center justify-center text-lg shrink-0">
@@ -1064,8 +1026,8 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                         </div>
                         <div className="min-w-0">
                           <h4 className="text-sm font-extrabold text-white truncate">{analyzedClass.label}</h4>
-                          <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
-                            Confidence: {analyzedClass.defaultConfidence}%
+                          <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
+                            belum diklasifikasi model
                           </p>
                         </div>
                       </div>

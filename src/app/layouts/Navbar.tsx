@@ -14,35 +14,35 @@ import {
   Briefcase,
   Globe,
   Camera,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
 import { UserRole, IntelTelemetry } from '../../types';
 import { UserAccount } from '../../features/authentication/demoAccounts';
 
 interface NavbarProps {
   activeRole: UserRole;
-  onSelectRole: (role: UserRole) => void;
   activeTab: 'MAP' | 'SIMULATOR' | 'DASHBOARD' | 'OPENVINO' | 'AUDIT';
   onSelectTab: (tab: 'MAP' | 'SIMULATOR' | 'DASHBOARD' | 'OPENVINO' | 'AUDIT') => void;
   telemetry?: IntelTelemetry;
   onOpenQuickSim: () => void;
   currentAccount: UserAccount;
+  /** Opens the login page (anonymous visitors) or the account settings (signed in). */
   onOpenLoginModal: () => void;
-  onOpenBinaMargaPipeline?: () => void;
+  onLogout: () => void;
   onToggleCommunityReports?: () => void;
   isCommunityReportOpen?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeRole,
-  onSelectRole,
   activeTab,
   onSelectTab,
   telemetry,
   onOpenQuickSim,
   currentAccount,
   onOpenLoginModal,
-  onOpenBinaMargaPipeline,
+  onLogout,
   onToggleCommunityReports,
   isCommunityReportOpen
 }) => {
@@ -86,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
               <p className="text-[9.5px] text-slate-400 hidden xl:block truncate max-w-[170px]">
-                Physics-Informed Neural Network DSS
+                DSS · mesin rumus RULE_BASED
               </p>
             </div>
           </div>
@@ -154,13 +154,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Card Ganti Akun (Langsung disamping Top Bar Navigation List) */}
+          {/* Signed-in identity (no account switching here; logout is separate) */}
           <div className="flex items-center space-x-2">
             {/* Full Account Profile Card (Clickable directly to change account) */}
             <div
               onClick={onOpenLoginModal}
               className="flex items-center space-x-2 bg-slate-950/80 hover:bg-slate-950 border border-indigo-500/30 hover:border-indigo-400/60 p-1.5 px-2.5 rounded-2xl cursor-pointer transition-all shadow-md group"
-              title="Klik profil untuk melihat detail & ganti akun terautentikasi"
+              title="Profil akun"
             >
               <div className="relative shrink-0">
                 <img
@@ -189,17 +189,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            {/* Bina Marga WIM Scraper & Pipeline Button - ONLY for Official Roles */}
-            {!isRegularUser && onOpenBinaMargaPipeline && (
-              <button
-                onClick={onOpenBinaMargaPipeline}
-                className="hidden xl:flex items-center space-x-1.5 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 hover:border-cyan-400/60 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-cyan-300 transition-all shadow-sm shrink-0"
-                title="Buka Scraper & Integrasi Dataset Bina Marga WIM API"
-              >
-                <Globe className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                <span>WIM Bina Marga API</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onLogout}
+              aria-label="Keluar"
+              title="Keluar"
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-slate-950/60 px-2.5 py-2 text-[11px] font-semibold text-slate-200 hover:bg-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Keluar</span>
+            </button>
+
 
             {/* Quick OpenVINO Telemetry Chip */}
             <div
@@ -207,13 +207,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="hidden xl:flex items-center space-x-1.5 bg-slate-950/60 border border-white/10 hover:border-cyan-400/40 rounded-xl px-2.5 py-1.5 cursor-pointer text-xs transition-colors shadow-sm shrink-0"
               title="Detail arsitektur Intel OpenVINO"
             >
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-slate-500" />
               <span className="text-cyan-400 font-mono font-semibold text-[11px]">
-                {telemetry ? telemetry.deviceUsed : 'NPU'}
+                {telemetry ? telemetry.deviceUsed : 'perangkat tidak diketahui'}
               </span>
               <span className="text-slate-600">|</span>
               <span className="text-slate-200 font-mono text-[11px]">
-                {telemetry ? `${telemetry.inferenceLatencyMs} ms` : '6.8 ms'}
+                {telemetry?.inferenceLatencyMs != null ? `${telemetry.inferenceLatencyMs} ms` : 'latensi belum diukur'}
               </span>
             </div>
           </div>

@@ -45,7 +45,11 @@ test('every scenario reproduces the pre-restructure output exactly (tolerance = 
     const expected = golden.scenarios[index];
     try {
       assert.deepEqual(encodeSnapshot(scenario.params), expected.params);
-      assert.deepEqual(encodeSnapshot(snapshot), expected.snapshot);
+      // v3 Phase 0 (F-02/F-21): telemetry was Math.random/constant output and is now
+      // NOT_MEASURED (null); narrative strings were reworded to remove prohibited claims.
+      // Every physics/engine NUMBER outside telemetry stays pinned at tolerance 0.
+      const numbers = (v: unknown) => numericLeaves(v).filter(([k]) => !k.startsWith('telemetry.'));
+      assert.deepEqual(numbers(encodeSnapshot(snapshot)), numbers(expected.snapshot));
     } catch {
       mismatches.push(scenario.name);
     }
@@ -162,11 +166,12 @@ test('PCI outputs: bounded prediction and a 6-point projection starting in 2026'
   }
 });
 
-test('telemetry is a simulated lookup: echoes the requested device/precision, latency stays in its jitter band', () => {
+test('telemetry reports NOT_MEASURED: requested device echoed, every performance figure null (F-02/F-14/F-21)', () => {
   const r = run({ targetDevice: 'CPU', precisionMode: 'FP32' });
   assert.equal(r.telemetry.deviceUsed, 'CPU');
   assert.equal(r.telemetry.precisionUsed, 'FP32');
-  // 24.5 ms base * 1.4 precision multiplier, +/- 0.4 ms uniform jitter
-  assert.ok(Math.abs(r.telemetry.inferenceLatencyMs - 34.3) <= 0.45);
-  assert.equal(r.telemetry.throughputSps, Math.round(1000 / r.telemetry.inferenceLatencyMs));
+  assert.equal(r.telemetry.measurementStatus, 'NOT_MEASURED');
+  for (const key of ['inferenceLatencyMs', 'powerConsumptionWatts', 'cpuUtilizationPercent', 'npuUtilizationPercent', 'throughputSps', 'physicsLossValue', 'dataLossValue'] as const) {
+    assert.equal(r.telemetry[key], null, key);
+  }
 });

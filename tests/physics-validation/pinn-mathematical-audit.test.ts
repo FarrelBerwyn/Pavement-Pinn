@@ -294,7 +294,8 @@ test('inventory of strain limits in the source: four different numbers, defined 
   const engine = read('src/engines/pinn/core/pinnEngine.ts');
   assert.match(engine, /tensileStrainEt > 250/);
   assert.match(engine, /tensileStrainEt > 180/);
-  assert.match(engine, /batas ijin Bina Marga \(200 µε\)/); // the critical note cites 200 while it triggers at 250
+  // v3 Phase 0: the critical note no longer cites a "batas ijin" (prohibited verdict, F-06).
+  assert.doesNotMatch(engine, /batas ijin/i);
   assert.match(read('src/components/simulation-viewer/SimulationPanel.tsx'), /tensileStrainEt > 200/);
   assert.match(read('src/services/reporting/pdfGenerator.ts'), /tensileStrainEt > 200/);
   for (const chart of ['src/features/fwd/FieldEngineerDashboard.tsx', 'src/features/fwd/FieldEngineerTools.tsx']) {

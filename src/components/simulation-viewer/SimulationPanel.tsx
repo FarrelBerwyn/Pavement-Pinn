@@ -660,10 +660,10 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
 
                     <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
                       <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
-                        Hemat APBN 5-Thn
+                        Dampak Biaya 5-Thn
                       </p>
                       <p className="text-lg font-extrabold text-emerald-400 mt-1 font-mono">
-                        Rp {(currentResult.roleOutputs.policyMaker.preventiveCostSavingsRupiahBillions ?? 0).toFixed(1)} M
+                        Belum dihitung
                       </p>
                       <span className="text-[10px] text-emerald-300 font-bold">Preventive Cost</span>
                     </div>

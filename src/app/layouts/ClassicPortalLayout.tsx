@@ -19,6 +19,8 @@ interface ClassicPortalLayoutProps {
   /** Navigate to the route bound to a tab. */
   onSelectTab: (tab: ClassicTab) => void;
   onOpenLoginModal: () => void;
+  /** End the session and return to the login page. */
+  onLogout: () => void;
   /** Route outlet: the page component for the current route, if it is a standalone page. */
   children?: React.ReactNode;
 }
@@ -30,8 +32,8 @@ interface ClassicPortalLayoutProps {
  * Markup moved verbatim from the classic branch of the original App.tsx; the only
  * change is that `activeTab` now comes from the URL instead of component state.
  */
-export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ activeTab, onSelectTab, onOpenLoginModal, children }) => {
-  const { currentAccount, activeRole, selectRole: handleSelectRole } = useSession();
+export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ activeTab, onSelectTab, onOpenLoginModal, onLogout, children }) => {
+  const { currentAccount, activeRole } = useSession();
   const {
     roadSegments,
     selectedSegment,
@@ -42,7 +44,7 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
     currentResult,
     completeSimulation: handleSimulationComplete
   } = useAppState();
-  const { openOpenvinoDiagnostics, openAuditTrail, openWimPipeline } = useGlobalModals();
+  const { openOpenvinoDiagnostics, openAuditTrail } = useGlobalModals();
   const setActiveTab = onSelectTab;
 
   // Launch simulation for specific segment from Map popup
@@ -62,7 +64,6 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
       {/* Navbar Header */}
       <Navbar
         activeRole={activeRole}
-        onSelectRole={handleSelectRole}
         activeTab={activeTab}
         onSelectTab={(tab) => {
           if (tab === 'OPENVINO') {
@@ -77,7 +78,7 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
         onOpenQuickSim={() => setActiveTab('SIMULATOR')}
         currentAccount={currentAccount}
         onOpenLoginModal={onOpenLoginModal}
-        onOpenBinaMargaPipeline={openWimPipeline}
+        onLogout={onLogout}
         onToggleCommunityReports={handleToggleCommunityReportCard}
         isCommunityReportOpen={isCommunityReportCardOpen}
       />

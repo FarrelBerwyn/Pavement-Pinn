@@ -2,6 +2,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SimulationResult, UserRole } from '../../types';
 
+/** Printed on every page (F-19). Exported so tests can assert the wording. */
+export const PDF_DISCLAIMER =
+  'BUKAN DOKUMEN RESMI. Status: RULE_BASED/DEMO - angka indikatif, bukan desain, dan tidak disahkan instansi mana pun. Perlu tinjauan insinyur.';
+
 export function generateOfficialReportPdf(
   simulation: SimulationResult,
   role: UserRole
@@ -26,12 +30,12 @@ export function generateOfficialReportPdf(
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('PAVEMENT-PINN | LAPORAN RESMI KEPUTUSAN STRUKTURAL', 14, 13);
+  doc.text('PAVEMENT-PINN | RINGKASAN INDIKATIF (BUKAN DOKUMEN RESMI)', 14, 13);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text(
-    'Sistem Pendukung Keputusan Multi-Stakeholder Berbasis Intel OpenVINO Edge AI',
+    'Status mesin: RULE_BASED (rumus heuristik) - indikatif, bukan desain',
     14,
     20
   );
@@ -62,7 +66,7 @@ export function generateOfficialReportPdf(
       ['Ruas Jalan', roadSegment.name],
       ['Koridor & Provinsi', `${roadSegment.corridor} (${roadSegment.province})`],
       ['Post Kilometer', roadSegment.kmPost],
-      ['Peran Pengguna (RBAC)', role === 'FIELD_ENGINEER' ? 'Field Civil Engineer (BBPJN/Dinas PUPR)' : role === 'OPERATIONS_MANAGER' ? 'Operations Manager (Kemenhub/BPTD)' : 'Executive Policy Maker (Kepala Dinas/Kementerian)'],
+      ['Peran Pengguna (RBAC)', role === 'FIELD_ENGINEER' ? 'Insinyur Lapangan' : role === 'OPERATIONS_MANAGER' ? 'Operator' : 'Perencana / Pembuat Kebijakan'],
       ['Indeks Kondisi Saat Ini (PCI)', `${roadSegment.currentPci} / 100 (${roadSegment.conditionCategory})`]
     ],
     theme: 'grid',
@@ -75,7 +79,7 @@ export function generateOfficialReportPdf(
   // Simulation Input & Physics Loss Parameters
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('2. PARAMETER INPUT SIMULASI & INTEL OPENVINO TELEMETRY', 14, currentY);
+  doc.text('2. PARAMETER INPUT SIMULASI', 14, currentY);
 
   currentY += 4;
 
@@ -87,7 +91,7 @@ export function generateOfficialReportPdf(
       ['Intensitas Hujan & Durasi Genangan', `${params.rainIntensityMmHr} mm/jam (${params.floodDurationHours} jam)`, 'Penurunan Modulus Subgrade'],
       ['Nilai CBR Tanah Dasar', `${params.subgradeCbrPercent} %`, `Daya Dukung Es: ${params.subgradeCbrPercent * 10} MPa`],
       ['Tebal Lapisan Aspal (AC-WC/BC)', `${params.asphaltThicknessCm} cm`, `Modulus Aspal: ${params.asphaltModulusMpa} MPa`],
-      ['Target Hardware & Presisi Edge', `${telemetry.deviceUsed} (${telemetry.precisionUsed})`, `Latensi Inferensi: ${telemetry.inferenceLatencyMs} ms`]
+      ['Target Hardware & Presisi Edge', `${telemetry.deviceUsed} (${telemetry.precisionUsed})`, telemetry.inferenceLatencyMs != null ? `Latensi Inferensi: ${telemetry.inferenceLatencyMs} ms` : 'Latensi: belum diukur']
     ],
     theme: 'striped',
     headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255] },
@@ -105,7 +109,7 @@ export function generateOfficialReportPdf(
 
   autoTable(doc, {
     startY: currentY,
-    head: [['Metrik Output PINN', 'Hasil Prediksi', 'Keterangan Rekayasa']],
+    head: [['Metrik (mesin RULE_BASED)', 'Nilai indikatif', 'Keterangan Rekayasa']],
     body: [
       ['Prediksi PCI Pasca Beban', `${predictedPci} / 100`, `Penurunan PCI: -${simulation.pciDropPoints} poin`],
       ['Regangan Tarik Dasar Aspal (εt)', `${tensors.tensileStrainEt} µε`, tensors.tensileStrainEt > 200 ? 'MELEBIHI AMBANG LELEH (>200 µε)' : 'Dalam Batas Aman'],
@@ -145,25 +149,25 @@ export function generateOfficialReportPdf(
     currentY += 5;
     doc.text(`• Ringkasan Operasional: ${roleOutputs.operationsManager.operationalAlertSummary}`, 14, currentY, { maxWidth: 180 });
   } else {
-    doc.text(`• Proyeksi Penghematan Anggaran Preservasi: Rp ${roleOutputs.policyMaker.preventiveCostSavingsRupiahBillions} Miliar`, 14, currentY);
+    doc.text('• Dampak biaya: belum dihitung.', 14, currentY);
     currentY += 5;
-    doc.text(`• Estimasi Potensi Kerugian Ekonomi ODOL: Rp ${roleOutputs.policyMaker.estimatedEconomicLossRupiahBillions} Miliar`, 14, currentY);
-    currentY += 5;
-    doc.text(`• Dampak Target Zero ODOL 2027: ${roleOutputs.policyMaker.zeroOdolTargetImpactPercent}% Pengurangan Laju Kerusakan`, 14, currentY);
+    doc.text(`• Indeks dampak Zero ODOL (RULE_BASED, indikatif): ${roleOutputs.policyMaker.zeroOdolTargetImpactPercent}%`, 14, currentY);
     currentY += 5;
     doc.text(`• Ringkasan Eksekutif: ${roleOutputs.policyMaker.executiveBrief}`, 14, currentY, { maxWidth: 180 });
   }
 
-  // Footer
-  doc.setFillColor(241, 245, 249);
-  doc.rect(0, 280, 210, 17, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text(
-    'PAVEMENT-PINN | Dihasilkan secara otomatis oleh sistem kecerdasan buatan terpadu PUPR, Kemenhub, & Intel OpenVINO.',
-    14,
-    288
-  );
+  // Footer on EVERY page: status block + disclaimer (v3 K5, F-19). No agency is named
+  // as data provider or endorser.
+  const pageCount = doc.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
+    doc.setPage(page);
+    doc.setFillColor(241, 245, 249);
+    doc.rect(0, 280, 210, 17, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(PDF_DISCLAIMER, 14, 286, { maxWidth: 182 });
+    doc.text(`Halaman ${page} / ${pageCount}`, 180, 293);
+  }
 
   // Save PDF
   doc.save(`PAVEMENT-PINN_${role}_${roadSegment.id}_${Date.now()}.pdf`);

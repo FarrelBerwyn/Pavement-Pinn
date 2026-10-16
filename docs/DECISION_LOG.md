@@ -2,8 +2,9 @@
 
 Engineering decisions made while implementing PAVEMENT-PINN v2.2 in the existing
 repository. Each entry: context, decision, alternatives, consequences. Newest last.
-Source hierarchy: spec `PAVEMENT-PINN_v2.2.docx` > competition/strategy PDFs > execution
-brief `Update Fix All execute Agent.pdf` > existing repository > engineering judgement.
+Source hierarchy (since 2026-10-15, v3 D-01): **PAVEMENT-PINN v3 Dokumen Induk** > `AGENTS.md` >
+spec `PAVEMENT-PINN_v2.2.docx` > execution brief > existing repository > engineering judgement.
+v3 decisions use the prefix `V3-D-` to avoid colliding with the three-digit IDs below (F-40).
 
 ## D-001 Keep the Express/TypeScript server as the domain API (no FastAPI yet)
 
@@ -160,6 +161,16 @@ brief `Update Fix All execute Agent.pdf` > existing repository > engineering jud
   their content (no feature removed) but carry visible ILUSTRATIF / SIMULASI / DEMO LOKAL
   notices (`components/ui/DataNotice.tsx`). Removing the figures is a product decision.
 
+## D-034 Credential login replaces the account picker
+
+- `/api/auth/login` and `/api/auth/demo-session` require a username and password checked
+  against five dummy demo credentials; an account id in the body no longer signs anyone
+  in. Account switching is removed from the header, profile panel and classic navbar.
+- Demo credentials reach the browser bundle only in the dev server or with
+  `VITE_DEMO_ACCESS=true`; the static Pages build has no login without that flag.
+- Still demo authentication (public credentials, stateless tokens). Details and gaps:
+  docs/LOGIN_AND_DEMO_AUTH.md.
+
 ## Open product questions (not decided here)
 
 - Should CLOSED-as-invalid reports be excluded from the density heatmap? (Kept: every
@@ -167,3 +178,45 @@ brief `Update Fix All execute Agent.pdf` > existing repository > engineering jud
 - Region/assignment scoping of official roles; an administrator role for account and
   permission management.
 - Public visibility of reporter names on seed data (anonymous submissions already hide them).
+
+
+## v3 decisions (PAVEMENT-PINN v3 Dokumen Induk §1.3)
+
+Adopted 2026-10-15. English summaries; the Indonesian text in the PDF §1.3 is authoritative.
+
+| ID | Decision |
+|---|---|
+| V3-D-01 | v3 document governs over blueprint v1, finalist doc v2 and spec v2.2; copy decisions to `docs/DECISION_LOG.md` |
+| V3-D-02 | "PINN" = physics-informed neural surrogate; say it is not a PDE-residual PINN |
+| V3-D-03 | Corridor 1 Narogong, corridor 2 Karawang, corridors as configuration |
+| V3-D-04 | MLET via PyMastic as reference; PI-surrogate for batches; fallback when out of domain or > 10 % cross-check |
+| V3-D-05 | Selectable, cited transfer function; Indeks Umur P10/P50/P90 in years, "indikatif, bukan desain"; no pothole horizon |
+| V3-D-06 | No PCI projection; record observed condition; ASTM D6433 only from a distress survey |
+| V3-D-07 | YOLO 4 classes (RDD2022 + local), OpenVINO INT8, confidence only from a versioned model |
+| V3-D-08 | Photo Trust Gate with measured FAR/FRR |
+| V3-D-09 | Blur faces/plates, strip EXIF server-side before storage, raw photo deleted ≤ 7 days |
+| V3-D-10 | Local SLM on NPU, structured input, numbers by code, checker, template; cloud calls off |
+| V3-D-11 | All performance numbers from `measurements/*.json`; otherwise "belum diukur" |
+| V3-D-12 | Remove "Virtual WIM"; traffic load from classified counts × MDP 2017 VDF (normal vs actual) |
+| V3-D-13 | Dishub panel advisory only; no rerouting orders or dynamic tonnage limits |
+| V3-D-14 | Material recommendation → repair-option comparison (patch, AC-WC, PMA) with editable moduli; remove "PMA ≥ 8.5 cm" |
+| V3-D-15 | Quality audit → neutral early-damage investigation flag (≥ 3 reports + engineer confirmation) |
+| V3-D-16 | 2D map + strain section from real MLET grid; remove 3D twin and pore-pressure animation |
+| V3-D-17 | Segment stores managing authority; automatic routing; citizen sees responsible agency |
+| V3-D-18 | Citizen PWA live on a public URL; Supabase applied or one VM with daily backup; real identity for internal roles |
+
+Effect on earlier entries: D-001 superseded in part (Express stays; a Python inference
+service is added, V3-D-04). D-021 superseded (Virtual WIM removed, V3-D-12). D-033 superseded
+for the WIM modal, IR export and telemetry screens, which were deleted in Phase 0.
+
+## D-035 Phase 0: remove fabricated numbers instead of labelling them
+
+- **Context.** v3 §1.5 and AGENTS.md rule 1 forbid any unmeasured performance figure.
+- **Decision.** Telemetry fields became `number | null` with `measurementStatus: NOT_MEASURED`;
+  WIM station records, the WIM training modal, the simulated benchmark and the IR/config export
+  endpoints were deleted (routes now 404); CV confidence is `null` until a versioned model exists.
+- **Tests changed (behaviour that encoded a P0 false claim).** `pinn-regression`: the golden
+  comparison now pins every numeric leaf outside `telemetry` at tolerance 0 (strings were reworded);
+  the jitter-band telemetry test became a NOT_MEASURED test. `api.test.ts`: OpenVINO export tests
+  now assert 404. New gate: `tests/unit/no-fake-claims.test.ts`.
+- **Not done.** Narogong corridor config (needs real geometry/authority data, HD-07).

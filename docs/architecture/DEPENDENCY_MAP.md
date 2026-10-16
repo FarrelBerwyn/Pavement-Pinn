@@ -40,7 +40,7 @@ pavement-pinn/
       engineering/                EngineeringPage, WorkOrdersPage, TechnicalReferencePage
       operations/OperationsPage   policy/PolicyPage
     features/
-      authentication/             LoginModal, demoAccounts
+      authentication/             DemoAccessPanel, demoAccess, demoAccounts, loginMessages, roleLabels
       rbac/                       accessPolicy, RoleHeaderBanner (unused component)
       community-reports/          CommunityReportsDashboard, ReportDetailModal,
                                   ReportDetailBottomSheet, ReportRoadIssueCard

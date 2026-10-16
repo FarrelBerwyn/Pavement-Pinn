@@ -6,6 +6,12 @@ interface ImportMetaEnv {
    * site's origins in the MapTiler dashboard. Without it the map uses OpenFreeMap.
    */
   readonly VITE_MAPTILER_KEY?: string;
+  /**
+   * 'true' enables demo access in a production build: the demo-account panel on the login
+   * page and credential checks in the static (server-less) build. Off unless set; always on
+   * in the dev server. See docs/LOGIN_AND_DEMO_AUTH.md.
+   */
+  readonly VITE_DEMO_ACCESS?: string;
 }
 
 declare module '*.jpg' {

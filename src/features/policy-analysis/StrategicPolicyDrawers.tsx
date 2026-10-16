@@ -74,7 +74,7 @@ export const StrategicPolicyDrawers: React.FC<StrategicPolicyDrawersProps> = ({
                 <Sparkles className="w-5 h-5 text-amber-400" />
                 <div>
                   <h3 className="font-black text-sm text-white">AI Policy Insight PINN</h3>
-                  <span className="text-[10px] text-slate-400">Rekomendasi Strategis Bappenas &amp; PUPR</span>
+                  <span className="text-[10px] text-slate-400">Rekomendasi Strategis (DEMO)</span>
                 </div>
               </div>
               <button
@@ -423,7 +423,7 @@ export const StrategicPolicyDrawers: React.FC<StrategicPolicyDrawersProps> = ({
             <div className="flex items-start justify-between border-b border-slate-800 pb-3">
               <div>
                 <span className="text-[10px] uppercase font-mono text-amber-400 font-bold tracking-wider">
-                  Physics-Informed Neural Network (PINN) Multi-Physics Dossier
+                  Dossier Estimasi RULE_BASED (PI-surrogate direncanakan)
                 </span>
                 <h2 className="text-xl font-black text-white mt-0.5">
                   Analisis Multi-Fisika: {selectedCorridor.name}

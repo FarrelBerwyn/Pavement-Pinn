@@ -44,6 +44,21 @@ export class WorkflowApiError extends Error {
   }
 }
 
+export interface LoginCredentials {
+  /** Username or demo email. */
+  username: string;
+  password: string;
+  /** Interface to open for official demo accounts; default is the modern app. */
+  layout?: 'MODERN_APP' | 'CLASSIC_PORTAL';
+}
+
+/**
+ * Checks demo credentials in the browser for the static demo build, where no server
+ * exists. Returns the account id they open, or null. Only provided when demo access is
+ * explicitly enabled for the build (src/features/authentication/demoAccess.ts).
+ */
+export type OfflineCredentialVerifier = (credentials: LoginCredentials) => Promise<string | null>;
+
 /** The account the UI is acting as; `null` means an anonymous visitor. */
 export interface SessionAccount {
   id: string;
@@ -52,7 +67,15 @@ export interface SessionAccount {
 
 export interface WorkflowGateway {
   readonly mode: GatewayMode;
-  /** Start (or reuse) a server session for this account; anonymous when null. Returns the server actor. */
+  /** Check credentials and start a session for the account they open. Returns the actor. */
+  login(credentials: LoginCredentials): Promise<Actor>;
+  /** Forget the signed-in session (the browser stops presenting its token). */
+  logout(): void;
+  /**
+   * Resume the session for this account, or start an anonymous one when null. A named
+   * account needs a session from `login`; without one this fails with UNAUTHENTICATED
+   * instead of creating a session from the account id.
+   */
   useAccount(account: SessionAccount | null): Promise<Actor>;
   listReports(): Promise<ReportView[]>;
   getReport(id: string): Promise<ReportView>;
@@ -79,6 +102,8 @@ export const INTELLIGENCE_PATHS = {
 } as const;
 
 const TOKEN_KEY = 'pavement-pinn.workflow-session';
+/** Static demo build: account id of the last successful credential check in this tab. */
+const OFFLINE_LOGIN_KEY = 'pavement-pinn.offline-login';
 const CLAIMS_KEY = 'pavement-pinn.report-claims';
 
 function readStorage(key: string): string | null {
@@ -160,14 +185,36 @@ export class HttpWorkflowGateway implements WorkflowGateway {
       }
     }
     this.token = null;
-    const res = account
-      ? await this.request<{ token: string; actor: Actor }>('POST', WORKFLOW_API_PATHS.demoSession, { accountId: account.id })
-      : await this.request<{ token: string; actor: Actor }>('POST', WORKFLOW_API_PATHS.anonymousSession);
+    if (account) {
+      // Named accounts only resume a session created by `login`; never from an account id.
+      this.actor = null;
+      this.sessionKey = null;
+      throw new WorkflowApiError('UNAUTHENTICATED', 'Sesi tidak ditemukan atau sudah berakhir. Silakan masuk kembali.', 401);
+    }
+    const res = await this.request<{ token: string; actor: Actor }>('POST', WORKFLOW_API_PATHS.anonymousSession);
     this.token = res.token;
     this.actor = res.actor;
     this.sessionKey = key;
     writeStorage(TOKEN_KEY, JSON.stringify({ key, token: res.token }));
     return res.actor;
+  }
+
+  async login(credentials: LoginCredentials): Promise<Actor> {
+    this.logout();
+    const res = await this.request<{ token: string; actor: Actor }>('POST', WORKFLOW_API_PATHS.login, credentials);
+    const key = `demo:${res.actor.id}`;
+    this.token = res.token;
+    this.actor = res.actor;
+    this.sessionKey = key;
+    writeStorage(TOKEN_KEY, JSON.stringify({ key, token: res.token }));
+    return res.actor;
+  }
+
+  logout(): void {
+    this.token = null;
+    this.actor = null;
+    this.sessionKey = null;
+    writeStorage(TOKEN_KEY, null);
   }
 
   async listReports(): Promise<ReportView[]> {
@@ -232,7 +279,8 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
     seedReports: DamageReport[],
     private readonly roleOf: (id: string) => UserRole | null,
     private readonly engineerList: EngineerSummary[],
-    private readonly segments: RoadSegment[]
+    private readonly segments: RoadSegment[],
+    private readonly verifyCredentials?: OfflineCredentialVerifier
   ) {
     this.service = new WorkflowService(new MemoryCaseStore(), {
       now: () => new Date().toISOString(),
@@ -259,7 +307,28 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
     return this.view(result.value);
   }
 
+  async login(credentials: LoginCredentials): Promise<Actor> {
+    if (!this.verifyCredentials) {
+      throw new WorkflowApiError('DISABLED', 'Login is not available in this static build (demo access is not enabled).', 403);
+    }
+    const accountId = await this.verifyCredentials(credentials);
+    const role = accountId ? this.roleOf(accountId) : null;
+    if (!accountId || !role) throw new WorkflowApiError('UNAUTHENTICATED', 'Invalid username or password.', 401);
+    writeStorage(OFFLINE_LOGIN_KEY, accountId);
+    this.actor = { id: accountId, role, kind: 'DEMO_ACCOUNT' };
+    return this.actor;
+  }
+
+  logout(): void {
+    writeStorage(OFFLINE_LOGIN_KEY, null);
+    this.actor = { id: 'anon-offline', role: 'PUBLIC_VIEWER', kind: 'ANONYMOUS' };
+  }
+
   async useAccount(account: SessionAccount | null): Promise<Actor> {
+    // Same rule as the server gateway: a named account needs an earlier credential check.
+    if (account && readStorage(OFFLINE_LOGIN_KEY) !== account.id) {
+      throw new WorkflowApiError('UNAUTHENTICATED', 'Sesi tidak ditemukan atau sudah berakhir. Silakan masuk kembali.', 401);
+    }
     this.actor = account ? { id: account.id, role: account.role, kind: 'DEMO_ACCOUNT' } : { id: 'anon-offline', role: 'PUBLIC_VIEWER', kind: 'ANONYMOUS' };
     return this.actor;
   }
@@ -344,7 +413,10 @@ export function createWorkflowGateway(
   seedReports: DamageReport[],
   roleOf: (id: string) => UserRole | null,
   engineers: EngineerSummary[],
-  segments: RoadSegment[]
+  segments: RoadSegment[],
+  verifyCredentials?: OfflineCredentialVerifier
 ): WorkflowGateway {
-  return isStaticHost() ? new OfflineWorkflowGateway(seedReports, roleOf, engineers, segments) : new HttpWorkflowGateway();
+  return isStaticHost()
+    ? new OfflineWorkflowGateway(seedReports, roleOf, engineers, segments, verifyCredentials)
+    : new HttpWorkflowGateway();
 }

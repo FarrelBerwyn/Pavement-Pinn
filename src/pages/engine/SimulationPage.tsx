@@ -20,7 +20,7 @@ export const SimulationPage: React.FC = () => {
               <Cpu className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">Physics-Informed Neural Network (PINN) Solver</h2>
+              <h2 className="text-xl font-black text-white">Mesin Rumus RULE_BASED (PI-surrogate direncanakan)</h2>
               <p className="text-xs text-slate-400">Interactive Pavement Degradation Physics & OpenVINO Inference</p>
             </div>
           </div>

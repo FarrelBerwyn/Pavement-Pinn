@@ -39,7 +39,7 @@ when a component from `src/pages` is mounted in the shell's outlet.
 |---|---|---|---|
 | `/dashboard/` | modern shell map workspace in `app/layouts/ModernAppLayout.tsx`; classic portal map tab | workspace | PUBLIC |
 | `/dashboard/analytics/` | `pages/dashboard/AnalyticsPage.tsx` | page | PUBLIC |
-| `/login/` | `pages/login/LoginPage.tsx` (wraps `features/authentication/LoginModal`) | page | PUBLIC |
+| `/login/` | `pages/login/LoginPage.tsx` (login form; demo-access panel `features/authentication/DemoAccessPanel`), rendered without the app shell | page | PUBLIC |
 | `/roads/:roadId/` | `pages/roads/RoadDetailPage.tsx` | page | PUBLIC |
 | `/reports/` | `pages/reports/ReportsPage.tsx` | page | PUBLIC |
 | `/settings/` | `pages/settings/SettingsPage.tsx` | page | PUBLIC |

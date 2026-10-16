@@ -16,8 +16,10 @@ import { routeForNav, WorkspaceNav } from './navigation';
 export interface PageHostValue {
   /** Leave a standalone page and return to the workspace view that was open before it. */
   closePage: () => void;
-  /** Switch demo identity and land on the right route for it. */
-  loginAs: (account: UserAccount, nextPath?: string | null) => void;
+  /** After a successful credential check: show the account and land on its route. */
+  completeLogin: (account: UserAccount, nextPath?: string | null) => void;
+  /** End the session and return to the login page. */
+  logout: () => void;
 }
 
 export const PageHostContext = createContext<PageHostValue | null>(null);
@@ -71,12 +73,12 @@ export function usePageContext() {
     onSimulationComplete: app.completeSimulation,
     onOpenOpenvinoModal: modals.openOpenvinoDiagnostics,
     onOpenAuditModal: modals.openAuditTrail,
-    onOpenWimPipeline: modals.openWimPipeline,
     setActiveNav,
     onLaunchSimulation: launchSimulation,
-    /** Open the /login/ route (demo account switcher). */
+    /** Open the /login/ route. */
     openLogin: function openLogin() { navigateTo('login'); },
     closePage: host.closePage,
-    loginAs: host.loginAs
+    completeLogin: host.completeLogin,
+    logout: host.logout
   };
 }

@@ -196,12 +196,12 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                 <Bar dataKey="NilaiSimulasi" name="Hasil Simulasi PINN" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="BatasIjinAashto" name="Batas Ijin Bina Marga" fill="#475569" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="BatasIjinAashto" name="Nilai Acuan (referensi)" fill="#475569" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <p className="text-[11px] text-slate-400 font-mono">
-            *Apabila nilai simulasi melebihi batas ijin, perkuatan overlay struktural wajib dilakukan.
+            *Estimasi RULE_BASED, bukan putusan kelayakan; keputusan overlay memerlukan kajian engineer.
           </p>
         </div>
       </div>

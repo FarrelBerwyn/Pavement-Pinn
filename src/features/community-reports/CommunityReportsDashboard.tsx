@@ -117,12 +117,6 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
   const currentSelectedSegment = roadSegments.find((s) => s.id === selectedSegmentId) || roadSegments[0];
 
   // Find associated WIM station for this segment
-  const matchedWimStation =
-    ALL_BINA_MARGA_WIM_STATIONS.find(
-      (wim) =>
-        (currentSelectedSegment && wim.corridor.toLowerCase().includes(currentSelectedSegment.corridor.toLowerCase().split(' ')[0])) ||
-        (currentSelectedSegment && wim.province === currentSelectedSegment.province)
-    ) || ALL_BINA_MARGA_WIM_STATIONS[0];
 
   // Reports created by this demo account (by account id, not display name) and those it may still edit
   const myReportsCount = reports.filter((r) => r.creatorAccountId === currentAccount.id).length;
@@ -239,26 +233,11 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       userUpvoted: true,
       repairDetails: {
         afterPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800',
-        repairDate: 'Proyeksi Restorasi PUPR',
+        repairDate: 'Proyeksi Restorasi (belum dijadwalkan)',
         repairMethod: 'Hotmix Asphalt Overlay & Patching AC-WC 6cm',
         repairedPciImprovement: 'Target: PCI >85 (Mulus)',
-        engineerNote: 'Standar perbaikan rekonstruksi perkerasan jalan terverifikasi Bina Marga.',
-        agencyInCharge: 'Dinas PUPR & BBPJN'
-      },
-      wimCorrelation: {
-        hasWimData: true,
-        stationId: matchedWimStation.stationId,
-        stationName: matchedWimStation.stationName,
-        corridor: matchedWimStation.corridor,
-        recentTruckPlate: matchedWimStation.licensePlate,
-        recentTruckClass: matchedWimStation.vehicleClass,
-        maxAxleLoadTon: matchedWimStation.maxAxleLoadTon,
-        legalLimitTon: matchedWimStation.legalLimitTon,
-        overloadPercent: matchedWimStation.overloadPercent,
-        overloadCategory: matchedWimStation.overloadCategory || 'EXTREME',
-        correlatedOverloadTrucksCount: Math.floor(110 + Math.random() * 120),
-        estimatedPinnContributionPercent: Math.floor(72 + Math.random() * 20),
-        causeAnalysisSummary: `Korelasi PINN & WIM Otomatis: Kerusakan di ${currentSelectedSegment.name} dipercepat hingga ${Math.floor(72 + Math.random() * 20)}% oleh beban terdeteksi kendaraan ${matchedWimStation.vehicleClass} (${matchedWimStation.licensePlate}) berbeban ${matchedWimStation.maxAxleLoadTon} Ton (+${matchedWimStation.overloadPercent}% Overload) dari Stasiun WIM ${matchedWimStation.stationName}.`
+        engineerNote: 'Contoh catatan perbaikan (DEMO).',
+        agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
       }
       }, currentAccount);
     } catch (error) {
@@ -323,7 +302,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                 Portal Pelaporan Kerusakan Jalan & Korelasi Kendaraan WIM
               </h2>
               <p className="text-xs text-slate-300 max-w-3xl">
-                Setiap laporan masyarakat secara otomatis dihubungkan dengan sensor telemetri kendaraan berat **Weigh-In-Motion (WIM) Bina Marga** & kalkulasi fisika perkerasan **PINN** untuk mengetahui truk pemicu utama kerusakan.
+                Setiap laporan masyarakat secara otomatis dihubungkan dengan data contoh kendaraan berat **Weigh-In-Motion (WIM, DEMO)** & estimasi **RULE_BASED** untuk mengetahui truk pemicu utama kerusakan.
               </p>
             </div>
           </div>

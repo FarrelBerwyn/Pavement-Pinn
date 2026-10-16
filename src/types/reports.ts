@@ -56,7 +56,10 @@ export interface DamageReport {
     class: string;
     label: string;
     icon: string;
-    confidence: number;
+    /** null until a versioned detector (Module C) classifies the photo. */
+    confidence: number | null;
+    modelStatus?: 'REAL' | 'NOT_CLASSIFIED';
+    modelVersion?: string;
     severity: string;
     characteristics: string[];
     detectionBox?: {
@@ -67,8 +70,8 @@ export interface DamageReport {
     };
   };
 
-  // WIM Vehicle Overload Correlation Analysis
-  wimCorrelation: {
+  // WIM correlation: no WIM data source is connected (F-04/F-16), so new reports never carry it.
+  wimCorrelation?: {
     hasWimData: boolean;
     stationId: string;
     stationName: string;

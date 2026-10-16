@@ -739,7 +739,7 @@ export const STRATEGIC_WIM_STATIONS: StrategicWimStation[] = [
 export const STRATEGIC_WEATHER_STATIONS: StrategicWeatherStation[] = [
   {
     id: 'WX-KALIMALANG',
-    name: 'Sensor BMKG Kalimalang Subgrade IoT',
+    name: 'Sensor IoT Subgrade Kalimalang (DEMO)',
     coordinates: [-6.2420, 106.9050],
     rainMmHr: 52,
     floodRisk: 'FLOOD_RISK',
@@ -748,7 +748,7 @@ export const STRATEGIC_WEATHER_STATIONS: StrategicWeatherStation[] = [
   },
   {
     id: 'WX-PRIOK',
-    name: 'Stasiun Maritim BMKG Tanjung Priok',
+    name: 'Stasiun Cuaca Tanjung Priok (DEMO)',
     coordinates: [-6.1100, 106.8750],
     rainMmHr: 35,
     floodRisk: 'HEAVY_RAIN',
@@ -766,7 +766,7 @@ export const STRATEGIC_WEATHER_STATIONS: StrategicWeatherStation[] = [
   },
   {
     id: 'WX-BOGOR-GADOG',
-    name: 'Stasiun Klimatologi BMKG Bogor - Gadog',
+    name: 'Stasiun Cuaca Bogor - Gadog (DEMO)',
     coordinates: [-6.5700, 106.8150],
     rainMmHr: 44,
     floodRisk: 'HEAVY_RAIN',

@@ -182,11 +182,11 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
             {/* OpenVINO Hardware Telemetry Badge (From PDF) */}
             <div className="flex items-center space-x-2 bg-[#121724] border border-white/10 rounded-2xl px-3.5 py-1.5 shadow-md">
               <div className="flex items-center space-x-1.5 text-[11px] font-mono text-cyan-300">
-                <Cpu className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                <span>Intel NPU</span>
+                <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                <span>Perangkat tidak diketahui</span>
               </div>
               <span className="text-slate-600">&bull;</span>
-              <span className="text-[11px] font-mono text-emerald-400 font-bold">8.4 ms</span>
+              <span className="text-[11px] font-mono text-slate-400">latensi belum diukur</span>
             </div>
           </div>
         </div>

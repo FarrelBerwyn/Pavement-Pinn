@@ -7,15 +7,15 @@ Four layers must be kept apart.
 | Layer | Status | What it does |
 |---|---|---|
 | Frontend route guards (`src/app/guards/routeAccess.ts`, `src/features/rbac/accessPolicy.ts`) | IMPLEMENTED | decide which screens an identity can open and where it lands |
-| Demo account switching (`src/app/providers/SessionProvider.tsx`, `/login/`) | SIMULATED authentication | picks one of eight bundled accounts; no credential is checked |
+| Demo login (`/login/`, `server/auth/demoLogin.ts`) | DEMO authentication | username/password checked by the server against five dummy demo credentials; no account switching in the UI (docs/LOGIN_AND_DEMO_AUTH.md) |
 | Workflow API authorization (`server/routes/workflow.routes.ts`, `src/domain/`) | IMPLEMENTED (since P2) | the server decides the actor from a token it signed and enforces roles, assignment, ownership, transitions and audit access |
-| Identity provider (real login) | NOT CONNECTED | Supabase Auth planned (G-SB-02); until then demo tokens are issued on request |
+| Identity provider (real login) | NOT CONNECTED | Supabase Auth planned (G-SB-02); until then only the demo credentials can sign in |
 
 Consequences that must not be glossed over:
 
-- **Identity is still a demo.** Anyone can select any account, and
-  `/api/auth/demo-session` issues a token for it. The password field in the login dialog
-  is decorative. `DEMO_AUTH=false` switches the picker off on the server. What the server
+- **Identity is still a demo.** The login now requires a username and password, but the
+  five credentials are public dummy values, so anyone can sign in as any role.
+  `DEMO_AUTH=false` switches demo login off on the server. What the server
   does enforce is that *whoever holds a token* can only do what that role, assignment and
   ownership allow — editing the UI or the request body cannot change that.
 - **Route guards hide UI; they do not protect bundled data.** Reference datasets still
@@ -154,7 +154,7 @@ Findings recorded honestly:
 | `next` parameter accepts only same-app paths | PASS (unit test with hostile values) |
 | Identity survives refresh within the tab | PASS (browser) |
 | Upvotes do not carry over between identities | PASS (unit tests and browser, hardening pass) |
-| Logout | `SessionProvider.logout()` resets to the default public identity and clears the stored id. The existing UI has no dedicated logout action: the "Keluar" button opens the account switcher, as it was designed to. |
+| Logout | "Keluar" (header menu, sidebar, profile panel, classic navbar) discards the token, resets to the anonymous identity, clears the stored id and opens `/login/`. |
 
 **Data shared across identities (by design, pre-existing).** Road segments, community
 reports, the latest simulation result and the audit trail live in one in-memory store
@@ -175,7 +175,7 @@ demo state, not a security control.
 | Endpoint group | Session | Role / rule |
 |---|---|---|
 | six original `/api/*` endpoints | none | none (unchanged legacy contract) |
-| `POST /api/auth/demo-session`, `/api/auth/login` | none | demo picker; 403 when `DEMO_AUTH=false` |
+| `POST /api/auth/login`, `/api/auth/demo-session` | none | demo credential login; 403 when `DEMO_AUTH=false` |
 | `POST /api/auth/anonymous` | none | issues an anonymous public-viewer session |
 | `GET /api/workflow/reports`, `/:id`, `/api/risk-map`, `/api/road-segments/*`, `/api/provenance/*` | optional | staff get full cases; everyone else the public projection |
 | `POST /api/workflow/reports` (`/api/reports`) | required (anonymous allowed) | 10 per hour per client |

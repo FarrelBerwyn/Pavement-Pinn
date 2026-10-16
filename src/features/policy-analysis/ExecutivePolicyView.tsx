@@ -281,13 +281,13 @@ export const ExecutivePolicyView: React.FC<ExecutivePolicyViewProps> = ({
     MINISTRY_NOTE: {
       title: 'Nota Dinas Resmi: Usulan Alokasi Preservasi Dini Jaringan Jalan Nasional 2026–2030',
       to: 'Menteri Pekerjaan Umum & Kepala Bappenas',
-      from: 'Dr. Ir. Retno Wulandari, M.Sc. (Direktur Ketahanan Perkerasan Jalan)',
+      from: 'Dr. Ir. Retno Wulandari (Direktur Ketahanan Perkerasan Jalan)',
       date: '23 Mei 2025',
       content: `1. LATAR BELAKANG & TEMUAN UTAMA:
-Berdasarkan data Buku Kondisi Jalan Nasional Semester I 2025, panjang jalan tidak mantap tercatat 1.246 km (2,6% dari total 48.573 km). Model Physics-Informed Neural Network (PINN) membuktikan bahwa intervensi perbaikan lapis aus AC-WC pada fase lelah elastis menghemat biaya rekonstruksi hingga 68,4%.
+Berdasarkan data Buku Kondisi Jalan Nasional Semester I 2025, panjang jalan tidak mantap tercatat 1.246 km (2,6% dari total 48.573 km). Estimasi RULE_BASED (belum tervalidasi) menunjukkan intervensi lapis aus AC-WC lebih awal layak dikaji; dampak biaya belum dihitung.
 
 2. DAMPAK TRUK ODOL & REKOMENDASI ZERO ODOL:
-Kerugian ekonomi tahunan akibat kendaraan ODOL tercatat Rp 43,4 Triliun - Rp 47,43 Triliun. Penegakan terintegrasi sensor WIM dan PINN diproyeksikan menghemat belanja preservasi APBN Rp 15,7 Triliun dalam 5 tahun.
+Kerugian ekonomi tahunan akibat kendaraan ODOL tercatat Rp 43,4 Triliun - Rp 47,43 Triliun. Dampak biaya penegakan terintegrasi belum dihitung.
 
 3. REKOMENDASI ALOKASI ANGGARAN:
 Diusulkan pagu preservasi sebesar Rp 32,3 Triliun difokuskan pada koridor prioritas logistik nasional dengan BCR 3,42.`
@@ -314,7 +314,7 @@ B. DISPARITAS WILAYAH:
       content: `POKOK KESEPAKATAN INTEGRASI SISTEM & PENEGAKAN ZERO ODOL 2027:
 
 1. INTEGRASI DATA UJI KENDARAAN:
-Penyatuan API Weigh-In-Motion (WIM) Kemenhub dengan Engine Prediksi Struktural PINN Bina Marga.
+Usulan integrasi data Weigh-In-Motion (WIM) dengan mesin estimasi RULE_BASED (DEMO).
 
 2. AMBANG BATAS DINAMIS SAAT MUSIM HUJAN:
 Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin tonase pada koridor rawan diturunkan 15% secara situasional.`
@@ -999,7 +999,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
           <div>
             <h2 className="text-2xl font-extrabold text-slate-900">Analisis Dampak Ekonomi & Kerugian ODOL</h2>
             <p className="text-sm text-slate-500 font-medium mt-0.5">
-              Kajian komparatif potensi penghematan anggaran APBN Rp 15,7 Triliun dan reduksi kerusakan
+              Kajian komparatif (DEMO); dampak biaya belum dihitung
             </p>
           </div>
 
@@ -1013,10 +1013,10 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
             </div>
 
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-              <span className="text-xs font-bold text-slate-500">Potensi Efisiensi APBN 5 Tahun</span>
-              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600">Rp 15,7 Triliun</p>
+              <span className="text-xs font-bold text-slate-500">Dampak Biaya 5 Tahun</span>
+              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600">Belum dihitung</p>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Diperoleh dari transisi pemeliharaan preventif berbasis model regangan elastis PINN vs perbaikan reaktif jalan berlubang.
+                Model ekonomi belum tersedia; tidak ada angka penghematan yang ditampilkan.
               </p>
             </div>
 

@@ -8,6 +8,7 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { createApp } from '../../server/app';
 import { INITIAL_COMMUNITY_REPORTS } from '../../src/data/mock/communityReports';
+import { demoLoginFor } from '../../src/data/reference/demoCredentials';
 
 let server: Server;
 let base = '';
@@ -31,7 +32,7 @@ const call = async (method: string, p: string, body?: unknown, token?: string) =
   });
   return { status: r.status, body: (await r.json()) as any };
 };
-const login = async (accountId: string) => (await call('POST', '/api/auth/login', { accountId })).body.token as string;
+const login = async (accountId: string) => (await call('POST', '/api/auth/login', demoLoginFor(accountId))).body.token as string;
 
 test('risk map lists the pilot corridor first with honest status labels', async () => {
   const r = await call('GET', '/api/risk-map');

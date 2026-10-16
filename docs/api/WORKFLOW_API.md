@@ -24,13 +24,13 @@ bodies never carry identity. Demo tokens are *not* authentication (see RBAC_MATR
 | `STORAGE` | 503 | the change was not saved; previous state intact |
 
 **Rate limits (per client IP, in-process).** Report submission 10/hour; workflow writes
-120/min; session creation 60/min; What-If 60/min.
+120/min; anonymous session creation 60/min; login attempts 20/min; What-If 60/min.
 
 ## Identity
 
 | Method & path | Auth | Body | Response |
 |---|---|---|---|
-| `POST /api/auth/demo-session` (alias `POST /api/auth/login`) | none; 403 when `DEMO_AUTH=false` | `{ accountId }` | `{ token, expiresAt, actor, authentication: "DEMO (no credentials checked)" }` |
+| `POST /api/auth/login` (older name `POST /api/auth/demo-session`) | none; 403 `DISABLED` when `DEMO_AUTH=false` | `{ username, password, layout? }` (username or demo email; `layout: "CLASSIC_PORTAL"` for the classic portal) | 200 `{ token, expiresAt, actor, authentication: "DEMO_CREDENTIALS (local demo only, not production authentication)" }`; 400 `VALIDATION` without both fields (an `accountId` alone is refused); 401 `UNAUTHENTICATED` for any wrong username or password. Demo credentials: docs/LOGIN_AND_DEMO_AUTH.md |
 | `POST /api/auth/anonymous` | none | — | `{ token, expiresAt, actor: { id: "anon-…", role: "PUBLIC_VIEWER", kind: "ANONYMOUS" } }` |
 | `GET /api/auth/me` | token | — | `{ actor }` |
 

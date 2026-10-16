@@ -28,7 +28,7 @@ import {
  */
 function AppShell() {
   const { location, match, navigate, navigateTo } = useRouter();
-  const { currentAccount, activeRole, login, selectRole } = useSession();
+  const { currentAccount, activeRole, establishSession, logout } = useSession();
   const app = useAppState();
   const modals = useGlobalModals();
   const { setActiveNav, launchSimulation } = useWorkspaceNavigation();
@@ -85,8 +85,8 @@ function AppShell() {
           navigateTo(homeRouteFor(currentAccount));
         }
       },
-      loginAs: (account: UserAccount, nextPath?: string | null) => {
-        login(account);
+      completeLogin: (account: UserAccount, nextPath?: string | null) => {
+        establishSession(account);
         const next = nextPath ? matchRoute(nextPath.split('?')[0]) : null;
         if (nextPath && next && next.route.id !== 'login' && canOpenRoute(next.route.id, account)) {
           navigate(nextPath);
@@ -94,9 +94,14 @@ function AppShell() {
         }
         const landing = landingRouteAfterLogin(account, matchRoute(location.path));
         navigateTo(landing.id, landing.params);
+      },
+      logout: () => {
+        app.workflow.gateway.logout();
+        logout();
+        navigateTo('login');
       }
     }),
-    [currentAccount, login, navigate, navigateTo, location.path]
+    [currentAccount, establishSession, logout, app.workflow.gateway, navigate, navigateTo, location.path]
   );
 
   // Route outlet content.
@@ -121,12 +126,14 @@ function AppShell() {
 
   return (
     <PageHostContext.Provider value={host}>
-      {isModern ? (
+      {/* The login page is a page of its own: no shell, map or navigation behind it. */}
+      {allowedMatch?.route.id === 'login' ? (
+        page
+      ) : isModern ? (
         <ModernAppLayout
           currentAccount={currentAccount}
           activeRole={activeRole}
-          onSelectRole={selectRole}
-          onLoginAccount={(account: UserAccount) => host.loginAs(account)}
+          onLogout={host.logout}
           roadSegments={app.roadSegments}
           selectedSegment={app.selectedSegment}
           onSelectSegment={app.selectSegment}
@@ -150,7 +157,8 @@ function AppShell() {
         <ClassicPortalLayout
           activeTab={activeTab}
           onSelectTab={(tab) => navigateTo(routeForClassicTab(tab, currentAccount.role))}
-          onOpenLoginModal={openLogin}
+          onOpenLoginModal={() => navigateTo('settings')}
+          onLogout={host.logout}
         >
           {page}
         </ClassicPortalLayout>

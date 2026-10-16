@@ -562,25 +562,25 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
             <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fungsi Objektif Total</h4>
             <p className="text-2xl font-black text-emerald-400 font-mono">
-              {result ? (result.telemetry.physicsLossValue + result.telemetry.dataLossValue).toFixed(5) : '0.00342'}
+              belum diukur
             </p>
-            <p className="text-xs text-slate-400">Konvergensi Adam Optimizer epoch 1500.</p>
+            <p className="text-xs text-slate-400">Mesin saat ini RULE_BASED (rumus), bukan jaringan terlatih; tidak ada loss pelatihan.</p>
           </div>
 
           <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
-            <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fisika PDE (Burmister)</h4>
+            <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fisika (PI-surrogate, rencana)</h4>
             <p className="text-2xl font-black text-cyan-300 font-mono">
-              {result ? result.telemetry.physicsLossValue.toFixed(5) : '0.00185'}
+              belum diukur
             </p>
-            <p className="text-xs text-slate-400">Kesesuaian persamaan diferensial elastisitas berlapis.</p>
+            <p className="text-xs text-slate-400">Tersedia setelah PI-surrogate dilatih dan diukur (Fase 2).</p>
           </div>
 
           <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
             <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Data Observasi Sensor</h4>
             <p className="text-2xl font-black text-amber-400 font-mono">
-              {result ? result.telemetry.dataLossValue.toFixed(5) : '0.00157'}
+              belum diukur
             </p>
-            <p className="text-xs text-slate-400">Kesesuaian dengan sensor regangan WIM & FWD.</p>
+            <p className="text-xs text-slate-400">Tidak ada data sensor WIM/FWD yang terhubung.</p>
           </div>
         </div>
       )}

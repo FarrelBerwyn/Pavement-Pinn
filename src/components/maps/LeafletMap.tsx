@@ -278,13 +278,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Selected Segment for Form WIM Correlation
   const activeFormSegment = roadSegments.find((s) => s.id === formSegmentId) || roadSegments[0] || selectedSegment;
 
-  const matchedWimStation =
-    ALL_BINA_MARGA_WIM_STATIONS.find(
-      (wim) =>
-        (activeFormSegment?.corridor &&
-          wim.corridor.toLowerCase().includes(activeFormSegment.corridor.toLowerCase().split(' ')[0])) ||
-        wim.province === activeFormSegment?.province
-    ) || ALL_BINA_MARGA_WIM_STATIONS[0];
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,22 +338,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       photoUrl: photoPresets[formPhotoIndex] || photoPresets[0],
       description: formDescription,
       upvotesCount: 1,
-      userUpvoted: true,
-      wimCorrelation: {
-        hasWimData: true,
-        stationId: matchedWimStation.stationId,
-        stationName: matchedWimStation.stationName,
-        corridor: matchedWimStation.corridor,
-        recentTruckPlate: matchedWimStation.licensePlate,
-        recentTruckClass: matchedWimStation.vehicleClass,
-        maxAxleLoadTon: matchedWimStation.maxAxleLoadTon,
-        legalLimitTon: matchedWimStation.legalLimitTon,
-        overloadPercent: matchedWimStation.overloadPercent,
-        overloadCategory: matchedWimStation.overloadCategory || 'EXTREME',
-        correlatedOverloadTrucksCount: Math.floor(110 + Math.random() * 110),
-        estimatedPinnContributionPercent: Math.floor(75 + Math.random() * 20),
-        causeAnalysisSummary: `Korelasi PINN & WIM Otomatis: Laporan kerusakan di ${activeFormSegment.name} dikorelasikan dengan lintasan truk ${matchedWimStation.vehicleClass} (${matchedWimStation.licensePlate}) berbeban ${matchedWimStation.maxAxleLoadTon} Ton (+${matchedWimStation.overloadPercent}% Overload) dari Stasiun WIM ${matchedWimStation.stationName}.`
-      }
+      userUpvoted: true
       }, currentAccount);
     } catch (error) {
       if (error instanceof ReportCreationError) {
@@ -754,7 +732,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #1e40af; margin-bottom: 8px;">
               <div style="font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧠 KORELASI PINN FISIKA PERKERASAN</span>
-                <span style="font-size: 9px; background-color: #2563eb; color: white; padding: 1px 5px; border-radius: 8px;">FWD Validated</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                 <span>Defleksi Permukaan FWD:</span>
@@ -985,7 +962,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #1e40af;">
               <div style="font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧠 KORELASI PINN FISIKA PERKERASAN</span>
-                <span style="font-size: 9px; background-color: #2563eb; color: white; padding: 1px 5px; border-radius: 8px;">FWD Validated</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                 <span>Defleksi Permukaan FWD:</span>
@@ -2135,18 +2111,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 />
               </div>
 
-              {/* Auto WIM Correlation Box */}
-              <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-3 space-y-1">
-                <div className="flex items-center space-x-2 text-cyan-300 font-extrabold text-[11px]">
-                  <Truck className="w-4 h-4 text-cyan-400" />
-                  <span>Korelasi Otomatis Sensor WIM Bina Marga:</span>
-                </div>
-                <p className="text-[10px] text-slate-300">
-                  Stasiun WIM Terdekat: <strong className="text-white">{matchedWimStation.stationName}</strong> | Truk Terakhir:{' '}
-                  <strong className="text-rose-300">{matchedWimStation.licensePlate} ({matchedWimStation.vehicleClass})</strong> | Overload:{' '}
-                  <span className="text-amber-300 font-mono font-bold">+{matchedWimStation.overloadPercent}% ({matchedWimStation.maxAxleLoadTon} Ton)</span>
-                </p>
-              </div>
 
               {/* Submit Buttons */}
               <div className="flex items-center justify-end space-x-2 pt-2 border-t border-white/10">

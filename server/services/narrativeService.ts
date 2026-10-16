@@ -40,27 +40,35 @@ export function promptField(value: unknown, maxLength = 120): string {
  * PINN engine already embedded in the simulation result; otherwise fills a template.
  * simulationData is client-supplied and intentionally loosely typed.
  */
+/** Formats a value from the simulation, or says it is missing; never substitutes a default number. */
+function fmt(value: unknown, unit: string): string {
+  return typeof value === "number" && Number.isFinite(value) ? `${value} ${unit}` : "tidak tersedia";
+}
+
 export function buildFallbackNarrative(role: string, simulationData: any): string {
   if (role === "FIELD_ENGINEER") {
     return (
       simulationData?.aiNarrative?.fieldEngineerNarrative ||
-      `[ANALISIS REKAYASA STRUKTURAL BBPJN]\nSimulasi PINN mendeteksi regangan tarik dasar aspal εt sebesar ${simulationData?.tensors?.tensileStrainEt || 180} µε dan regangan tekan tanah dasar εv sebesar ${simulationData?.tensors?.compressiveStrainEv || 320} µε. Laju deteriorasi akibat beban ODOL memproyeksikan pembentukan retak lelah. Rekomendasi perbaikan: Tebal overlay ${simulationData?.roleOutputs?.fieldEngineer?.recommendedOverlayThicknessCm || 6} cm AC-WC.`
+      `[CATATAN TEKNIS - RULE_BASED, INDIKATIF]
+Regangan tarik dasar aspal: ${fmt(simulationData?.tensors?.tensileStrainEt, "µε")}; regangan tekan tanah dasar: ${fmt(simulationData?.tensors?.compressiveStrainEv, "µε")}. Nilai dari mesin rumus, bukan desain; opsi perbaikan diputuskan insinyur.`
     );
   }
   if (role === "OPERATIONS_MANAGER") {
     return (
       simulationData?.aiNarrative?.operationsNarrative ||
-      `[EVALUASI OPERASIONAL WIM & BPTD]\nBeban sumbu kendaraan ${simulationData?.params?.axleLoadTon || 18} Ton terdeteksi melampaui ambang batas izin (10 Ton). Tingkat akselerasi kerusakan perkerasan jalan mencapai level kritis. Sinyal WIM mengaktifkan prosedur penindakan tilang otomatis ANPR dan instruksi pengalihan rute truk.`
+      `[SINYAL OPERASIONAL - RULE_BASED]
+Beban sumbu yang dimasukkan: ${fmt(simulationData?.params?.axleLoadTon, "Ton")} (sumbu standar 8,16 t). Tindakan apa pun diputuskan petugas melalui alur kerja, bukan oleh sistem.`
     );
   }
   return (
     simulationData?.aiNarrative?.policyMakerNarrative ||
-    `[RINGKASAN KEBIJAKAN PRESERVASI EKSEKUTIF]\nImplementasi program preservasi jalan preventif dan penegakan Zero ODOL 2027 diproyeksikan memberikan efisiensi anggaran APBN sebesar Rp ${simulationData?.roleOutputs?.policyMaker?.preventiveCostSavingsRupiahBillions || 38.5} Miliar serta mempertahankan Indeks Kondisi Jalan (PCI) pada tingkat Mantap.`
+    `[RINGKASAN KEBIJAKAN - RULE_BASED]
+Ringkasan indikatif dari mesin rumus. Dampak biaya belum dihitung. Bukan dokumen resmi.`
   );
 }
 
 export function buildNarrativePrompt(role: string, simulationData: any): string {
-  const prompt = `Anda adalah Asisten Kecerdasan Buatan PAVEMENT-PINN (Physics-Informed Neural Network + Intel OpenVINO Edge AI) untuk pengelolaan infrastruktur jalan nasional Indonesia.
+  const prompt = `Anda adalah Asisten Kecerdasan Buatan PAVEMENT-PINN (mesin rumus RULE_BASED, PI-surrogate direncanakan; runtime Intel OpenVINO) untuk pengelolaan infrastruktur jalan nasional Indonesia.
 
 Berikan analisis dan rekomendasi yang sangat ringkas, profesional, dan dapat ditindaklanjuti (actionable) khusus untuk peran: ${promptField(role, 40)}.
 
@@ -76,12 +84,12 @@ Data Hasil Simulasi:
 - Rekomendasi Overlay: ${promptField(simulationData?.roleOutputs?.fieldEngineer?.recommendedOverlayThicknessCm)} cm
 - Status Alert WIM: ${promptField(simulationData?.roleOutputs?.operationsManager?.alertStatus)}
 - Tindakan Penindakan WIM: ${promptField(simulationData?.roleOutputs?.operationsManager?.wimActionRequired)}
-- Potensi Penghematan Anggaran Preservasi: Rp ${promptField(simulationData?.roleOutputs?.policyMaker?.preventiveCostSavingsRupiahBillions)} Miliar
+- Dampak biaya: belum dihitung (jangan menyebut angka penghematan)
 
 Instruksi Format:
 - Untuk FIELD_ENGINEER: Fokus pada kriteria rekayasa struktur, regangan kritis, dan spesifikasi tebal overlay.
 - Untuk OPERATIONS_MANAGER: Fokus pada sinyal operasional WIM, keselamatan lalu lintas, dan penindakan ODOL.
-- Untuk POLICY_MAKER: Fokus pada efisiensi anggaran APBN, dampak ekonomi, dan Zero ODOL 2027.
+- Untuk POLICY_MAKER: Fokus pada prioritas penanganan (dampak biaya belum dihitung — jangan menyebut angka penghematan), dan Zero ODOL 2027.
 - Panjang jawaban 3-4 kalimat padat.`;
 
   return prompt;

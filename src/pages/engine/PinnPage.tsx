@@ -57,7 +57,7 @@ const buttonClass = 'px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border bo
 
 /** Route: /engine/pinn/ — model card for the PINN engine with accurate capability labels. */
 export const PinnPage: React.FC = () => {
-  const { closePage, onOpenOpenvinoModal, onOpenWimPipeline, onOpenAuditModal, currentAccount } = usePageContext();
+  const { closePage, onOpenOpenvinoModal, onOpenAuditModal, currentAccount } = usePageContext();
 
   return (
     <PageOverlay
@@ -108,10 +108,7 @@ export const PinnPage: React.FC = () => {
           Buka Simulasi PINN
         </Link>
         <button onClick={onOpenOpenvinoModal} className={buttonClass}>
-          Diagnostik OpenVINO (simulasi)
-        </button>
-        <button onClick={onOpenWimPipeline} className={buttonClass}>
-          Pipeline WIM Bina Marga (simulasi)
+          Status OpenVINO (belum diukur)
         </button>
         {can(currentAccount.role, 'VIEW_AUDIT_TRAIL') && (
           <button onClick={onOpenAuditModal} className={buttonClass}>

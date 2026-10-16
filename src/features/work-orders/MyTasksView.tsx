@@ -851,7 +851,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({
 
             {/* Footer Attribution Note */}
             <p className="text-xs text-slate-400 text-center pt-2">
-              PAVEMENT-PINN menggunakan Physics-Informed Neural Network untuk prediksi kerusakan perkerasan.
+              PAVEMENT-PINN saat ini memakai mesin rumus RULE_BASED (PI-surrogate direncanakan) untuk estimasi kerusakan perkerasan.
             </p>
           </div>
 
@@ -1081,7 +1081,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({
             <div className="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl text-xs text-indigo-900 flex items-start space-x-2.5">
               <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <strong className="block font-bold text-indigo-950">Physics-Informed Neural Network (PINN) Data Integration:</strong>
+                <strong className="block font-bold text-indigo-950">Integrasi Data Estimasi RULE_BASED:</strong>
                 Data yang diinputkan akan langsung digunakan oleh solver <span className="font-mono font-bold">L_total = L_Data + λ·L_PDE</span> untuk menghitung deformasi elastis multilayer Burmister, regangan tarik lelah (ε_t), dan rekomendasi tebal overlay hotmix AC-WC.
               </div>
             </div>
@@ -1289,7 +1289,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1 text-xs">
               <span className="font-bold text-slate-700 block">Catatan Lapangan Resmi:</span>
               <p className="text-slate-600 leading-relaxed">
-                "{selectedTaskForAction.pinnData?.notes || 'Survei perkerasan telah diverifikasi sesuai prosedur ASTM D6433 dan panduan FWD Bina Marga.'}"
+                "{selectedTaskForAction.pinnData?.notes || 'Survei perkerasan mengacu prosedur ASTM D6433 (contoh, DEMO).'}"
               </p>
             </div>
 
@@ -1398,7 +1398,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900">Panduan Teknis & SOP Lapangan</h3>
-                  <p className="text-xs text-slate-500">Pedoman Survei Perkerasan & Model PINN PUPR</p>
+                  <p className="text-xs text-slate-500">Pedoman Survei Perkerasan & Mesin Estimasi RULE_BASED</p>
                 </div>
               </div>
               <button
@@ -1552,7 +1552,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({
 
             <div className="space-y-3 text-xs text-slate-600">
               <p className="leading-relaxed">
-                Berdasarkan arsitektur <strong>Physics-Informed Neural Network (PINN)</strong> untuk prediksi degradasi perkerasan jalan, insinyur lapangan bertugas memasok data batas (boundary conditions) dan parameter konstitutif material agar neural network mematuhi hukum fisika:
+                Untuk mesin estimasi <strong>RULE_BASED</strong> (PI-surrogate direncanakan) untuk prediksi degradasi perkerasan jalan, insinyur lapangan bertugas memasok data batas (boundary conditions) dan parameter konstitutif material agar neural network mematuhi hukum fisika:
               </p>
 
               <div className="space-y-2">

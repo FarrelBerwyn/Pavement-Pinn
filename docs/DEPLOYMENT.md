@@ -24,9 +24,10 @@ PORT=3000 DATA_DIR=/var/lib/pavement-pinn SESSION_SECRET=<64 hex chars> NODE_ENV
 - `DATA_DIR` must be on persistent storage (the JSON snapshot is the database in this
   mode; back it up like one). Writes are atomic (temp file + rename).
 - `SESSION_SECRET` (≥ 32 chars) keeps sessions valid across restarts.
-- `DEMO_AUTH=false` disables the demo account picker where real users exist; anonymous
-  citizen reporting keeps working. There is no other login until an identity provider
-  is connected.
+- `DEMO_AUTH=false` disables demo login (the five public dummy credentials) where real
+  users exist; anonymous citizen reporting keeps working. There is no other login until
+  an identity provider is connected. Do not set `VITE_DEMO_ACCESS` for production builds
+  (docs/LOGIN_AND_DEMO_AUTH.md).
 - Serve behind HTTPS (reverse proxy or platform TLS). The app sets `nosniff`,
   `Referrer-Policy` and `X-Frame-Options`; add HSTS at the proxy.
 - Health: `GET /api/health` (liveness) and `GET /api/system-health` (component status).
@@ -39,7 +40,7 @@ PORT=3000 DATA_DIR=/var/lib/pavement-pinn SESSION_SECRET=<64 hex chars> NODE_ENV
    (`supabase db push`) on a non-production project first.
 3. Implement a `SupabaseCaseStore` behind `CaseStore` that writes the case, its child
    records and audit rows in one transaction (service-role key on the server only).
-4. Replace `/api/auth/demo-session` with verification of Supabase Auth JWTs; map users to
+4. Replace `/api/auth/login` (demo credentials) with verification of Supabase Auth JWTs; map users to
    `profiles.role` (assigned by an administrator, never self-chosen).
 5. Move photos to a private Storage bucket; store only object keys.
 6. Seed `road_segments` from digitised geometry (G-01) instead of illustrative points.

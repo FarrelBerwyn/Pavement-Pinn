@@ -77,9 +77,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
   const statusLabels = {
     PENDING: isEn ? 'Under Review' : 'Dalam Peninjauan & Verifikasi',
-    VERIFIED_BY_ENGINEER: isEn ? 'Verified by Agency Engineer' : 'Terverifikasi Teknisi PUPR',
-    SCHEDULED_FOR_REPAIR: isEn ? 'Scheduled for Roadwork' : 'Dijadwalkan Penanganan PUPR',
-    REPAIRED: isEn ? 'Repaired & Cleared by PUPR' : 'Selesai Diperbaiki PUPR'
+    VERIFIED_BY_ENGINEER: isEn ? 'Verified by Agency Engineer' : 'Diverifikasi Teknisi',
+    SCHEDULED_FOR_REPAIR: isEn ? 'Scheduled for Roadwork' : 'Dijadwalkan Penanganan',
+    REPAIRED: isEn ? 'Repaired & Cleared by PUPR' : 'Selesai Diperbaiki'
   };
 
   const statusBadges = {
@@ -96,7 +96,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800';
 
   const repairDate =
-    report.repairDetails?.repairDate || (isEn ? 'August 13, 2026 (Agency Response)' : '13 Agustus 2026 (Penanganan PUPR)');
+    report.repairDetails?.repairDate || (isEn ? 'Not yet scheduled' : 'Belum dijadwalkan');
   const repairMethod =
     report.repairDetails?.repairMethod ||
     (isEn
@@ -105,7 +105,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const pciImprovement =
     report.repairDetails?.repairedPciImprovement || (isEn ? 'PCI 28 → PCI 92 (Excellent Condition)' : 'PCI 28 → PCI 92 (Kondisi Sangat Mantap)');
   const agencyInCharge =
-    report.repairDetails?.agencyInCharge || (isEn ? 'National Road Implementation Agency (BBPJN / Ministry of Public Works)' : 'Balai Besar Pelaksanaan Jalan Nasional (BBPJN / Dinas PUPR)');
+    report.repairDetails?.agencyInCharge || (isEn ? 'Responsible agency (not yet assigned)' : 'Instansi berwenang (belum ditetapkan)');
   const engineerNote =
     report.repairDetails?.engineerNote ||
     (isEn
@@ -133,7 +133,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   {report.severity}
                 </span>
                 <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${statusBadges[report.status]}`}>
-                  {report.status === 'REPAIRED' ? (isEn ? '🎉 Repair Completed' : '🎉 Selesai Perbaikan (PUPR)') : statusLabels[report.status]}
+                  {report.status === 'REPAIRED' ? (isEn ? '🎉 Repair Completed' : '🎉 Selesai Perbaikan') : statusLabels[report.status]}
                 </span>
               </div>
               <h2 className="text-sm sm:text-base font-black text-white mt-1 leading-tight">

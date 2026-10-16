@@ -629,7 +629,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                   <div className="flex items-center space-x-1.5 min-w-0">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="font-black text-emerald-300 text-xs truncate">
-                      {isRepaired ? 'Telah Selesai Diperbaiki PUPR' : 'Standar Pemulihan Bina Marga'}
+                      {isRepaired ? 'Telah Selesai Diperbaiki' : 'Rencana Pemulihan'}
                     </span>
                   </div>
                   <span className="text-[9.5px] font-mono font-bold text-amber-300 bg-amber-400/15 px-2 py-0.5 rounded-full border border-amber-400/30 shrink-0">
@@ -645,7 +645,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                   </p>
                   <p className="text-slate-400 text-[10px] leading-relaxed">
                     {report.repairDetails?.engineerNote ||
-                      'Rekonstruksi aspal dan penanganan lubang telah diverifikasi Tim Bina Marga.'}
+                      'Catatan perbaikan belum tersedia.'}
                   </p>
                 </div>
               </div>

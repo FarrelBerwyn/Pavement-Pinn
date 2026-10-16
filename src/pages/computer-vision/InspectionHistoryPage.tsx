@@ -43,7 +43,7 @@ export const InspectionHistoryPage: React.FC = () => {
                     <td className="py-2 pr-4 text-white font-bold">
                       {report.aiAnalysis?.icon} {report.aiAnalysis?.label}
                     </td>
-                    <td className="py-2 pr-4 font-mono text-cyan-300">{report.aiAnalysis?.confidence}%</td>
+                    <td className="py-2 pr-4 font-mono text-cyan-300">{report.aiAnalysis?.modelStatus === 'REAL' && report.aiAnalysis.modelVersion && report.aiAnalysis.confidence != null ? `${report.aiAnalysis.confidence}% (${report.aiAnalysis.modelVersion})` : 'belum diklasifikasi'}</td>
                     <td className="py-2 pr-4">
                       <Link to={buildPath('roadDetail', { roadId: report.segmentId })} className="text-amber-300 underline">
                         {report.segmentName}

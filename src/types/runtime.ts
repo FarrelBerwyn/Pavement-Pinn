@@ -24,11 +24,13 @@ export interface DeviceHardwareProfile {
 export interface IntelTelemetry {
   deviceUsed: HardwareDevice;
   precisionUsed: PrecisionMode;
-  inferenceLatencyMs: number; // e.g. 8.4 ms
-  powerConsumptionWatts: number;
-  cpuUtilizationPercent: number;
-  npuUtilizationPercent: number;
-  throughputSps: number; // simulations per second
-  physicsLossValue: number; // residual PDE loss
-  dataLossValue: number; // FWD reference loss
+  /** NOT_MEASURED until a benchmark script writes measurements/*.json. */
+  measurementStatus: 'NOT_MEASURED' | 'MEASURED';
+  inferenceLatencyMs: number | null;
+  powerConsumptionWatts: number | null;
+  cpuUtilizationPercent: number | null;
+  npuUtilizationPercent: number | null;
+  throughputSps: number | null;
+  physicsLossValue: number | null;
+  dataLossValue: number | null;
 }

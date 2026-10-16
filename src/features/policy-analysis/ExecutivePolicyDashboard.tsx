@@ -117,14 +117,14 @@ export const ExecutivePolicyDashboard: React.FC<ExecutivePolicyDashboardProps> =
         {/* Card 1: Preventive Savings */}
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl space-y-1">
           <div className="flex justify-between items-center text-xs text-slate-400">
-            <span className="font-mono font-bold uppercase">Potensi Penghematan APBN</span>
+            <span className="font-mono font-bold uppercase">Dampak Biaya</span>
             <DollarSign className="w-4 h-4 text-emerald-400" />
           </div>
           <p className="text-2xl font-extrabold text-emerald-400 font-mono">
-            Rp {savingsBillion} Mebeg
+            Belum dihitung
           </p>
           <p className="text-[11px] text-slate-400">
-            Penghematan biaya perbaikan akibat intervensi preservasi preventif.
+            Dampak biaya belum dihitung (model ekonomi belum ada).
           </p>
         </div>
 
@@ -152,7 +152,7 @@ export const ExecutivePolicyDashboard: React.FC<ExecutivePolicyDashboardProps> =
             {result ? result.roleOutputs.policyMaker.zeroOdolTargetImpactPercent : 78}% Reduksi
           </p>
           <p className="text-[11px] text-slate-400">
-            Potensi penghematan anggaran preservasi nasional Rp 1.4T - 2.8T / tahun.
+            Dampak biaya belum dihitung.
           </p>
         </div>
       </div>

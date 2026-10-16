@@ -30,6 +30,6 @@ export const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
     userAgency: 'Kementerian PU',
     action: 'Ringkasan Eksekutif PDF',
     segmentName: 'Jaringan Jalan Nasional 2026',
-    details: 'Proyeksi penghematan APBN Rp 38.5 Miliar dengan Zero ODOL 2027.'
+    details: 'Skenario Zero ODOL 2027 (DEMO); dampak biaya belum dihitung.'
   }
 ];

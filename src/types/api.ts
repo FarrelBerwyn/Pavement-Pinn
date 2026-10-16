@@ -11,8 +11,6 @@ export const API_PATHS = {
   health: '/api/health',
   roads: '/api/roads',
   simulate: '/api/simulate',
-  openvinoExportIr: '/api/openvino/export-ir',
-  openvinoExportConfig: '/api/openvino/export-config',
   generateNarrative: '/api/generate-narrative'
 } as const;
 
@@ -22,6 +20,9 @@ export const API_PATHS = {
  * Contract details: docs/api/WORKFLOW_API.md.
  */
 export const WORKFLOW_API_PATHS = {
+  /** Credential login (demo credentials while DEMO_AUTH is on). */
+  login: '/api/auth/login',
+  /** Same call as `login` under its older name; also requires credentials. */
   demoSession: '/api/auth/demo-session',
   anonymousSession: '/api/auth/anonymous',
   me: '/api/auth/me',

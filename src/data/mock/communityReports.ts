@@ -30,23 +30,8 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairDate: '2026-08-21',
       repairMethod: 'Hotmix Asphalt Overlay & Patching AC-WC 6cm',
       repairedPciImprovement: 'PCI 28 -> 88 (Mulus & Rata)',
-      engineerNote: 'Simulasi rekonstruksi penambalan hotmix lapis aus sesuai standar Bina Marga.',
-      agencyInCharge: 'Dinas PUPR & Pengelola Kawasan KIIC'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      engineerNote: 'Simulasi rekonstruksi penambalan hotmix lapis aus (DEMO).',
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -76,22 +61,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Milling & Resurfacing Asphalt Concrete Binder Course',
       repairedPciImprovement: 'PCI 35 -> 85 (Kondisi Prima)',
       engineerNote: 'Perataan alur deformasi dengan pengikisan aspal lama dan pelapisan ulang binder course.',
-      agencyInCharge: 'Dinas Bina Marga Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -121,22 +91,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Full-Depth Reclamation & Geogrid Reinforcement',
       repairedPciImprovement: 'PCI 22 -> 92 (Sangat Baik)',
       engineerNote: 'Penguatan pondasi agregat kelas A dan pemasangan geogrid sebelum pengaspalan ulang.',
-      agencyInCharge: 'Dinas PUPR Kabupaten Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -166,22 +121,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Rigid Pavement Concrete Patching Fast Track 24 Jam',
       repairedPciImprovement: 'PCI 19 -> 90 (Tuntas)',
       engineerNote: 'Pengecoran beton cepat kering mutu FS 45 untuk menangani beban tonase tinggi Pantura.',
-      agencyInCharge: 'BBPJN DKI Jakarta - Jawa Barat'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -211,22 +151,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Cold Milling Leveling & Thin Hotmix Overlay (THO)',
       repairedPciImprovement: 'PCI 45 -> 88 (Rata & Nyaman)',
       engineerNote: 'Pengikisan gelombang aspal lama dan perataan permukaan menggunakan aspal modifikasi polimer.',
-      agencyInCharge: 'Dinas PUPR Kabupaten Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -256,22 +181,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Edge Asphalt Compaction & Drain Inlet Realignment',
       repairedPciImprovement: 'PCI 38 -> 86 (Aman)',
       engineerNote: 'Penutupan lubang bahu jalan dan normalisasi saluran tali air drainase tepi.',
-      agencyInCharge: 'Pengelola Kawasan Galuh Mas & Pemda Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -301,22 +211,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Subgrade Soil Grouting & Heavy Asphalt Reconstruction',
       repairedPciImprovement: 'PCI 20 -> 89 (Kokoh & Rata)',
       engineerNote: 'Injeksi semen grouting stabilisasi tanah dasar sebelum rekonstruksi struktur perkerasan jalan.',
-      agencyInCharge: 'Balai Besar Pelaksanaan Jalan Nasional (BBPJN)'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -346,22 +241,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Slurry Seal Protective Surface Treatment',
       repairedPciImprovement: 'PCI 58 -> 94 (Sempurna)',
       engineerNote: 'Aplikasi peremaja aspal slurry seal untuk mencegah penetrasi air hujan ke pori jalan.',
-      agencyInCharge: 'Dinas PUPR Kabupaten Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -391,22 +271,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Semi-Permanent Cold Patch Injection & Asphalt Sealing',
       repairedPciImprovement: 'PCI 42 -> 87 (Mulus)',
       engineerNote: 'Penambalan cepat presisi dengan aspal emulsi polimer.',
-      agencyInCharge: 'Divisi Infrastruktur Kawasan KIIC'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -436,22 +301,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Heavy Duty Asphalt Re-paving AC-BC 10cm',
       repairedPciImprovement: 'PCI 30 -> 86 (Bebas Deformasi)',
       engineerNote: 'Peningkatan daya dukung struktur jalan dengan campuran aspal tahan beban gandar berat.',
-      agencyInCharge: 'Pengelola Kawasan Suryacipta'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -480,23 +330,8 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairDate: '2026-08-17',
       repairMethod: 'Cold Patch Asphalt Injection',
       repairedPciImprovement: 'PCI 40 -> 82 (Mulus)',
-      engineerNote: 'Telah diperbaiki oleh Tim Reaksi Cepat Dinas PUPR Kabupaten Karawang.',
-      agencyInCharge: 'Dinas PUPR Kabupaten Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      engineerNote: 'Telah diperbaiki (contoh DEMO).',
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -526,22 +361,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Leveling & Overlay AC-WC 4cm',
       repairedPciImprovement: 'PCI 48 -> 85 (Mulus Nyaman)',
       engineerNote: 'Penataan ulang elevasi perkerasan jalan poros Rengasdengklok.',
-      agencyInCharge: 'Dinas PUPR Kabupaten Karawang'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
 
@@ -575,22 +395,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Asphalt Scraping & High Modulus Asphalt Concrete (HMAC)',
       repairedPciImprovement: 'PCI 32 -> 87 (Mulus)',
       engineerNote: 'Pelapisan aspal elastis berdaya tahan tinggi.',
-      agencyInCharge: 'Dinas Bina Marga DKI Jakarta'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -620,22 +425,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Micro-surfacing Thin Asphalt Layer',
       repairedPciImprovement: 'PCI 50 -> 91 (Sangat Halus)',
       engineerNote: 'Penyegelan celah retak halus di jalur lambat Kuningan.',
-      agencyInCharge: 'Dinas Bina Marga DKI Jakarta'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   },
   {
@@ -665,22 +455,7 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
       repairMethod: 'Rapid Set Polymer Patching Flyover Deck',
       repairedPciImprovement: 'PCI 25 -> 88 (Mulus & Aman)',
       engineerNote: 'Penambalan kilat expansion deck flyover Cawang.',
-      agencyInCharge: 'Dinas Bina Marga DKI Jakarta'
-    },
-    wimCorrelation: {
-      hasWimData: false,
-      stationId: '',
-      stationName: '',
-      corridor: '',
-      recentTruckPlate: '',
-      recentTruckClass: '',
-      maxAxleLoadTon: 0,
-      legalLimitTon: 10,
-      overloadPercent: 0,
-      overloadCategory: 'NONE',
-      correlatedOverloadTrucksCount: 0,
-      estimatedPinnContributionPercent: 0,
-      causeAnalysisSummary: ''
+      agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
     }
   }
 ];

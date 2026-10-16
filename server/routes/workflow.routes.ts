@@ -13,6 +13,7 @@ import { rateLimit } from "../middleware/rateLimit";
 import { checkPhotoReference } from "../services/photoValidation";
 import type { WorkflowRuntime } from "../services/workflowRuntime";
 import { actorFrom } from "../auth/actor";
+import { verifyDemoLogin } from "../auth/demoLogin";
 import { segmentById } from "../services/segments";
 import { assessSegment, snapshotOf } from "../../src/domain/intelligence/assessment";
 
@@ -86,19 +87,31 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
   // Spec Lampiran L / §20.2: 10 reports per hour per client.
   const submitLimit = rateLimit("report-submit", 10, 60 * 60_000);
   const sessionLimit = rateLimit("session", 60, 60_000);
+  // Credential attempts: tighter than other session calls.
+  const loginLimit = rateLimit("login", 20, 60_000);
 
   // --- Identity -------------------------------------------------------------------
-  const demoSessionHandler = (req: Request, res: Response) => {
-    if (!runtime.demoAuthEnabled) return sendError(res, "DISABLED", "Demo sessions are disabled on this server.");
-    const account = USER_ACCOUNTS.find((a) => a.id === req.body?.accountId);
-    if (!account) return sendError(res, "VALIDATION", "Unknown demo account.");
+  // Demo login: username (or demo email) and password, checked against the dummy demo
+  // credentials. Only while DEMO_AUTH is not "false"; there is no production identity
+  // provider yet (docs/LOGIN_AND_DEMO_AUTH.md). A body naming an account id without a
+  // password is refused: identity is never taken from the request.
+  const demoLoginHandler = (req: Request, res: Response) => {
+    if (!runtime.demoAuthEnabled) return sendError(res, "DISABLED", "Login is not available on this server (demo login is disabled and no identity provider is configured).");
+    const result = verifyDemoLogin(req.body?.username, req.body?.password, req.body?.layout);
+    if (result.ok === false) {
+      return result.reason === "MISSING_FIELDS"
+        ? sendError(res, "VALIDATION", "Username and password are required.")
+        : sendError(res, "UNAUTHENTICATED", "Invalid username or password.");
+    }
+    const account = USER_ACCOUNTS.find((a) => a.id === result.accountId);
+    if (!account) return sendError(res, "STORAGE", "Demo account catalogue is inconsistent.");
     const actor: Actor = { id: account.id, role: account.role, kind: "DEMO_ACCOUNT" };
     const { token, expiresAt } = signer.issue(actor);
-    res.json({ success: true, token, expiresAt, actor, authentication: "DEMO (no credentials checked)" });
+    res.json({ success: true, token, expiresAt, actor, authentication: "DEMO_CREDENTIALS (local demo only, not production authentication)" });
   };
-  router.post(WORKFLOW_API_PATHS.demoSession, sessionLimit, demoSessionHandler);
-  // Spec path (Lampiran L). Demo mode only: it is the account picker, not a credential check.
-  router.post(SPEC_PATHS.login, sessionLimit, demoSessionHandler);
+  router.post(SPEC_PATHS.login, loginLimit, demoLoginHandler);
+  // Older path of the same call; it now requires credentials too.
+  router.post(WORKFLOW_API_PATHS.demoSession, loginLimit, demoLoginHandler);
 
   router.post(WORKFLOW_API_PATHS.anonymousSession, sessionLimit, (_req: Request, res: Response) => {
     // The id is chosen by the server, so a browser cannot pick (or reuse) someone else's.

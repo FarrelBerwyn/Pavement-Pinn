@@ -22,11 +22,11 @@ test('thresholds in the source: engine notes at 180 and 250, display limit at 20
   // 274 microstrain: the single most severe corner of the documented ranges
   const critical = note({ axleLoadTon: 25, asphaltThicknessCm: 5, asphaltModulusMpa: 1200, surfaceTemperatureC: 60 });
   assert.equal(critical.tensors.tensileStrainEt, 274);
-  assert.match(critical.roleOutputs.fieldEngineer.engineeringNotes, /^KRITIS/);
+  assert.match(critical.roleOutputs.fieldEngineer.engineeringNotes, /RULE_BASED\) termasuk tinggi/); // was "KRITIS ... melebihi batas ijin" (F-06)
   // 183 microstrain: the most severe input the simulation panel can produce
   const watch = note({ axleLoadTon: 25, asphaltThicknessCm: 5, asphaltModulusMpa: 2400, surfaceTemperatureC: 42 });
   assert.equal(watch.tensors.tensileStrainEt, 183);
-  assert.match(watch.roleOutputs.fieldEngineer.engineeringNotes, /^WASPADA/);
+  assert.match(watch.roleOutputs.fieldEngineer.engineeringNotes, /RULE_BASED\) menengah/); // was "WASPADA" (F-06)
 });
 
 test('tensile strain depends only on axle load, thickness, modulus and temperature', () => {

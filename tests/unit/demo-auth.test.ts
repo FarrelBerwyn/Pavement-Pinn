@@ -1,0 +1,156 @@
+/**
+ * Demo login without a browser: the credential table, the server-side check, the
+ * gateways' session rules (no session from an account id, logout, refresh), the login
+ * messages, and route guards for signed-out and wrong-role identities.
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  DEMO_CREDENTIALS,
+  accountIdFor,
+  demoLoginFor,
+  findDemoCredential
+} from '../../src/data/reference/demoCredentials';
+import { USER_ACCOUNTS } from '../../src/data/reference/demoAccounts';
+import { verifyDemoLogin } from '../../server/auth/demoLogin';
+import {
+  HttpWorkflowGateway,
+  OfflineWorkflowGateway,
+  WorkflowApiError,
+  type LoginCredentials
+} from '../../src/services/api/workflowClient';
+import { loginErrorMessage, validateLoginFields } from '../../src/features/authentication/loginMessages';
+import { canOpenRoute, resolveRouteAccess } from '../../src/app/guards/routeAccess';
+import { getRoute } from '../../src/app/routeConfig';
+import type { UserRole } from '../../src/types';
+
+// --- A minimal sessionStorage, so the gateways' refresh behaviour can be exercised ------
+const store = new Map<string, string>();
+(globalThis as { window?: unknown }).window = {
+  sessionStorage: {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k)
+  }
+};
+
+const roleOf = (id: string): UserRole | null => USER_ACCOUNTS.find((a) => a.id === id)?.role ?? null;
+const verifier = async (c: LoginCredentials) => {
+  const credential = findDemoCredential(c.username);
+  return credential && credential.password === c.password ? accountIdFor(credential, c.layout) : null;
+};
+const offline = (withVerifier = true) => new OfflineWorkflowGateway([], roleOf, [], [], withVerifier ? verifier : undefined);
+
+async function code(promise: Promise<unknown>): Promise<string> {
+  try {
+    await promise;
+    return 'OK';
+  } catch (e) {
+    return e instanceof WorkflowApiError ? e.code : `UNEXPECTED ${(e as Error).message}`;
+  }
+}
+
+test('the brief\'s five credentials map to the five roles and their named demo accounts', () => {
+  const expected: Record<string, [UserRole, string]> = {
+    'field.ahmad': ['FIELD_ENGINEER', 'Ir. Ahmad Subagyo, M.T.'],
+    'ops.hendra': ['OPERATIONS_MANAGER', 'Drs. Hendra Gunawan, S.Si.'],
+    'policy.retno': ['POLICY_MAKER', 'Dr. Ir. Retno Wulandari'],
+    'citizen.budi': ['PUBLIC_REPORTER', 'Budi Santoso, S.T.'],
+    'viewer.siti': ['PUBLIC_VIEWER', 'Siti Aminah, S.E.']
+  };
+  assert.deepEqual(DEMO_CREDENTIALS.map((c) => c.username).sort(), Object.keys(expected).sort());
+  for (const c of DEMO_CREDENTIALS) {
+    const [role, name] = expected[c.username];
+    const account = USER_ACCOUNTS.find((a) => a.id === c.accounts.MODERN_APP)!;
+    assert.equal(c.role, role);
+    assert.equal(account.role, role);
+    assert.equal(account.name, name);
+  }
+});
+
+test('demo identities do not look like real institutional accounts', () => {
+  for (const account of USER_ACCOUNTS) {
+    assert.match(account.email, /@pavement-pinn\.example$/, account.id);
+    assert.match(account.nip, /^DEMO-/, account.id);
+  }
+});
+
+test('server check: valid credentials open the account; anything else fails without saying why', () => {
+  assert.deepEqual(verifyDemoLogin('field.ahmad', 'FieldPinn2026!'), { ok: true, accountId: 'USR-006' });
+  assert.deepEqual(verifyDemoLogin('field.ahmad', 'FieldPinn2026!', 'CLASSIC_PORTAL'), { ok: true, accountId: 'USR-001' });
+  assert.deepEqual(verifyDemoLogin('citizen.budi', 'CitizenPinn2026!', 'CLASSIC_PORTAL'), { ok: true, accountId: 'USR-004' });
+  for (const [u, p] of [
+    ['field.ahmad', 'fieldpinn2026!'],
+    ['field.ahmad', 'OpsPinn2026!'],
+    ['nobody', 'FieldPinn2026!'],
+    ['field.ahmad', 'x'.repeat(300)]
+  ]) {
+    assert.deepEqual(verifyDemoLogin(u, p), { ok: false, reason: 'INVALID_CREDENTIALS' }, `${u}/${p.slice(0, 12)}`);
+  }
+  for (const [u, p] of [['', 'x'], ['field.ahmad', ''], [undefined, 'x'], ['field.ahmad', 42]] as const) {
+    assert.deepEqual(verifyDemoLogin(u, p), { ok: false, reason: 'MISSING_FIELDS' });
+  }
+});
+
+test('demoLoginFor reverses the mapping for every demo account', () => {
+  for (const account of USER_ACCOUNTS) {
+    const login = demoLoginFor(account.id);
+    assert.ok(login, account.id);
+    assert.deepEqual(verifyDemoLogin(login!.username, login!.password, login!.layout), { ok: true, accountId: account.id });
+  }
+});
+
+test('server gateway: a named account never gets a session from its id alone', async () => {
+  store.clear();
+  const gateway = new HttpWorkflowGateway();
+  // No login happened in this tab: resuming an official account must fail before any request.
+  assert.equal(await code(gateway.useAccount({ id: 'USR-007', role: 'POLICY_MAKER' })), 'UNAUTHENTICATED');
+  // A token stored for a different account is not reused for this one either.
+  store.set('pavement-pinn.workflow-session', JSON.stringify({ key: 'demo:USR-004', token: 'whatever' }));
+  assert.equal(await code(gateway.useAccount({ id: 'USR-007', role: 'POLICY_MAKER' })), 'UNAUTHENTICATED');
+  gateway.logout();
+  assert.equal(store.has('pavement-pinn.workflow-session'), false);
+});
+
+test('static build gateway: login, refresh, logout and wrong credentials', async () => {
+  store.clear();
+  const first = offline();
+  assert.equal(await code(first.useAccount({ id: 'USR-008', role: 'OPERATIONS_MANAGER' })), 'UNAUTHENTICATED');
+  assert.equal(await code(first.login({ username: 'ops.hendra', password: 'wrong' })), 'UNAUTHENTICATED');
+  const actor = await first.login({ username: 'OPS.HENDRA', password: 'OpsPinn2026!' });
+  assert.deepEqual(actor, { id: 'USR-008', role: 'OPERATIONS_MANAGER', kind: 'DEMO_ACCOUNT' });
+
+  // Refresh: a new gateway in the same tab resumes the signed-in account, and only that one.
+  const afterRefresh = offline();
+  assert.equal((await afterRefresh.useAccount({ id: 'USR-008', role: 'OPERATIONS_MANAGER' })).id, 'USR-008');
+  assert.equal(await code(afterRefresh.useAccount({ id: 'USR-007', role: 'POLICY_MAKER' })), 'UNAUTHENTICATED');
+
+  afterRefresh.logout();
+  assert.equal(await code(offline().useAccount({ id: 'USR-008', role: 'OPERATIONS_MANAGER' })), 'UNAUTHENTICATED');
+  assert.equal((await offline().useAccount(null)).kind, 'ANONYMOUS');
+});
+
+test('static build without demo access offers no login at all', async () => {
+  store.clear();
+  assert.equal(await code(offline(false).login({ username: 'ops.hendra', password: 'OpsPinn2026!' })), 'DISABLED');
+});
+
+test('login form messages: required fields, generic failure, rate limit, disabled, network', () => {
+  assert.deepEqual(validateLoginFields('  ', ''), { username: 'Masukkan email atau nama pengguna.', password: 'Masukkan kata sandi.' });
+  assert.deepEqual(validateLoginFields('field.ahmad', 'x'), {});
+  assert.equal(loginErrorMessage('UNAUTHENTICATED'), 'Nama pengguna atau kata sandi salah.');
+  assert.match(loginErrorMessage('RATE_LIMITED', 429), /Terlalu banyak/);
+  assert.match(loginErrorMessage('DISABLED'), /belum tersedia/);
+  assert.match(loginErrorMessage('NETWORK'), /tidak dapat dihubungi/);
+});
+
+test('route guards: signed-out visitors are sent to login, other roles are refused', () => {
+  const anonymous = { role: 'PUBLIC_VIEWER' as UserRole };
+  assert.equal(resolveRouteAccess(getRoute('engineFwd'), anonymous), 'LOGIN_REQUIRED');
+  assert.equal(resolveRouteAccess(getRoute('policy'), anonymous), 'LOGIN_REQUIRED');
+  assert.equal(resolveRouteAccess(getRoute('dashboard'), anonymous), 'ALLOW');
+  assert.equal(resolveRouteAccess(getRoute('login'), anonymous), 'ALLOW');
+  const engineer = { role: 'FIELD_ENGINEER' as UserRole, layoutStyle: 'MODERN_APP' as const };
+  assert.equal(resolveRouteAccess(getRoute('policy'), engineer), 'FORBIDDEN');
+  assert.equal(canOpenRoute('engineFwd', engineer), true);
+});

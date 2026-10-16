@@ -44,8 +44,6 @@ test('API_PATHS keeps the six pre-restructure endpoint paths', () => {
     health: '/api/health',
     roads: '/api/roads',
     simulate: '/api/simulate',
-    openvinoExportIr: '/api/openvino/export-ir',
-    openvinoExportConfig: '/api/openvino/export-config',
     generateNarrative: '/api/generate-narrative'
   });
 });
@@ -65,8 +63,8 @@ test('GET /api/roads returns the full reference dataset, byte-identical to basel
   const res = await fetch(base + '/api/roads');
   assert.equal(res.status, 200);
   const text = await res.text();
-  assert.equal(Buffer.byteLength(text), 18133);
-  assert.equal(sha256(text), '5b0cf7f80ff4a5c3edc788982feccb9d37a25655ec3c5af83cbae88b27e334d9');
+  assert.equal(Buffer.byteLength(text), 8775); // was 18133 before fabricated WIM station data was removed (F-16)
+  assert.equal(sha256(text), 'cb1a0db4ea3c50a76d68cbdd7d412b10c6eb1e1e7ceed4137db284d70b034938');
   assert.deepEqual(JSON.parse(text), JSON.parse(JSON.stringify(INDONESIAN_ROAD_SEGMENTS)));
 });
 
@@ -113,39 +111,11 @@ test('POST /api/simulate: missing params yields HTTP 500 with the runtime error 
   });
 });
 
-test('GET /api/openvino/export-ir: XML attachment, byte-identical to baseline', async () => {
-  const res = await fetch(base + '/api/openvino/export-ir?device=CPU&precision=FP32');
-  assert.equal(res.status, 200);
-  assert.equal(res.headers.get('content-type'), 'application/xml; charset=utf-8');
-  assert.equal(res.headers.get('content-disposition'), 'attachment; filename="pavement_pinn_cpu_fp32.xml"');
-  assert.equal(sha256(await res.text()), '5eb3c942e0abb58891d0c23ebd3d38ea8b85d4383d31b5c80e61456018619d70');
-});
-
-test('GET /api/openvino/export-ir: defaults to NPU / INT8_NNCF', async () => {
-  const res = await fetch(base + '/api/openvino/export-ir');
-  assert.equal(res.headers.get('content-disposition'), 'attachment; filename="pavement_pinn_npu_int8_nncf.xml"');
-});
-
-test('GET /api/openvino/export-config: JSON attachment, byte-identical to baseline', async () => {
-  const res = await fetch(base + '/api/openvino/export-config');
-  assert.equal(res.status, 200);
-  assert.equal(res.headers.get('content-type'), 'application/json; charset=utf-8');
-  assert.equal(res.headers.get('content-disposition'), 'attachment; filename="openvino_config_npu.json"');
-  const text = await res.text();
-  assert.equal(sha256(text), 'e36a2eeea249f4c00cb93540acaf612e6b6c868abdab53292e28a28d14f67322');
-  const body = JSON.parse(text);
-  assert.equal(body.target_device, 'NPU');
-  assert.equal(body.nncf_quantization.enabled, true);
-  assert.equal(body.performance_config.NUM_STREAMS, '2');
-});
-
-test('GET /api/openvino/export-config: query parameters are reflected', async () => {
-  const res = await fetch(base + '/api/openvino/export-config?device=CPU&precision=FP32&streams=4');
-  const body = await res.json();
-  assert.equal(body.target_device, 'CPU');
-  assert.equal(body.precision_mode, 'FP32');
-  assert.equal(body.nncf_quantization.enabled, false);
-  assert.equal(body.performance_config.NUM_STREAMS, '4');
+test('GET /api/openvino/export-ir and export-config are removed: 404 (F-13, v3 Phase 0)', async () => {
+  for (const path of ['/api/openvino/export-ir', '/api/openvino/export-ir?device=CPU&precision=FP32', '/api/openvino/export-config']) {
+    const res = await fetch(base + path);
+    assert.equal(res.status, 404, path);
+  }
 });
 
 test('POST /api/generate-narrative: 200 envelope, offline rule-engine source when no API key is configured', async () => {
@@ -156,7 +126,7 @@ test('POST /api/generate-narrative: 200 envelope, offline rule-engine source whe
   assert.equal(body.success, true);
   assert.equal(typeof body.narrative, 'string');
   assert.equal(body.source, 'rule-engine-offline');
-  assert.ok(body.narrative.startsWith('[ANALISIS REKAYASA STRUKTURAL BBPJN]'));
+  assert.ok(body.narrative.startsWith('[CATATAN TEKNIS - RULE_BASED, INDIKATIF]'));
 });
 
 test('POST /api/generate-narrative: malformed JSON is rejected with HTTP 400', async () => {
@@ -173,10 +143,10 @@ test('narrative service: offline text matches the baseline fallback, per role', 
   assert.equal(offline.source, 'rule-engine-offline');
   assert.equal(
     offline.narrative,
-    '[ANALISIS REKAYASA STRUKTURAL BBPJN]\nSimulasi PINN mendeteksi regangan tarik dasar aspal εt sebesar 180 µε dan regangan tekan tanah dasar εv sebesar 320 µε. Laju deteriorasi akibat beban ODOL memproyeksikan pembentukan retak lelah. Rekomendasi perbaikan: Tebal overlay 6 cm AC-WC.'
+    '[CATATAN TEKNIS - RULE_BASED, INDIKATIF]\nRegangan tarik dasar aspal: tidak tersedia; regangan tekan tanah dasar: tidak tersedia. Nilai dari mesin rumus, bukan desain; opsi perbaikan diputuskan insinyur.'
   );
-  assert.match(buildFallbackNarrative('OPERATIONS_MANAGER', {}), /^\[EVALUASI OPERASIONAL WIM & BPTD\]/);
-  assert.match(buildFallbackNarrative('POLICY_MAKER', {}), /^\[RINGKASAN KEBIJAKAN PRESERVASI EKSEKUTIF\]/);
+  assert.match(buildFallbackNarrative('OPERATIONS_MANAGER', {}), /^\[SINYAL OPERASIONAL - RULE_BASED\]/);
+  assert.match(buildFallbackNarrative('POLICY_MAKER', {}), /^\[RINGKASAN KEBIJAKAN - RULE_BASED\]/);
   // Any unrecognised role (including the public roles) receives the policy narrative.
   assert.equal(buildFallbackNarrative('PUBLIC_VIEWER', {}), buildFallbackNarrative('POLICY_MAKER', {}));
 });
@@ -202,7 +172,7 @@ test('narrative service: a failing Gemini client degrades to rule-engine-fallbac
 test('no endpoint requires authentication (documents the absence of backend authorization)', async () => {
   // Requests carry no credentials or role header and are all accepted. If auth is ever
   // added, this test must be replaced by a real role-to-endpoint matrix.
-  for (const path of ['/api/health', '/api/roads', '/api/openvino/export-ir', '/api/openvino/export-config']) {
+  for (const path of ['/api/health', '/api/roads']) {
     const res = await fetch(base + path);
     assert.equal(res.status, 200, path);
   }
