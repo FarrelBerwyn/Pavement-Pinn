@@ -70,8 +70,9 @@ export function useSheetDrag<K extends string = string>(options: Options<K>) {
     const target = e.target as HTMLElement;
     const grab = target.closest('[data-sheet-grab]');
     const scroller = target.closest('[data-sheet-scroll]') as HTMLElement | null;
-    // Inside the content, only start from the top of the scroll area (pull down to shrink).
-    if (!grab && !(scroller && scroller.scrollTop <= 0)) return;
+    // Inside the content, only start from the top of the scroll area (pull down to shrink),
+    // and only for touch/pen: a mouse there selects text or scrolls with the wheel.
+    if (!grab && (e.pointerType === 'mouse' || !(scroller && scroller.scrollTop <= 0))) return;
     if (!grab && target.closest('input, textarea, select, [contenteditable="true"]')) return;
     drag.current = {
       pointerId: e.pointerId,
@@ -89,6 +90,13 @@ export function useSheetDrag<K extends string = string>(options: Options<K>) {
     const d = drag.current;
     const el = sheetRef.current;
     if (!d || !el || e.pointerId !== d.pointerId) return;
+    // No button held: the release happened somewhere we did not hear it. Stop, so plain
+    // hovering never moves the sheet (it used to follow the mouse and then close).
+    if (e.buttons === 0) {
+      drag.current = null;
+      if (d.active) reset(el);
+      return;
+    }
     const dy = e.clientY - d.startY;
     if (!d.active) {
       if (Math.abs(dy) < DRAG_START_PX) return;
