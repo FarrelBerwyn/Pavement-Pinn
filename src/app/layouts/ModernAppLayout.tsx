@@ -809,7 +809,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   };
 
   return (
-    <div className="flex h-screen w-screen bg-[#0b0f19] text-slate-100 overflow-hidden font-sans select-none antialiased">
+    <div
+      className="flex h-screen w-screen bg-[#0b0f19] text-slate-100 overflow-hidden font-sans select-none antialiased"
+      // Full-screen pages start after the sidebar on md+ (it is static there): see PageOverlay.
+      style={{ ['--sidebar-w' as string]: isSidebarCollapsed ? '5rem' : '16rem' } as React.CSSProperties}
+    >
       {/* 1. LEFT MAIN SIDEBAR (Dark sleek navigation, compact width & collapsible) */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 ${

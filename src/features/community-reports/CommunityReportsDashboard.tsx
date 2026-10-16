@@ -56,6 +56,24 @@ interface CommunityReportsDashboardProps {
   onRunSimulationForSegment: (segment: RoadSegment) => void;
 }
 
+/* Calm look shared with the report sheet: solid surfaces, thin borders, one yellow accent. */
+const UI_CARD = 'rounded-2xl border border-white/[0.08] bg-white/[0.03]';
+const UI_FIELD =
+  'w-full h-11 rounded-xl border border-white/[0.08] bg-[#121826] px-3.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-400/70';
+const UI_PRIMARY =
+  'h-11 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+const UI_GHOST =
+  'h-9 px-3 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] inline-flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+const SEVERITY_LABEL: Record<string, string> = { LIGHT: 'Ringan', MODERATE: 'Sedang', SEVERE: 'Berat', CRITICAL: 'Kritis' };
+const SEVERITY_DOT: Record<string, string> = { LIGHT: 'bg-emerald-400', MODERATE: 'bg-amber-400', SEVERE: 'bg-orange-400', CRITICAL: 'bg-red-400' };
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Menunggu',
+  VERIFIED_BY_ENGINEER: 'Diverifikasi',
+  SCHEDULED_FOR_REPAIR: 'Dijadwalkan',
+  REPAIRED: 'Selesai',
+  CLOSED: 'Ditutup'
+};
+
 export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps> = ({
   activeRole,
   currentAccount,
@@ -272,77 +290,41 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
   });
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Top Banner & Public Role Controls */}
-      <div className="bg-[#121622]/95 border border-white/15 rounded-3xl p-5 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+    <div className="space-y-5">
+      {/* Intro & quick numbers */}
+      <section className={`${UI_CARD} p-5 sm:p-6 space-y-5`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start space-x-3.5">
-            <div className="p-3.5 bg-amber-400 text-slate-950 font-black rounded-2xl shadow-md shadow-amber-400/20 shrink-0">
-              <Camera className="w-6 h-6 text-slate-950" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
-                  Partisipasi Komunitas & Pelaporan Jalan
-                </span>
-                {activeRole === 'PUBLIC_REPORTER' && (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                    User 1 (Budi Santoso): Bisa Lapor & Edit Laporannya ({myReportsCount} Laporan)
-                  </span>
-                )}
-                {activeRole === 'PUBLIC_VIEWER' && (
-                  <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
-                    <Eye className="w-3 h-3 text-amber-400" />
-                    User 2 (Siti Aminah): Melihat & Bisa Lapor ({myReportsCount === 0 ? 'Belum Ada Laporan Dibuat' : `${myReportsCount} Laporan Dibuat`})
-                  </span>
-                )}
-              </div>
-              <h2 className="text-base sm:text-lg font-black text-white mt-1">
-                Portal Pelaporan Kerusakan Jalan & Korelasi Kendaraan WIM
-              </h2>
-              <p className="text-xs text-slate-300 max-w-3xl">
-                Setiap laporan masyarakat secara otomatis dihubungkan dengan data contoh kendaraan berat **Weigh-In-Motion (WIM, DEMO)** & estimasi **RULE_BASED** untuk mengetahui truk pemicu utama kerusakan.
-              </p>
-            </div>
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-lg font-semibold text-white">Laporan kerusakan jalan</h2>
+            <p className="text-sm text-slate-400 max-w-2xl">
+              Laporan dari warga. Setiap laporan diperiksa petugas sebelum ditindaklanjuti; data WIM yang ditampilkan adalah contoh (DEMO).
+            </p>
+            <p className="text-xs text-slate-500">
+              {myReportsCount > 0
+                ? `Anda punya ${myReportsCount} laporan${editableReportsCount > 0 ? `, ${editableReportsCount} masih bisa diedit` : ''}.`
+                : 'Anda belum membuat laporan.'}
+            </p>
           </div>
-
-          {/* Action Button: Input New Damage Report */}
-          <button
-            onClick={() => setIsFormOpen(true)}
-            className="px-5 py-3 rounded-2xl font-black text-xs flex items-center justify-center space-x-2 transition-all shadow-xl shrink-0 bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/20 cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4 text-slate-950" />
-            <span>+ Laporkan Kerusakan Jalan Baru</span>
+          <button onClick={() => setIsFormOpen(true)} className={`${UI_PRIMARY} shrink-0 px-5`}>
+            <PlusCircle className="w-4 h-4" />
+            <span>Laporkan kerusakan</span>
           </button>
         </div>
 
-        {/* Quick Statistics Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-white/10 text-xs">
-          <div className="bg-[#171d2e] p-2.5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Total Laporan Komunitas:</span>
-            <p className="text-base font-extrabold text-white font-mono">{reports.length} Laporan</p>
-          </div>
-          <div className="bg-[#171d2e] p-2.5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Terverifikasi Engineer:</span>
-            <p className="text-base font-extrabold text-emerald-400 font-mono">
-              {reports.filter((r) => r.status === 'VERIFIED_BY_ENGINEER' || r.status === 'SCHEDULED_FOR_REPAIR').length} Laporan
-            </p>
-          </div>
-          <div className="bg-[#171d2e] p-2.5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Kategori Kritis & Lubang:</span>
-            <p className="text-base font-extrabold text-rose-400 font-mono">
-              {reports.filter((r) => r.severity === 'CRITICAL' || r.damageType === 'POTHOLE').length} Laporan
-            </p>
-          </div>
-          <div className="bg-[#171d2e] p-2.5 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Laporan Saya Sendiri:</span>
-            <p className="text-base font-extrabold text-amber-400 font-mono">
-              {myReportsCount} Laporan ({myReportsCount > 0 ? `${editableReportsCount} Dapat Diedit` : 'Belum Ada'})
-            </p>
-          </div>
-        </div>
-      </div>
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            ['Total laporan', reports.length],
+            ['Diverifikasi petugas', reports.filter((r) => r.status === 'VERIFIED_BY_ENGINEER' || r.status === 'SCHEDULED_FOR_REPAIR').length],
+            ['Kritis / lubang', reports.filter((r) => r.severity === 'CRITICAL' || r.damageType === 'POTHOLE').length],
+            ['Laporan saya', myReportsCount]
+          ].map(([label, value]) => (
+            <div key={label as string} className={`${UI_CARD} px-4 py-3`}>
+              <dt className="text-xs text-slate-400">{label}</dt>
+              <dd className="text-xl font-semibold text-white mt-0.5">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       {/* EDIT MODAL / FORM */}
       {editingReport && (
@@ -507,212 +489,142 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
         }}
       />
 
-      {/* FILTER BAR & SEARCH */}
-      <div className="bg-[#121622]/95 border border-white/15 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs backdrop-blur-xl">
-        <div className="flex items-center space-x-2 w-full md:w-auto">
-          <Filter className="w-4 h-4 text-amber-400" />
-          <span className="font-bold text-slate-300 font-mono">Filter Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#171d2e] border border-white/10 text-white rounded-xl px-3 py-1.5 font-mono focus:outline-none focus:border-amber-400"
-          >
-            <option value="ALL">Semua Status ({reports.length})</option>
-            <option value="PENDING">🕒 Menunggu Verifikasi</option>
-            <option value="VERIFIED_BY_ENGINEER">✅ Terverifikasi Engineer</option>
-            <option value="SCHEDULED_FOR_REPAIR">🚧 Dijadwalkan Penanganan</option>
-            <option value="REPAIRED">🎉 Selesai Diperbaiki</option>
+      {/* Filters & search */}
+      <section className={`${UI_CARD} p-3 flex flex-col md:flex-row md:items-center gap-3`}>
+        <label className="flex items-center gap-2 w-full md:w-auto">
+          <Filter className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="sr-only">Status</span>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={UI_FIELD}>
+            <option value="ALL">Semua status ({reports.length})</option>
+            <option value="PENDING">Menunggu verifikasi</option>
+            <option value="VERIFIED_BY_ENGINEER">Diverifikasi petugas</option>
+            <option value="SCHEDULED_FOR_REPAIR">Dijadwalkan</option>
+            <option value="REPAIRED">Selesai diperbaiki</option>
             <option value="CLOSED">Ditutup</option>
           </select>
-        </div>
-
-        <div className="flex items-center space-x-2 w-full md:w-auto">
-          <span className="font-bold text-slate-300 font-mono">Jenis Kerusakan:</span>
-          <select
-            value={damageTypeFilter}
-            onChange={(e) => setDamageTypeFilter(e.target.value)}
-            className="bg-[#171d2e] border border-white/10 text-white rounded-xl px-3 py-1.5 font-mono focus:outline-none focus:border-amber-400"
-          >
-            <option value="ALL">Semua Jenis</option>
-            <option value="POTHOLE">Lubang (Pothole)</option>
-            <option value="ALLIGATOR_CRACK">Retak Buaya</option>
-            <option value="RUTTING">Ambles & Rutting</option>
-            <option value="CORRUGATION">Kerusakan Gelombang</option>
-            <option value="SUBSIDENCE">Penurunan Pondasi</option>
+        </label>
+        <label className="w-full md:w-auto">
+          <span className="sr-only">Jenis kerusakan</span>
+          <select value={damageTypeFilter} onChange={(e) => setDamageTypeFilter(e.target.value)} className={UI_FIELD}>
+            <option value="ALL">Semua jenis</option>
+            <option value="POTHOLE">Lubang</option>
+            <option value="ALLIGATOR_CRACK">Retak buaya</option>
+            <option value="RUTTING">Alur / ambles</option>
+            <option value="CORRUGATION">Bergelombang</option>
+            <option value="SUBSIDENCE">Penurunan</option>
           </select>
-        </div>
-
-        <div className="relative w-full md:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+        </label>
+        <label className="relative w-full md:w-72 md:ml-auto">
+          <span className="sr-only">Cari</span>
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
-            placeholder="Cari lokasi, jalan, pelapor..."
+            placeholder="Cari lokasi, jalan, pelapor"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#171d2e] border border-white/10 text-white rounded-xl pl-8 pr-3 py-1.5 font-sans focus:outline-none focus:border-amber-400 placeholder:text-slate-500"
+            className={`${UI_FIELD} pl-10`}
           />
-        </div>
-      </div>
+        </label>
+      </section>
 
-      {/* REPORTS LIST (FEED OF CITIZEN REPORTS) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Report cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filteredReports.length === 0 && (
+          <p className="col-span-full text-center text-sm text-slate-400 py-10">Tidak ada laporan yang cocok dengan filter.</p>
+        )}
         {filteredReports.map((report) => {
           const isMyReport = report.creatorAccountId === currentAccount.id;
           const canEdit = canEditReport(currentAccount, report);
 
           return (
-            <div
+            <article
               key={report.id}
               onClick={() => setSelectedDetailReport(report)}
-              className="bg-[#121622]/95 border border-white/15 hover:border-amber-400/50 hover:bg-[#151b2b] rounded-3xl p-4 space-y-3 shadow-xl transition-all flex flex-col justify-between group cursor-pointer backdrop-blur-xl"
+              className={`${UI_CARD} overflow-hidden flex flex-col cursor-pointer hover:bg-white/[0.05] hover:border-white/[0.14] transition-colors`}
             >
-              <div>
-                {/* Reporter Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center space-x-2.5">
-                    <img
-                      src={
-                        report.reporterAvatar ||
-                        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
-                      }
-                      alt={report.reporterName}
-                      className="w-8 h-8 rounded-xl object-cover border border-white/20"
-                    />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">
-                          {report.reporterName}
-                        </h4>
-                        {isMyReport && (
-                          <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded-md">
-                            Anda
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-mono">{report.reporterRole}</p>
-                    </div>
-                  </div>
+              <div className="relative aspect-[16/10] bg-white/[0.03]">
+                <img src={report.photoUrl} alt={report.damageTypeLabel} className="w-full h-full object-cover" />
+                <span className="absolute top-3 left-3 rounded-full bg-[#121826]/90 px-2.5 py-1 text-xs text-slate-100 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${SEVERITY_DOT[report.severity] ?? 'bg-slate-400'}`} />
+                  {SEVERITY_LABEL[report.severity] ?? report.severity}
+                </span>
+              </div>
 
-                  {/* Status Badge */}
-                  <span
-                    className={`text-[9.5px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                      report.status === 'VERIFIED_BY_ENGINEER'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : report.status === 'SCHEDULED_FOR_REPAIR'
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                        : 'bg-slate-800 text-slate-300 border-white/10'
-                    }`}
-                  >
-                    {report.status === 'VERIFIED_BY_ENGINEER' && '✅ Diverifikasi'}
-                    {report.status === 'SCHEDULED_FOR_REPAIR' && '🚧 Dijadwalkan'}
-                    {report.status === 'PENDING' && '🕒 Menunggu'}
-                    {report.status === 'REPAIRED' && '🎉 Selesai'}
-                    {report.status === 'CLOSED' && 'Ditutup'}
+              <div className="p-4 flex-1 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-medium text-white truncate">{report.segmentName}</h3>
+                    <p className="text-xs text-slate-400 truncate">{report.damageTypeLabel} · {report.province}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-white/[0.1] px-2.5 py-0.5 text-xs text-slate-300">
+                    {STATUS_LABEL[report.status] ?? report.status}
                   </span>
                 </div>
 
-                {/* Photo & Severity Badge */}
-                <div className="relative mt-3 rounded-2xl overflow-hidden border border-white/10 h-40">
-                  <img src={report.photoUrl} alt={report.damageTypeLabel} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className="absolute top-2 right-2 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-bold font-mono text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 text-rose-400" />
-                    <span>{report.severity}</span>
-                  </div>
-                  <div className="absolute bottom-2 left-2 bg-slate-950/85 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-[10px] font-mono text-amber-300 border border-white/10">
-                    📍 {report.province}
-                  </div>
-                </div>
+                {report.description && <p className="text-sm text-slate-300 line-clamp-2">{report.description}</p>}
 
-                {/* Location & Title */}
-                <div className="mt-3 space-y-1">
-                  <h3 className="text-xs font-extrabold text-white line-clamp-1 group-hover:text-amber-400 transition-colors">{report.segmentName}</h3>
-                  <p className="text-[10.5px] text-slate-400 font-medium">{report.corridor}</p>
-                  <div className="inline-block bg-[#171d2e] text-amber-300 border border-white/10 text-[10px] font-bold px-2 py-0.5 rounded-md font-mono">
-                    {report.damageTypeLabel} &bull; Dalam: {report.estimatedDepthCm} cm &bull; Luas: {report.estimatedAreaM2} m²
-                  </div>
-                  <p className="text-xs text-slate-300 pt-1 line-clamp-2 italic">"{report.description}"</p>
-                </div>
-
-                {/* Dedicated WIM Vehicle Overload Correlation Box */}
                 {report.wimCorrelation && (
-                  <div className="mt-3 bg-[#171d2e] border border-indigo-500/30 rounded-2xl p-3 space-y-1.5 text-[10.5px]">
-                    <div className="flex items-center justify-between font-mono font-bold text-cyan-300 border-b border-indigo-500/20 pb-1">
-                      <span className="flex items-center gap-1">
-                        <Truck className="w-3.5 h-3.5 text-cyan-400" /> KORELASI VEHICLE WIM:
-                      </span>
-                      <span className="text-rose-400 text-[9.5px]">
-                        Pemicu: +{report.wimCorrelation.overloadPercent}% ODOL
-                      </span>
-                    </div>
-                    <p className="text-slate-300 font-mono text-[10px]">
-                      Truk Terdeteksi: <strong className="text-white">{report.wimCorrelation.recentTruckPlate}</strong> ({report.wimCorrelation.maxAxleLoadTon} Ton)
-                    </p>
-                    <p className="text-indigo-200 text-[10px] leading-tight">
-                      {report.wimCorrelation.causeAnalysisSummary}
-                    </p>
+                  <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-xs text-slate-400">
+                    <span className="flex items-center gap-1.5 text-slate-300">
+                      <Truck className="w-3.5 h-3.5 text-amber-400" />
+                      Contoh data WIM (DEMO)
+                    </span>
+                    <span className="block mt-0.5">
+                      Beban sumbu maks {report.wimCorrelation.maxAxleLoadTon} t · lebih {report.wimCorrelation.overloadPercent}%
+                    </span>
                   </div>
                 )}
-              </div>
 
-              {/* Bottom Card Controls: Upvote, Edit (if author), Detail & Map */}
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between mt-3 text-xs gap-1.5">
-                <div className="flex items-center space-x-1.5">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onUpvoteReport(report.id);
-                    }}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center space-x-1 border cursor-pointer ${
-                      report.userUpvoted
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/20'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
-                    }`}
-                  >
-                    <ThumbsUp className="w-3.5 h-3.5" />
-                    <span>{report.upvotesCount}</span>
-                  </button>
-
-                  {/* EDIT BUTTON (canEditReport: own session report, still PENDING) */}
-                  {canEdit && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEdit(report);
-                      }}
-                      className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] font-mono transition-all flex items-center space-x-1 shadow-md shadow-amber-400/20 cursor-pointer"
-                      title="Edit Laporan Anda"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-1.5">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedDetailReport(report);
-                    }}
-                    className="px-2.5 py-1.5 rounded-xl bg-[#171d2e] hover:bg-white/10 text-slate-200 font-bold text-[11px] font-mono transition-all flex items-center space-x-1 border border-white/10 cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Detail</span>
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectSegmentForMap(report.segmentId);
-                    }}
-                    className="text-xs font-bold text-amber-400 hover:text-amber-300 font-mono flex items-center space-x-0.5 cursor-pointer"
-                  >
-                    <span>Peta</span>
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </button>
+                <div className="flex items-center gap-2.5 mt-auto pt-1">
+                  <img
+                    src={report.reporterAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
+                    alt=""
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                  <p className="text-xs text-slate-400 truncate min-w-0 flex-1">
+                    {report.reporterName}
+                    {isMyReport && <span className="text-amber-300"> · Anda</span>}
+                  </p>
                 </div>
               </div>
-            </div>
+
+              <div className="border-t border-white/[0.06] px-2 py-2 flex items-center gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpvoteReport(report.id);
+                  }}
+                  aria-pressed={!!report.userUpvoted}
+                  className={`${UI_GHOST} ${report.userUpvoted ? 'text-amber-300' : ''}`}
+                >
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>{report.upvotesCount}</span>
+                </button>
+                {canEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEdit(report);
+                    }}
+                    className={UI_GHOST}
+                    title="Edit laporan Anda"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Edit</span>
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectSegmentForMap(report.segmentId);
+                  }}
+                  className={`${UI_GHOST} ml-auto text-amber-300`}
+                >
+                  <span>Lihat di peta</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
+              </div>
+            </article>
           );
         })}
       </div>

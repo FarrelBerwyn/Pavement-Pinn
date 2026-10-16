@@ -16,22 +16,22 @@ interface PageOverlayProps {
  */
 export const PageOverlay: React.FC<PageOverlayProps> = ({ icon, title, subtitle, backLabel = 'Back to Map', onBack, children }) => {
   return (
-    <div className="fixed inset-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200 text-slate-100 select-text">
+    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-[#0b0f19] p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200 text-slate-100 select-text">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="p-3 bg-amber-400 text-slate-950 rounded-2xl font-black shrink-0">{icon}</div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-amber-400/10 text-amber-300 flex items-center justify-center shrink-0 [&>svg]:w-5 [&>svg]:h-5">{icon}</div>
             <div className="min-w-0">
-              <h2 className="text-xl font-black text-white">{title}</h2>
-              {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+              <h2 className="text-xl font-semibold text-white truncate">{title}</h2>
+              {subtitle && <p className="text-sm text-slate-400 truncate">{subtitle}</p>}
             </div>
           </div>
           <button
             onClick={onBack}
-            className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center space-x-2 shadow-lg shadow-amber-400/20 cursor-pointer shrink-0"
+            className="h-10 px-4 rounded-xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-slate-100 text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
           >
-            <MapIcon className="w-4 h-4" />
-            <span>{backLabel}</span>
+            <MapIcon className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">{backLabel}</span>
           </button>
         </div>
 
