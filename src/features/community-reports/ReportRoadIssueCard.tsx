@@ -134,6 +134,8 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   const [isShutterFlashing, setIsShutterFlashing] = useState<boolean>(false);
   const [isCameraFlipping, setIsCameraFlipping] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  /** Camera page: dark until the browser grants access; no stand-in photo is ever shown. */
+  const [cameraPermission, setCameraPermission] = useState<'REQUESTING' | 'GRANTED' | 'DENIED' | 'UNSUPPORTED'>('REQUESTING');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
@@ -241,30 +243,61 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   };
 
   // Open Full-screen Camera Page
+  /** Ask for the camera (the browser shows its permission prompt) and start the stream. */
+  const requestCameraStream = async (facing: 'environment' | 'user') => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraPermission('UNSUPPORTED');
+      setIsCameraActive(false);
+      return;
+    }
+    setCameraPermission('REQUESTING');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      });
+      mediaStreamRef.current = stream;
+      setCameraPermission('GRANTED');
+      setIsCameraActive(true);
+    } catch (err) {
+      console.warn('Camera not available:', err);
+      setCameraPermission('DENIED');
+      setIsCameraActive(false);
+    }
+  };
+
+  // Open Full-screen Camera Page: dark page, permission prompt, then live camera
   const handleOpenFullscreenCamera = async () => {
     setValidationError(null);
     setCameraError(null);
     setCurrentState('CAMERA_CAPTURE');
-
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: cameraFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }
-        });
-        mediaStreamRef.current = stream;
-        setIsCameraActive(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      } else {
-        setIsCameraActive(false);
-      }
-    } catch (err: any) {
-      console.warn('Live camera stream not directly accessible:', err);
-      setIsCameraActive(false);
-    }
+    await requestCameraStream(cameraFacing);
   };
+
+  // Attach the stream once the <video> element is on screen.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (currentState === 'CAMERA_CAPTURE' && isCameraActive && video && mediaStreamRef.current) {
+      video.srcObject = mediaStreamRef.current;
+      video.play().catch(() => undefined);
+    }
+  }, [currentState, isCameraActive]);
+
+  // If access was blocked and the user allows it later in the browser, open the camera right away.
+  useEffect(() => {
+    if (currentState !== 'CAMERA_CAPTURE' || cameraPermission !== 'DENIED' || !navigator.permissions?.query) return;
+    let status: PermissionStatus | null = null;
+    const onChange = () => {
+      if (status?.state === 'granted') requestCameraStream(cameraFacing);
+    };
+    navigator.permissions
+      .query({ name: 'camera' as PermissionName })
+      .then((st) => {
+        status = st;
+        st.addEventListener('change', onChange);
+      })
+      .catch(() => undefined);
+    return () => status?.removeEventListener('change', onChange);
+  }, [currentState, cameraPermission, cameraFacing]);
 
   // Switch / Flip Front & Back Camera
   const handleFlipCamera = async () => {
@@ -275,21 +308,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
     setCameraFacing(nextFacing);
 
     stopCameraStream();
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: nextFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }
-        });
-        mediaStreamRef.current = stream;
-        setIsCameraActive(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      }
-    } catch (err) {
-      console.warn('Failed flipping camera:', err);
-    }
+    await requestCameraStream(nextFacing);
   };
 
   // Toggle Flash Mode
@@ -301,27 +320,20 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
   // Capture photo from live camera or high-res road snapshot -> Now prompts confirmation
   const handleCapturePhoto = () => {
+    // Only a real camera frame can become evidence; there is no stand-in photo.
+    const video = videoRef.current;
+    if (!video || !isCameraActive || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const capturedUrl = canvas.toDataURL('image/jpeg', 0.92);
+
     // Trigger shutter screen flash animation
     setIsShutterFlashing(true);
     setTimeout(() => setIsShutterFlashing(false), 180);
-
-    let capturedUrl: string = CV_DAMAGE_CLASSES.pothole.samplePhotoUrl;
-
-    if (videoRef.current && isCameraActive) {
-      try {
-        const video = videoRef.current;
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 1280;
-        canvas.height = video.videoHeight || 720;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          capturedUrl = canvas.toDataURL('image/jpeg', 0.92);
-        }
-      } catch (e) {
-        console.warn('Canvas capture fallback:', e);
-      }
-    }
 
     setSelectedImage(capturedUrl);
     setImageFileName(`road_capture_${Date.now().toString().slice(-4)}.jpg`);
@@ -556,31 +568,18 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             <div className="absolute inset-0 bg-white z-[2100] pointer-events-none transition-opacity duration-150" />
           )}
 
-          {/* Background Camera Viewfinder Feed / Realistic Perspective Fallback */}
-          <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
-            {isCameraActive ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="relative w-full h-full bg-slate-950 flex items-center justify-center">
-                {/* Authentic road surface with centered pothole matching Reference Image 2 */}
-                <img
-                  src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=1400"
-                  alt="Road Surface Viewfinder"
-                  className="w-full h-full object-cover brightness-[0.9] contrast-[1.05]"
-                />
-                {/* Subtle perspective road overlay with realistic road texture */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/75 pointer-events-none" />
-              </div>
-            )}
+          {/* Live camera feed on a dark page; nothing else is shown until access is granted */}
+          <div className="absolute inset-0 w-full h-full overflow-hidden z-0 bg-[#0B0F17]">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover ${isCameraActive ? '' : 'hidden'}`}
+            />
 
             {/* Viewfinder Center Reticle (Subtle Framing Corners) */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className={`absolute inset-0 flex items-center justify-center pointer-events-none ${isCameraActive ? '' : 'hidden'}`}>
               <div className="w-64 h-64 sm:w-80 sm:h-80 border border-white/20 rounded-3xl relative">
                 <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white/80 rounded-tl-xl" />
                 <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white/80 rounded-tr-xl" />
@@ -592,6 +591,50 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Permission state on the dark page (no stand-in image) */}
+          {!isCameraActive && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 px-8 text-center" role="status">
+              <span className="w-12 h-12 rounded-2xl bg-amber-400/10 text-amber-300 flex items-center justify-center">
+                <Camera className="w-6 h-6" />
+              </span>
+              {cameraPermission === 'REQUESTING' ? (
+                <>
+                  <p className="text-sm font-medium text-white">Meminta izin kamera…</p>
+                  <p className="text-xs text-slate-400">Pilih “Izinkan” pada pesan browser untuk membuka kamera.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-white">
+                    {cameraPermission === 'UNSUPPORTED' ? 'Kamera tidak didukung di browser ini' : 'Akses kamera belum diizinkan'}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {cameraPermission === 'UNSUPPORTED'
+                      ? 'Pilih foto dari galeri sebagai gantinya.'
+                      : 'Izinkan kamera di pengaturan browser; kamera akan langsung terbuka. Atau pilih foto dari galeri.'}
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    {cameraPermission === 'DENIED' && (
+                      <button
+                        type="button"
+                        onClick={() => requestCameraStream(cameraFacing)}
+                        className="h-10 px-4 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-semibold cursor-pointer"
+                      >
+                        Coba lagi
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-10 px-4 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-white text-sm font-medium cursor-pointer"
+                    >
+                      Pilih dari galeri
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* TOP BAR OVERLAY: < Chevron Left, "Report Road Issue", Flash / AI Toggle */}
           <div className="relative z-30 pt-safe pt-4 px-4 sm:px-6 flex items-center justify-between">
@@ -648,7 +691,8 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <button
                 type="button"
                 onClick={handleCapturePhoto}
-                className="w-20 h-20 rounded-full border-4 border-white/90 flex items-center justify-center p-1 cursor-pointer active:scale-90 transition-transform shadow-2xl group"
+                disabled={!isCameraActive}
+                className="w-20 h-20 rounded-full border-4 border-white/90 flex items-center justify-center p-1 cursor-pointer active:scale-90 transition-transform shadow-2xl group disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Ambil Foto Kerusakan Jalan"
               >
                 <div className="w-full h-full bg-white rounded-full transition-all group-hover:scale-95 group-active:scale-90 shadow-md" />
