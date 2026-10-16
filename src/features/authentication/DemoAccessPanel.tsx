@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSheetDrag } from '../../components/ui/useSheetDrag';
 import { X } from 'lucide-react';
 import type { DemoCredential, DemoLayout } from '../../data/reference/demoCredentials';
 import { USER_ACCOUNTS } from './demoAccounts';
@@ -21,6 +22,8 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
   const [credentials, setCredentials] = useState<readonly DemoCredential[] | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  // Swipe down to close on phones (from the top of the panel).
+  const sheet = useSheetDrag({ mode: 'translate', onClose, maxWidth: 639 });
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +55,12 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
   return (
     <div className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-slate-950/50 p-0 sm:p-4" onClick={onClose}>
       <div
-        ref={dialogRef}
+        ref={(el) => {
+          dialogRef.current = el;
+          sheet.sheetRef.current = el;
+        }}
+        {...sheet.sheetProps}
+        data-sheet-scroll
         role="dialog"
         aria-modal="true"
         aria-labelledby="demo-access-title"

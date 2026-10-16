@@ -30,6 +30,7 @@ import { DamageReport, DamageType, ReportMutationHandler, ReportSeverity, RoadSe
 import { UserAccount } from '../authentication/demoAccounts';
 import { createSessionReport, ReportCreationError } from './reportFactory';
 import { settleMutation } from './reportMutations';
+import { useSheetDrag } from '../../components/ui/useSheetDrag';
 import { CV_DAMAGE_CLASSES, CVDamageClassInfo, analyzeImageDamageClass } from '../../engines/computer-vision/classification/cvDamageClasses';
 
 export type ReportCardState =
@@ -79,7 +80,7 @@ const SheetHeader: React.FC<{ step: number; title: string; subtitle: string; onB
   onBack,
   onClose
 }) => (
-  <div className="space-y-3">
+  <div data-sheet-grab className="space-y-3 touch-none sm:touch-auto">
     <div className="mx-auto h-1 w-10 rounded-full bg-white/15 sm:hidden" aria-hidden="true" />
     <div className="flex items-start gap-2">
       {onBack && (
@@ -141,6 +142,16 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
   // File Input Ref
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Swipe the sheet down to close it (header, or the content when scrolled to the top).
+  const { sheetRef, sheetProps } = useSheetDrag({
+    mode: 'translate',
+    onClose: () => {
+      stopCameraStream();
+      onClose();
+    },
+    maxWidth: 639
+  });
 
   // Location State
   const [locationName, setLocationName] = useState<string>('Jl. Sudirman, Karet Tengsin, Jakarta Pusat');
@@ -837,7 +848,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             }}
           />
 
-          <div className={SHEET}>
+          <div ref={sheetRef as React.RefObject<HTMLDivElement>} {...sheetProps} data-sheet-scroll className={SHEET}>
             {/* ========================================================================= */}
             {/* STEP 1: INPUT REPORT (notes, photo, location)                             */}
             {/* ========================================================================= */}

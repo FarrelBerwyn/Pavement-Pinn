@@ -1,6 +1,17 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
-import { MapSheetState, sheetStateAfterDrag, stepSheetState } from './sheetState';
+import { MapSheetState, stepSheetState } from './sheetState';
+import { useSheetDrag } from '../ui/useSheetDrag';
+
+/** Heights (px) of the phone snap points; they match the classes in `mobileShape`. */
+function mapSheetSnaps() {
+  const vh = window.innerHeight;
+  return [
+    { key: 'PEEK' as const, height: Math.min(176, Math.max(132, vh * 0.2)) },
+    { key: 'HALF' as const, height: vh * 0.46 },
+    { key: 'FULL' as const, height: vh * 0.88 }
+  ];
+}
 
 interface MapSheetProps {
   isOpen: boolean;
@@ -33,36 +44,19 @@ export const MapSheet: React.FC<MapSheetProps> = ({
   closeLabel,
   children
 }) => {
-  const dragStartY = useRef<number | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
+  const { sheetRef, sheetProps } = useSheetDrag<MapSheetState>({
+    mode: 'height',
+    snaps: mapSheetSnaps,
+    onSnap: (next) => next !== state && onStateChange(next),
+    onClose,
+    maxWidth: 767
+  });
 
   if (!isOpen) return null;
 
   const apply = (next: MapSheetState | 'CLOSED') => {
     if (next === 'CLOSED') onClose();
     else if (next !== state) onStateChange(next);
-  };
-
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    dragStartY.current = e.clientY;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // Capture is an optimisation; without it the drag still ends on pointerup over the handle
-    }
-  };
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragStartY.current === null) return;
-    setDragOffset(e.clientY - dragStartY.current);
-  };
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragStartY.current === null) return;
-    const delta = e.clientY - dragStartY.current;
-    dragStartY.current = null;
-    setDragOffset(0);
-    // A press without movement on the handle steps the sheet up (or back to HALF from FULL)
-    if (Math.abs(delta) < 6) apply(state === 'FULL' ? 'HALF' : stepSheetState(state, 'UP'));
-    else apply(sheetStateAfterDrag(state, delta));
   };
 
   const mobileShape =
@@ -86,25 +80,19 @@ export const MapSheet: React.FC<MapSheetProps> = ({
         aria-label={title}
         data-testid="map-sheet"
         data-state={state}
-        style={dragOffset !== 0 ? { transform: `translateY(${Math.max(-24, dragOffset)}px)` } : undefined}
-        className={`fixed z-40 flex flex-col bg-[#0f1420] text-slate-100 border border-white/10 shadow-lg overflow-hidden ${
-          dragOffset !== 0 ? '' : 'transition-[height,transform] duration-200 ease-out'
-        } ${mobileShape} md:absolute md:inset-x-auto md:right-4 md:top-20 md:bottom-6 md:h-auto md:max-h-none md:min-h-0 md:w-[380px] md:rounded-2xl`}
+        ref={sheetRef as React.RefObject<HTMLElement>}
+        {...sheetProps}
+        className={`fixed z-40 flex flex-col bg-[#0f1420] text-slate-100 border border-white/10 shadow-lg overflow-hidden transition-[height,transform] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${mobileShape} md:absolute md:inset-x-auto md:right-4 md:top-20 md:bottom-6 md:h-auto md:max-h-none md:min-h-0 md:w-[380px] md:rounded-2xl`}
       >
         <div
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={() => {
-            dragStartY.current = null;
-            setDragOffset(0);
-          }}
+          data-sheet-grab
+          onClick={() => apply(state === 'FULL' ? 'HALF' : stepSheetState(state, 'UP'))}
           className="shrink-0 pt-2 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none md:hidden"
         >
           <span className="w-10 h-1 rounded-full bg-white/30" />
         </div>
 
-        <header className="shrink-0 px-4 pt-1 md:pt-4 pb-3 flex items-start gap-3 border-b border-white/10">
+        <header data-sheet-grab className="touch-none md:touch-auto shrink-0 px-4 pt-1 md:pt-4 pb-3 flex items-start gap-3 border-b border-white/10">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold leading-snug text-white truncate">{title}</h2>
@@ -123,7 +111,7 @@ export const MapSheet: React.FC<MapSheetProps> = ({
           </button>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+        <div data-sheet-scroll className="flex-1 min-h-0 overflow-y-auto px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
           {children}
         </div>
       </section>

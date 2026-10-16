@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSheetDrag } from '../../components/ui/useSheetDrag';
 import {
   X,
   MapPin,
@@ -84,13 +85,25 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
   const [newReviewText, setNewReviewText] = useState<string>('');
   const [reviewSubmitSuccess, setReviewSubmitSuccess] = useState<boolean>(false);
 
-  // Dragging gesture state
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
-  const dragStartYRef = useRef<number | null>(null);
-  const dragStartTimeRef = useRef<number>(0);
-  const currentOffsetYRef = useRef<number>(0);
-  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<() => void>(() => undefined);
+  // Shared drag: the card follows the finger and settles on PEEK / HALF / FULL (or closes).
+  const { sheetRef, sheetProps } = useSheetDrag<SheetSnapPoint>({
+    mode: 'height',
+    snaps: () => {
+      const vh = window.innerHeight;
+      return [
+        { key: 'PEEK', height: 116 },
+        { key: 'HALF', height: Math.min(460, Math.max(360, vh * 0.48)) },
+        { key: 'FULL', height: vh * 0.9 }
+      ];
+    },
+    onSnap: (next) => {
+      if (next !== 'FULL' && scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+      setSnapPoint(next);
+    },
+    onClose: () => closeRef.current(),
+    maxWidth: 639
+  });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Trigger smooth scroll-up animation when sheet is opened or report changes
@@ -98,7 +111,6 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
     if (isOpen) {
       setIsClosing(false);
       setSnapPoint('HALF');
-      setDragOffsetY(0);
       setReviewSubmitSuccess(false);
       setNewReviewText('');
       
@@ -119,15 +131,14 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
   const handleClose = () => {
     if (isClosing) return;
     setIsClosing(true);
-    setIsDragging(false);
     setTimeout(() => {
       onClose();
       setIsClosing(false);
       setIsEntering(false);
       setSnapPoint('HALF');
-      setDragOffsetY(0);
     }, 320);
   };
+  closeRef.current = handleClose;
 
   const handleCopyLocation = () => {
     const textToCopy = `${report.segmentName}, ${report.province} (${report.coordinates[0].toFixed(5)}, ${report.coordinates[1].toFixed(5)})`;
@@ -154,163 +165,6 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
     setNewReviewText('');
     setReviewSubmitSuccess(true);
     setTimeout(() => setReviewSubmitSuccess(false), 3000);
-  };
-
-  // Touch / Drag Gesture Handlers (for Card & Drag Handle)
-  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    dragStartYRef.current = clientY;
-    dragStartTimeRef.current = Date.now();
-    currentOffsetYRef.current = 0;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (dragStartYRef.current === null) return;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const deltaY = clientY - dragStartYRef.current;
-
-    // Check if inner content is scrolled
-    const scrollContainer = scrollContainerRef.current;
-    const isScrolledDown = scrollContainer && scrollContainer.scrollTop > 5;
-
-    // If fully expanded and user is scrolling content downward, allow native scroll
-    if (snapPoint === 'FULL' && isScrolledDown && deltaY < 0) {
-      return;
-    }
-
-    // When pulling down at the top of content while in FULL mode, allow dragging the card down
-    if (snapPoint === 'FULL' && isScrolledDown && deltaY > 0) {
-      return;
-    }
-
-    // Apply drag offset with resistance
-    let offset = deltaY;
-    if (snapPoint === 'FULL' && deltaY < 0) {
-      // Top boundary resistance (can't drag higher than 88vh top limit)
-      offset = deltaY * 0.2;
-    }
-    setDragOffsetY(offset);
-    currentOffsetYRef.current = offset;
-  };
-
-  const handleTouchEnd = () => {
-    if (dragStartYRef.current === null) return;
-    const finalDelta = currentOffsetYRef.current;
-    const elapsed = Math.max(1, Date.now() - dragStartTimeRef.current);
-    const velocity = finalDelta / elapsed; // px per ms
-    dragStartYRef.current = null;
-    setIsDragging(false);
-
-    // Gestural Snap & Dismiss Decisions
-    if (snapPoint === 'PEEK') {
-      if (finalDelta > 40 || velocity > 0.45) {
-        handleClose();
-      } else {
-        if (finalDelta < -30) setSnapPoint('HALF');
-        setDragOffsetY(0);
-      }
-    } else if (snapPoint === 'HALF') {
-      if (finalDelta < -45 || (velocity < -0.4 && finalDelta < -20)) {
-        // Dragged up significantly -> Expand to FULL
-        setSnapPoint('FULL');
-        setDragOffsetY(0);
-      } else if (finalDelta > 55 || velocity > 0.45) {
-        // Dragged down from HALF -> PEEK: the summary stays, the map is free again
-        setSnapPoint('PEEK');
-        setDragOffsetY(0);
-      } else {
-        setDragOffsetY(0);
-      }
-    } else if (snapPoint === 'FULL') {
-      if (finalDelta > 160 || (velocity > 0.65 && finalDelta > 80)) {
-        // Dragged down deeply from FULL -> Scroll down exit animation and close
-        handleClose();
-      } else if (finalDelta > 50 || velocity > 0.35) {
-        // Dragged down moderately from FULL -> Snap back to HALF
-        setSnapPoint('HALF');
-        setDragOffsetY(0);
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = 0;
-        }
-      } else {
-        setDragOffsetY(0);
-      }
-    }
-  };
-
-  // Inner Content Scroll/Drag Handlers (Pull down to dismiss when at top)
-  const handleContentTouchStart = (e: React.TouchEvent) => {
-    const clientY = e.touches[0].clientY;
-    dragStartYRef.current = clientY;
-    dragStartTimeRef.current = Date.now();
-    currentOffsetYRef.current = 0;
-  };
-
-  const handleContentTouchMove = (e: React.TouchEvent) => {
-    if (dragStartYRef.current === null) return;
-    const clientY = e.touches[0].clientY;
-    const deltaY = clientY - dragStartYRef.current;
-    const scrollContainer = scrollContainerRef.current;
-
-    // Only initiate sheet drag if at the very top of scroll container and dragging downward
-    if (scrollContainer && scrollContainer.scrollTop <= 0 && deltaY > 0) {
-      setIsDragging(true);
-      setDragOffsetY(deltaY);
-      currentOffsetYRef.current = deltaY;
-    }
-  };
-
-  const handleContentTouchEnd = () => {
-    if (isDragging) {
-      handleTouchEnd();
-    } else {
-      dragStartYRef.current = null;
-    }
-  };
-
-  // Background / Backdrop Gesture Handlers (detect downward scroll/swipe on background to dismiss)
-  const handleBackdropTouchStart = (e: React.TouchEvent) => {
-    const clientY = e.touches[0].clientY;
-    dragStartYRef.current = clientY;
-    dragStartTimeRef.current = Date.now();
-    currentOffsetYRef.current = 0;
-    setIsDragging(true);
-  };
-
-  const handleBackdropTouchMove = (e: React.TouchEvent) => {
-    if (dragStartYRef.current === null) return;
-    const clientY = e.touches[0].clientY;
-    const deltaY = clientY - dragStartYRef.current;
-    if (deltaY > 0) {
-      // Pulling card down from background
-      setDragOffsetY(deltaY);
-      currentOffsetYRef.current = deltaY;
-    }
-  };
-
-  const handleBackdropTouchEnd = () => {
-    if (dragStartYRef.current === null) return;
-    const finalDelta = currentOffsetYRef.current;
-    const elapsed = Math.max(1, Date.now() - dragStartTimeRef.current);
-    const velocity = finalDelta / elapsed;
-    dragStartYRef.current = null;
-    setIsDragging(false);
-
-    if (finalDelta > 40 || velocity > 0.35) {
-      // Swiped/scrolled background down -> Dismiss card
-      handleClose();
-    } else {
-      setDragOffsetY(0);
-    }
-  };
-
-  // Background Wheel listener for desktop trackpad/mouse scroll down
-  const handleBackdropWheel = (e: React.WheelEvent) => {
-    if (e.deltaY > 25) {
-      // Scrolled down on background -> dismiss card
-      handleClose();
-    }
   };
 
   const toggleSnapPoint = () => {
@@ -341,10 +195,6 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
       {/* Mobile Backdrop & Background Gesture Capture Layer (No blur under dark background) */}
       <div
         onClick={handleClose}
-        onTouchStart={handleBackdropTouchStart}
-        onTouchMove={handleBackdropTouchMove}
-        onTouchEnd={handleBackdropTouchEnd}
-        onWheel={handleBackdropWheel}
         className={`fixed inset-0 z-30 transition-all duration-300 sm:hidden cursor-pointer ${
           isClosing
             ? 'opacity-0 pointer-events-none'
@@ -361,20 +211,17 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
       {/* DRAGGABLE BOTTOM SHEET CARD CONTAINER (90% Height on Expand, No blur)    */}
       {/* ========================================================================= */}
       <div
-        ref={sheetRef}
+        ref={sheetRef as React.RefObject<HTMLDivElement>}
+        {...sheetProps}
         onClick={handleCardSurfaceClick}
         style={{
           transform: isClosing || isEntering
             ? 'translateY(100%)'
-            : isDragging && dragOffsetY !== 0
-            ? `translateY(${Math.max(-20, dragOffsetY)}px)`
             : 'translateY(0px)',
           opacity: isClosing ? 0 : 1
         }}
         className={`fixed sm:absolute z-40 sm:z-30 bg-[#0B0F19] border-t sm:border border-white/20 rounded-t-[36px] sm:rounded-[32px] shadow-2xl flex flex-col overflow-hidden text-slate-100 box-border inset-x-0 bottom-0 select-none will-change-transform ${
-          isDragging
-            ? 'transition-none'
-            : isClosing
+          isClosing
             ? 'transition-all duration-320 ease-[cubic-bezier(0.32,0,0.67,0)]'
             : 'transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]'
         } ${
@@ -388,14 +235,9 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
       >
         {/* DRAG HANDLE BAR (TOUCH & POINTER GRAB ZONE) */}
         <div
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={handleTouchStart}
-          onMouseMove={handleTouchMove}
-          onMouseUp={handleTouchEnd}
+          data-sheet-grab
           onClick={toggleSnapPoint}
-          className="w-full pt-2.5 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors shrink-0"
+          className="touch-none sm:touch-auto w-full pt-2.5 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors shrink-0"
         >
           {/* Visual Pill Indicator */}
           <div className="w-14 h-1.5 bg-white/40 hover:bg-amber-400 rounded-full transition-all duration-200" />
@@ -411,10 +253,8 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
 
         {/* STICKY HEADER ZONE (AVATAR, TITLE, CLOSE BUTTON) */}
         <div
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="px-4 pt-1 pb-2.5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0"
+          data-sheet-grab
+          className="touch-none sm:touch-auto px-4 pt-1 pb-2.5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0"
         >
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             {/* Circular Thumbnail Avatar */}
@@ -476,9 +316,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
         {/* ========================================================================= */}
         <div
           ref={scrollContainerRef}
-          onTouchStart={handleContentTouchStart}
-          onTouchMove={handleContentTouchMove}
-          onTouchEnd={handleContentTouchEnd}
+          data-sheet-scroll
           className="flex-1 overflow-y-auto px-4 py-3 space-y-3.5 custom-scrollbar select-text overscroll-contain"
         >
           {/* Quick Info Badges Row */}

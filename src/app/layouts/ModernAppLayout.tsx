@@ -95,6 +95,7 @@ import { ReportDetailBottomSheet } from '../../features/community-reports/Report
 import { DEMO_DATA_LABEL } from '../../data/provenance';
 import { LatLngBounds, itemsInBounds } from '../../components/maps/mapDetail';
 import { MapSheet } from '../../components/maps/MapSheet';
+import { useSheetDrag } from '../../components/ui/useSheetDrag';
 import { MapSheetState, sheetInsetPx } from '../../components/maps/sheetState';
 import { DemoTag, ReportList, RoadSegmentSheet } from '../../features/road-health/RoadSegmentSheet';
 import type { PolicyTabType } from '../../features/policy-analysis/ExecutivePolicyView';
@@ -491,6 +492,24 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const [isNearbyCardExpanded, setIsNearbyCardExpanded] = useState<boolean>(false);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState<boolean>(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  // Activity and profile sheets close with a downward swipe on phones.
+  const activitySheet = useSheetDrag({ mode: 'translate', onClose: () => setIsActivityModalOpen(false), maxWidth: 639 });
+  // "Reports in view" card: drag between half and nearly full; below half it folds into the pill.
+  const [nearbyCardSize, setNearbyCardSize] = useState<'HALF' | 'FULL'>('HALF');
+  const nearbySheet = useSheetDrag<'HALF' | 'FULL'>({
+    mode: 'height',
+    snaps: () => [
+      { key: 'HALF', height: window.innerHeight * 0.48 },
+      { key: 'FULL', height: window.innerHeight * 0.78 }
+    ],
+    onSnap: setNearbyCardSize,
+    onClose: () => {
+      setIsNearbyCardExpanded(false);
+      setNearbyCardSize('HALF');
+    },
+    maxWidth: 639
+  });
+  const profileSheet = useSheetDrag({ mode: 'translate', onClose: () => setIsProfileModalOpen(false), maxWidth: 639 });
   const [isQuickSearchModalOpen, setIsQuickSearchModalOpen] = useState<boolean>(false);
 
   // Sample preset images for report creation
@@ -2013,9 +2032,23 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
           {/* OVERLAY 2: FLOATING "ROAD ISSUES NEARBY" CARD (Above bottom nav bar) */}
           {!isFieldEngineer && isNearbyCardExpanded && !isDetailsPanelOpen && !isMapSheetOpen && (
-            <div className="absolute bottom-[78px] sm:bottom-[86px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto max-h-[48vh] sm:max-h-[55vh] flex flex-col box-border overflow-hidden">
+            <div
+              ref={nearbySheet.sheetRef as React.RefObject<HTMLDivElement>}
+              {...nearbySheet.sheetProps}
+              className={`absolute bottom-[78px] sm:bottom-[86px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-2xl px-3.5 pb-3.5 pt-2 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto flex flex-col box-border overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+                nearbyCardSize === 'FULL' ? 'h-[78vh]' : 'h-[48vh]'
+              } sm:h-auto sm:max-h-[55vh]`}
+            >
+              {/* Drag handle (phones): pull up for more, down to fold into the pill */}
+              <div
+                data-sheet-grab
+                onClick={() => setNearbyCardSize(nearbyCardSize === 'FULL' ? 'HALF' : 'FULL')}
+                className="sm:hidden -mx-3.5 pb-1.5 flex justify-center cursor-grab active:cursor-grabbing touch-none shrink-0"
+              >
+                <span className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
               {/* Card Header & Toggle */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2 shrink-0">
+              <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2 shrink-0">
                 <div className="flex items-center space-x-2.5 min-w-0">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                   <div className="min-w-0 flex-1">
@@ -2084,7 +2117,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               </div>
 
               {/* Scrollable list of recent issues */}
-              <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar flex-1">
+              <div data-sheet-scroll className="space-y-2 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
                 {reportsInView.length === 0 && (
                   <p className="text-xs text-slate-400 py-3 text-center">
                     {language === 'en' ? 'No reports in this area. Move or zoom out the map.' : 'Tidak ada laporan di area ini. Geser atau perkecil peta.'}
@@ -2644,8 +2677,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       {/* MODAL: ACTIVITY / AUDIT FEED (Mobile Tab 4) */}
       {isActivityModalOpen && (
         <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
+          <div ref={activitySheet.sheetRef as React.RefObject<HTMLDivElement>} {...activitySheet.sheetProps} className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[85vh] flex flex-col">
+            <div data-sheet-grab className="sm:hidden -mt-2 pb-1 flex justify-center touch-none" aria-hidden="true"><span className="w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20" /></div>
+            <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-300 text-slate-950 font-black shadow-md shadow-amber-400/20">
                   <Sparkles className="w-5 h-5" />
@@ -2719,9 +2753,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       {/* MODAL: PROFILE & USER DRAWER (Mobile Tab 5) */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[90vh] flex flex-col overflow-y-auto">
+          <div ref={profileSheet.sheetRef as React.RefObject<HTMLDivElement>} {...profileSheet.sheetProps} data-sheet-scroll className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[90vh] flex flex-col overflow-y-auto">
+            <div data-sheet-grab className="sm:hidden -mt-2 pb-1 flex justify-center touch-none" aria-hidden="true"><span className="w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20" /></div>
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
+            <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
               <div className="flex items-center space-x-3">
                 <img
                   src={currentAccount.avatarUrl}
