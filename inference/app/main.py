@@ -3,8 +3,8 @@
 Run from the inference/ folder:  .venv/Scripts/python -m uvicorn app.main:app --port 8100
 Express reaches it through INFERENCE_URL (default http://127.0.0.1:8100).
 
-M1 scope: /v1/health and /v1/assess with the MLET reference solver. The PI-surrogate,
-Monte Carlo and OpenVINO models arrive in M2; until then the response says so.
+/v1/assess: MLET reference strains (PyMastic) for the given structure, plus (M2) a Monte Carlo
+life index P10/P50/P90 for dry and wet subgrade, evaluated with the PI-surrogate on OpenVINO.
 """
 from __future__ import annotations
 
@@ -17,8 +17,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .mlet import METHOD, STANDARD_AXLE_TON, allowable_reps, life_index_years, mlet_strains
+from .surrogate import load_surrogate, life_monte_carlo
 
-ENGINE_VERSION = "mlet-1.0.0"
+ENGINE_VERSION = "mlet-1.1.0"
 
 app = FastAPI(title="PAVEMENT-PINN inference", version=ENGINE_VERSION)
 
@@ -72,7 +73,7 @@ class AssessRequest(Strict):
     traffic: Traffic | None = None
     criterion: Literal["AI", "AUS"] = "AI"
     damage_used: float = Field(default=0.0, ge=0, lt=1)
-    n_mc: int = Field(default=0, ge=0, le=20000)
+    n_mc: int = Field(default=2000, ge=0, le=20000)
     seed: int | None = None
 
     @model_validator(mode="after")
@@ -86,16 +87,34 @@ def device_info() -> dict:
     return {"kind": "CPU", "processor": platform.processor() or platform.machine(), "platform": platform.platform()}
 
 
+def openvino_devices() -> tuple[str | None, list[dict]]:
+    try:
+        import openvino as ov
+    except ImportError:
+        return None, []
+    core = ov.Core()
+    return ov.__version__, [{"id": d, "name": core.get_property(d, "FULL_DEVICE_NAME")} for d in core.available_devices]
+
+
+def surrogate_info(s) -> dict | None:
+    if s is None:
+        return None
+    return {"version": s.metrics["version"], "precision": s.precision, "device": s.device,
+            "openvino_version": s.openvino_version, "test_errors": s.metrics["random_split"]}
+
+
 @app.get("/v1/health")
 def health() -> dict:
+    ov_version, devices = openvino_devices()
+    s = load_surrogate()
     return {
         "status": "ok",
         "engine_version": ENGINE_VERSION,
         "python": sys.version.split()[0],
         "mlet_method": METHOD,
-        "openvino_version": None,
-        "available_devices": [],
-        "models_loaded": [],
+        "openvino_version": ov_version,
+        "available_devices": devices,
+        "models_loaded": [] if s is None else [surrogate_info(s)],
         "device": device_info(),
     }
 
@@ -123,7 +142,7 @@ def assess(req: AssessRequest) -> dict:
         raise HTTPException(status_code=422, detail=f"MLET could not solve this structure: {exc}") from exc
     mlet_ms = (time.perf_counter() - started) * 1000
 
-    nf, nd = allowable_reps(strains["et_ue"], strains["ev_ue"], req.layers[0].E_mpa, req.criterion)
+    nf, nd = map(float, allowable_reps(strains["et_ue"], strains["ev_ue"], req.layers[0].E_mpa, req.criterion))
     n_allow = min(nf, nd)
     life = None
     if req.traffic is not None:
@@ -139,8 +158,7 @@ def assess(req: AssessRequest) -> dict:
         }
         if req.damage_used == 0:
             assumptions.append("Damage already used = 0 (construction year unknown), ASSUMED.")
-    if req.n_mc:
-        assumptions.append("Monte Carlo over materials is not available yet (milestone M2); n_mc was ignored.")
+    monte_carlo = run_monte_carlo(req, sg, assumptions)
 
     return {
         "segment_id": req.segment_id,
@@ -149,9 +167,37 @@ def assess(req: AssessRequest) -> dict:
         "allowable": {"criterion": req.criterion, "nf": nf, "nd": nd, "governing": "fatigue" if nf <= nd else "rutting"},
         "life_years": life,
         "damage_used": req.damage_used,
-        "surrogate": None,
+        "monte_carlo": monte_carlo,
+        "surrogate": surrogate_info(load_surrogate()) if monte_carlo and monte_carlo.get("dry") else None,
         "assumptions": assumptions,
         "status_label": "COMPUTED",
         "engine_version": ENGINE_VERSION,
         "device": device_info(),
     }
+
+
+def run_monte_carlo(req: AssessRequest, sg: Subgrade, assumptions: list[str]) -> dict | None:
+    """Dry and wet Monte Carlo with the PI-surrogate, or a stated reason why not."""
+    if req.n_mc == 0:
+        return None
+    if req.traffic is None:
+        return {"status": "NO_TRAFFIC", "message": "Monte Carlo needs the traffic range (ESAL/day P10-P90)."}
+    if len(req.layers) != 2 or req.load.dual_spacing_mm is None or req.load.tyres_per_axle != 4             or [l.nu for l in req.layers] + [sg.nu] != [0.35, 0.35, 0.45] or sg.E_mpa is not None:
+        return {"status": "OUTSIDE_SURROGATE_SCOPE",
+                "message": "The surrogate covers 2 bound layers on a CBR subgrade, dual tyres, nu 0.35/0.35/0.45."}
+    s = load_surrogate()
+    if s is None:
+        return {"status": "MODEL_UNAVAILABLE", "message": "No trained surrogate in models/."}
+    t = req.traffic
+    per_year = tuple(e * 365 * t.direction_factor * t.lane_factor for e in (t.esal_day_p10, t.esal_day_p50, t.esal_day_p90))
+    common = dict(segment_id=req.segment_id, seed=req.seed, n=req.n_mc, h1=req.layers[0].h_mm, h2=req.layers[1].h_mm,
+                  E1=req.layers[0].E_mpa, E2=req.layers[1].E_mpa, cbr=sg.cbr, soaked_factor=sg.soaked_factor,
+                  axle_t=req.load.axle_t, q=req.load.q_mpa, d=req.load.dual_spacing_mm, esal_year=per_year,
+                  growth=t.growth, damage_used=req.damage_used, criterion=req.criterion)
+    started = time.perf_counter()
+    dry = life_monte_carlo(s, wet=False, **common)
+    wet = life_monte_carlo(s, wet=True, **common)
+    assumptions.append("Monte Carlo spreads (ASSUMED): h1 sd 10 mm, h2 sd 20 mm, E1 CV 25 %, E2 CV 30 %, CBR CV 35 %, ESAL triangular P10-P90.")
+    return {"status": "COMPUTED" if dry["status"] == wet["status"] == "COMPUTED" else "PARTIAL",
+            "dry": dry, "wet": wet, "elapsed_ms": round((time.perf_counter() - started) * 1000, 1),
+            "label": "indikatif, bukan desain"}

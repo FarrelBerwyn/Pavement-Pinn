@@ -47,8 +47,8 @@ def mlet_strains(axle_t: float, h_mm: list[float], E_mpa: list[float], nu: list[
     return {"et_ue": float(et * 1e6), "ev_ue": float(ev * 1e6), "a_mm": float(a)}
 
 
-def allowable_reps(et_ue: float, ev_ue: float, e1_mpa: float, criterion: str = "AI",
-                   binder_volume_pct: float = 11.0) -> tuple[float, float]:
+def allowable_reps(et_ue, ev_ue, e1_mpa, criterion: str = "AI",
+                   binder_volume_pct: float = 11.0):
     """Allowable standard-axle repetitions to fatigue (Nf) and subgrade rutting (Nd).
     AI = Asphalt Institute (1982) as given in Huang, Pavement Analysis and Design.
     AUS = Austroads (2004) form; constants must be checked against the edition cited."""
@@ -61,7 +61,7 @@ def allowable_reps(et_ue: float, ev_ue: float, e1_mpa: float, criterion: str = "
         nd = (9300.0 / ev_ue) ** 7
     else:
         raise ValueError(criterion)
-    return float(nf), float(nd)
+    return nf, nd  # scalars or numpy arrays (Monte Carlo)
 
 
 def life_index_years(n_allow: float, esal_per_year: float, growth: float, damage_used: float) -> float:

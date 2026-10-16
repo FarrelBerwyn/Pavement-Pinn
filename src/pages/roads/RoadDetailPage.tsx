@@ -10,6 +10,7 @@ import type { EngineeringAssessment } from '../../domain/intelligence/assessment
 import type { StructuredExplanation } from '../../domain/intelligence/explain';
 import type { StoryEntry } from '../../domain/intelligence/roadStory';
 import { RoadStoryTimeline, SegmentRiskCard, WhatIfPanel } from '../../features/road-intelligence/SegmentInsight';
+import { StructuralAssessmentPanel } from '../../features/road-intelligence/StructuralAssessmentPanel';
 
 const CONDITION_LABEL: Record<RoadConditionCategory, string> = {
   GOOD: 'Baik',
@@ -138,6 +139,9 @@ export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ p
         <p className="rounded-2xl border border-white/10 bg-[#121622] p-4 text-[11px] text-slate-400">
           What-If (simulasi skenario) tersedia untuk Field Engineer. Hasil simulasi yang sudah dijalankan tampil di Road Story dengan label SIMULATED.
         </p>
+      )}
+      {insight && isFieldEngineer && (
+        <StructuralAssessmentPanel segmentId={segment.id} baseline={insight.assessment.inputs} onRun={(body) => workflow.gateway.engineAssess(body)} />
       )}
       {insight && isFieldEngineer && (
         <WhatIfPanel

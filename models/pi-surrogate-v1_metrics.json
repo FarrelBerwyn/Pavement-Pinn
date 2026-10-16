@@ -1,0 +1,245 @@
+{
+  "version": "pi-surrogate-v1",
+  "trained_from": "PyMastic MLET (dual tyres), mlet_dual_v1.npz",
+  "features": [
+    "ln_h1_a",
+    "ln_h2_a",
+    "ln_E1_E3",
+    "ln_E2_E3",
+    "ln_d_a"
+  ],
+  "targets": "ln(strain * E3 / q) for et, ev",
+  "n_train": 15915,
+  "n_test": 3979,
+  "steps": 6000,
+  "lambda_mono": 0.1,
+  "seed": 0,
+  "device": {
+    "train": "cpu",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "torch": "2.14.1+cpu",
+    "xpu_available": false
+  },
+  "train_seconds": 43.6,
+  "sign_check": {
+    "n_points": 300,
+    "step": "+5 %",
+    "seconds": 11.4,
+    "result": {
+      "ln_h1_a->et": {
+        "share_increase": 0.2267,
+        "share_decrease": 0.7733,
+        "constraint": 0
+      },
+      "ln_h1_a->ev": {
+        "share_increase": 0.0,
+        "share_decrease": 1.0,
+        "constraint": -1
+      },
+      "ln_h2_a->et": {
+        "share_increase": 0.03,
+        "share_decrease": 0.97,
+        "constraint": 0
+      },
+      "ln_h2_a->ev": {
+        "share_increase": 0.0,
+        "share_decrease": 1.0,
+        "constraint": -1
+      },
+      "ln_E1_E3->et": {
+        "share_increase": 0.1733,
+        "share_decrease": 0.8267,
+        "constraint": 0
+      },
+      "ln_E1_E3->ev": {
+        "share_increase": 0.0,
+        "share_decrease": 1.0,
+        "constraint": -1
+      },
+      "ln_E2_E3->et": {
+        "share_increase": 0.0,
+        "share_decrease": 1.0,
+        "constraint": -1
+      },
+      "ln_E2_E3->ev": {
+        "share_increase": 0.0167,
+        "share_decrease": 0.9833,
+        "constraint": 0
+      },
+      "ln_d_a->et": {
+        "share_increase": 0.5567,
+        "share_decrease": 0.4433,
+        "constraint": 0
+      },
+      "ln_d_a->ev": {
+        "share_increase": 0.0,
+        "share_decrease": 1.0,
+        "constraint": -1
+      }
+    }
+  },
+  "random_split": {
+    "et": {
+      "mape_pct": 1.16,
+      "p95_pct": 3.266,
+      "max_pct": 167.083,
+      "r2_log": 0.99834
+    },
+    "ev": {
+      "mape_pct": 0.587,
+      "p95_pct": 1.729,
+      "max_pct": 9.988,
+      "r2_log": 0.99987
+    }
+  },
+  "ood": {
+    "train": "CBR >= 4 and h1 <= 180 mm",
+    "test": "CBR < 3 or h1 > 200 mm",
+    "n_train": 7739,
+    "n_test": 9708,
+    "errors": {
+      "et": {
+        "mape_pct": 6.955,
+        "p95_pct": 27.689,
+        "max_pct": 3120.469,
+        "r2_log": 0.93263
+      },
+      "ev": {
+        "mape_pct": 6.176,
+        "p95_pct": 28.321,
+        "max_pct": 150.338,
+        "r2_log": 0.97483
+      }
+    }
+  },
+  "monotonic_violation_share": {
+    "pi_surrogate": 0.02785000018775463,
+    "same_net_without_mono_loss": 0.10270000249147415
+  },
+  "ablation": {
+    "plain_mlp_raw_inputs": {
+      "errors": {
+        "et": {
+          "mape_pct": 1.275,
+          "p95_pct": 3.477,
+          "max_pct": 133.17,
+          "r2_log": 0.9923
+        },
+        "ev": {
+          "mape_pct": 0.734,
+          "p95_pct": 2.102,
+          "max_pct": 9.355,
+          "r2_log": 0.99978
+        }
+      },
+      "similarity_max_err_pct": 1080.982
+    },
+    "pi_surrogate_similarity_max_err_pct": 0.0,
+    "random_forest_raw_inputs": {
+      "errors": {
+        "et": {
+          "mape_pct": 12.194,
+          "p95_pct": 30.286,
+          "max_pct": 1228.452,
+          "r2_log": 0.88784
+        },
+        "ev": {
+          "mape_pct": 9.546,
+          "p95_pct": 23.544,
+          "max_pct": 52.041,
+          "r2_log": 0.97018
+        }
+      },
+      "fit_seconds_stock_sklearn": 1.49,
+      "fit_seconds_sklearnex": 1.54
+    }
+  },
+  "domain": {
+    "fmin": [
+      -1.3336074352264404,
+      -0.6295880079269409,
+      1.9286468029022217,
+      -0.37584424018859863,
+      0.2717825770378113
+    ],
+    "fmax": [
+      1.1329401731491089,
+      1.635546326637268,
+      6.204995632171631,
+      3.8983843326568604,
+      1.6219382286071777
+    ]
+  },
+  "openvino": {
+    "version": "2026.4.1-22982-e213a147257-releases/2026/4",
+    "nncf": "3.4.0",
+    "precision": {
+      "fp32": {
+        "max_dev_vs_torch_pct": 0.0004,
+        "vs_mlet": {
+          "et": {
+            "mape_pct": 1.16,
+            "p95_pct": 3.266,
+            "max_pct": 167.083,
+            "r2_log": 0.99834
+          },
+          "ev": {
+            "mape_pct": 0.587,
+            "p95_pct": 1.729,
+            "max_pct": 9.988,
+            "r2_log": 0.99987
+          }
+        }
+      },
+      "fp16": {
+        "max_dev_vs_torch_pct": 3.4933,
+        "vs_mlet": {
+          "et": {
+            "mape_pct": 1.169,
+            "p95_pct": 3.338,
+            "max_pct": 160.122,
+            "r2_log": 0.99825
+          },
+          "ev": {
+            "mape_pct": 0.588,
+            "p95_pct": 1.728,
+            "max_pct": 10.005,
+            "r2_log": 0.99987
+          }
+        }
+      },
+      "int8": {
+        "max_dev_vs_torch_pct": 10.8811,
+        "vs_mlet": {
+          "et": {
+            "mape_pct": 1.663,
+            "p95_pct": 3.989,
+            "max_pct": 142.243,
+            "r2_log": 0.99818
+          },
+          "ev": {
+            "mape_pct": 0.737,
+            "p95_pct": 1.931,
+            "max_pct": 9.56,
+            "r2_log": 0.99982
+          }
+        }
+      }
+    }
+  },
+  "files": {
+    "fp32": {
+      "xml": "pi-surrogate-v1_fp32.xml",
+      "bin_sha256": "cf947733140308f89780b511682452c5f634d1a76ab0b8b143e3d7c0caa76f7d"
+    },
+    "fp16": {
+      "xml": "pi-surrogate-v1_fp16.xml",
+      "bin_sha256": "8a7149c1e7180c7e282be8da2c8f1d418e6df923fbee922448c09bf14d2e30e6"
+    },
+    "int8": {
+      "xml": "pi-surrogate-v1_int8.xml",
+      "bin_sha256": "49e53c67342bc649b4376f1fe5a887666f70ad51ef0a3a53f42c5a34a2608d8a"
+    }
+  },
+  "created": "2026-10-16T20:53:41"
+}

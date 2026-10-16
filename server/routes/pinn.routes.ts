@@ -8,13 +8,24 @@ import type { WorkflowRuntime } from "../services/workflowRuntime";
 export const ENGINE_ASSESS_PATH = "/api/engine/assess";
 export const ENGINE_HEALTH_PATH = "/api/engine/health";
 
+/** First validation message from FastAPI ({detail: string | [{loc, msg}]}), for the UI. */
+function describe(body: unknown): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail[0]?.msg) {
+    const loc = Array.isArray(detail[0].loc) ? detail[0].loc.filter((p: unknown) => p !== "body").join(".") : "";
+    return loc ? `${loc}: ${detail[0].msg}` : String(detail[0].msg);
+  }
+  return "Inference service rejected the request.";
+}
+
 function relay(res: Response, reply: InferenceReply) {
   if ("unavailable" in reply) {
     return res.status(503).json({ success: false, error: { code: "INFERENCE_UNAVAILABLE", message: reply.message } });
   }
   if (!reply.ok) {
     const code = reply.status === 422 ? "VALIDATION" : "INFERENCE_ERROR";
-    return res.status(reply.status).json({ success: false, error: { code, message: "Inference service rejected the request.", detail: reply.body } });
+    return res.status(reply.status).json({ success: false, error: { code, message: describe(reply.body), detail: reply.body } });
   }
   return res.json({ success: true, result: reply.body });
 }

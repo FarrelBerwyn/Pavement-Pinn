@@ -1,0 +1,50 @@
+{
+  "file": "data/mlet_dual_v1.npz",
+  "n_requested": 20000,
+  "n_valid": 19894,
+  "seed": 42,
+  "ranges": {
+    "P": [
+      6,
+      25
+    ],
+    "q": [
+      0.5,
+      0.8
+    ],
+    "h1": [
+      50,
+      250
+    ],
+    "h2": [
+      100,
+      400
+    ],
+    "E1": [
+      1000,
+      5000
+    ],
+    "E2": [
+      100,
+      500
+    ],
+    "CBR": [
+      1,
+      15
+    ],
+    "d": [
+      250,
+      400
+    ]
+  },
+  "k_cbr": 10.0,
+  "nu": [
+    0.35,
+    0.35,
+    0.45
+  ],
+  "seconds": 70.0,
+  "cpu_count": 12,
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "ms_per_case_per_core": 41.99
+}

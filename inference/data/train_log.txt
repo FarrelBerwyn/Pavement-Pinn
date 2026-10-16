@@ -1,0 +1,140 @@
+D:\Farrel Folder\Programming\Intel AI Global Impact Festival 2026\Projects\pavement-pinn\inference\.venv\Lib\site-packages\torch\jit\_trace.py:1006: FutureWarning: `torch.jit.trace` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+D:\Farrel Folder\Programming\Intel AI Global Impact Festival 2026\Projects\pavement-pinn\inference\.venv\Lib\site-packages\torch\jit\_trace.py:1145: FutureWarning: `torch.jit.trace_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Statistics collection -------------------------- 100% 50/50 • 0:00:00 • 0:00:00
+WARNING:nncf:Dataset contains only 50 samples, smaller than the requested subset size 3200.
+Applying Fast Bias correction -------------------- 100% 3/3 • 0:00:00 • 0:00:00
+{
+ "random_split": {
+  "et": {
+   "mape_pct": 1.16,
+   "p95_pct": 3.266,
+   "max_pct": 167.083,
+   "r2_log": 0.99834
+  },
+  "ev": {
+   "mape_pct": 0.587,
+   "p95_pct": 1.729,
+   "max_pct": 9.988,
+   "r2_log": 0.99987
+  }
+ },
+ "ood": {
+  "train": "CBR >= 4 and h1 <= 180 mm",
+  "test": "CBR < 3 or h1 > 200 mm",
+  "n_train": 7739,
+  "n_test": 9708,
+  "errors": {
+   "et": {
+    "mape_pct": 6.955,
+    "p95_pct": 27.689,
+    "max_pct": 3120.469,
+    "r2_log": 0.93263
+   },
+   "ev": {
+    "mape_pct": 6.176,
+    "p95_pct": 28.321,
+    "max_pct": 150.338,
+    "r2_log": 0.97483
+   }
+  }
+ },
+ "monotonic_violation_share": {
+  "pi_surrogate": 0.02785000018775463,
+  "same_net_without_mono_loss": 0.10270000249147415
+ },
+ "ablation": {
+  "plain_mlp_raw_inputs": {
+   "errors": {
+    "et": {
+     "mape_pct": 1.275,
+     "p95_pct": 3.477,
+     "max_pct": 133.17,
+     "r2_log": 0.9923
+    },
+    "ev": {
+     "mape_pct": 0.734,
+     "p95_pct": 2.102,
+     "max_pct": 9.355,
+     "r2_log": 0.99978
+    }
+   },
+   "similarity_max_err_pct": 1080.982
+  },
+  "pi_surrogate_similarity_max_err_pct": 0.0,
+  "random_forest_raw_inputs": {
+   "errors": {
+    "et": {
+     "mape_pct": 12.194,
+     "p95_pct": 30.286,
+     "max_pct": 1228.452,
+     "r2_log": 0.88784
+    },
+    "ev": {
+     "mape_pct": 9.546,
+     "p95_pct": 23.544,
+     "max_pct": 52.041,
+     "r2_log": 0.97018
+    }
+   },
+   "fit_seconds_stock_sklearn": 1.49,
+   "fit_seconds_sklearnex": 1.54
+  }
+ },
+ "train_seconds": 43.6
+}
+{
+ "fp32": {
+  "max_dev_vs_torch_pct": 0.0004,
+  "vs_mlet": {
+   "et": {
+    "mape_pct": 1.16,
+    "p95_pct": 3.266,
+    "max_pct": 167.083,
+    "r2_log": 0.99834
+   },
+   "ev": {
+    "mape_pct": 0.587,
+    "p95_pct": 1.729,
+    "max_pct": 9.988,
+    "r2_log": 0.99987
+   }
+  }
+ },
+ "fp16": {
+  "max_dev_vs_torch_pct": 3.4933,
+  "vs_mlet": {
+   "et": {
+    "mape_pct": 1.169,
+    "p95_pct": 3.338,
+    "max_pct": 160.122,
+    "r2_log": 0.99825
+   },
+   "ev": {
+    "mape_pct": 0.588,
+    "p95_pct": 1.728,
+    "max_pct": 10.005,
+    "r2_log": 0.99987
+   }
+  }
+ },
+ "int8": {
+  "max_dev_vs_torch_pct": 10.8811,
+  "vs_mlet": {
+   "et": {
+    "mape_pct": 1.663,
+    "p95_pct": 3.989,
+    "max_pct": 142.243,
+    "r2_log": 0.99818
+   },
+   "ev": {
+    "mape_pct": 0.737,
+    "p95_pct": 1.931,
+    "max_pct": 9.56,
+    "r2_log": 0.99982
+   }
+  }
+ }
+}
+{"ln_h1_a->et": {"share_increase": 0.2267, "share_decrease": 0.7733, "constraint": 0}, "ln_h1_a->ev": {"share_increase": 0.0, "share_decrease": 1.0, "constraint": -1}, "ln_h2_a->et": {"share_increase": 0.03, "share_decrease": 0.97, "constraint": 0}, "ln_h2_a->ev": {"share_increase": 0.0, "share_decrease": 1.0, "constraint": -1}, "ln_E1_E3->et": {"share_increase": 0.1733, "share_decrease": 0.8267, "constraint": 0}, "ln_E1_E3->ev": {"share_increase": 0.0, "share_decrease": 1.0, "constraint": -1}, "ln_E2_E3->et": {"share_increase": 0.0, "share_decrease": 1.0, "constraint": -1}, "ln_E2_E3->ev": {"share_increase": 0.0167, "share_decrease": 0.9833, "constraint": 0}, "ln_d_a->et": {"share_increase": 0.5567, "share_decrease": 0.4433, "constraint": 0}, "ln_d_a->ev": {"share_increase": 0.0, "share_decrease": 1.0, "constraint": -1}}

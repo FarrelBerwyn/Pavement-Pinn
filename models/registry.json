@@ -1,0 +1,29 @@
+{
+  "models": [
+    {
+      "id": "pi-surrogate-v1",
+      "kind": "pi-surrogate",
+      "task": "layered-elastic strains et, ev (dual tyres)",
+      "served_precision": "fp32",
+      "device": "CPU",
+      "files": {
+        "fp32": {
+          "xml": "pi-surrogate-v1_fp32.xml",
+          "bin_sha256": "cf947733140308f89780b511682452c5f634d1a76ab0b8b143e3d7c0caa76f7d"
+        },
+        "fp16": {
+          "xml": "pi-surrogate-v1_fp16.xml",
+          "bin_sha256": "8a7149c1e7180c7e282be8da2c8f1d418e6df923fbee922448c09bf14d2e30e6"
+        },
+        "int8": {
+          "xml": "pi-surrogate-v1_int8.xml",
+          "bin_sha256": "49e53c67342bc649b4376f1fe5a887666f70ad51ef0a3a53f42c5a34a2608d8a"
+        }
+      },
+      "metrics": "pi-surrogate-v1_metrics.json",
+      "trained_from": "PyMastic MLET (dual tyres), mlet_dual_v1.npz",
+      "created": "2026-10-16T20:53:41",
+      "status": "COMPUTED (indicative)"
+    }
+  ]
+}

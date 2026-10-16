@@ -12,10 +12,11 @@ BASE = {
 }
 
 
-def test_health_reports_method_and_no_unmeasured_devices():
+def test_health_reports_method_devices_and_model():
     body = client.get("/v1/health").json()
     assert body["status"] == "ok" and body["mlet_method"].startswith("PyMastic@")
-    assert body["available_devices"] == [] and body["openvino_version"] is None
+    assert "CPU" in [d["id"] for d in body["available_devices"]]
+    assert body["models_loaded"][0]["version"] == "pi-surrogate-v1"
 
 
 def test_assess_default_standard_axle_dual_tyres():
@@ -25,7 +26,14 @@ def test_assess_default_standard_axle_dual_tyres():
     assert abs(body["mlet"]["et_ue"] - 227) < 2.3 and abs(body["mlet"]["ev_ue"] - 876.4) < 8.8
     life = body["life_years"]
     assert life["p10"] <= life["p50"] <= life["p90"]
-    assert body["status_label"] == "COMPUTED" and body["surrogate"] is None
+    assert body["status_label"] == "COMPUTED"
+    mc = body["monte_carlo"]
+    assert mc["status"] == "COMPUTED" and body["surrogate"]["version"] == "pi-surrogate-v1"
+    for cond in ("dry", "wet"):
+        ly = mc[cond]["life_years"]
+        assert ly["p10"] <= ly["p50"] <= ly["p90"]
+        assert mc[cond]["crosscheck"]["max_err_pct"] <= 10
+    assert mc["wet"]["life_years"]["p50"] < mc["dry"]["life_years"]["p50"]
 
 
 def test_wet_subgrade_shortens_life():
@@ -36,9 +44,23 @@ def test_wet_subgrade_shortens_life():
 
 
 def test_assumptions_are_disclosed():
-    body = client.post("/v1/assess", json={**BASE, "n_mc": 2000}).json()
+    body = client.post("/v1/assess", json=BASE).json()
     text = " ".join(body["assumptions"])
-    assert "10 x CBR" in text and "M2" in text
+    assert "10 x CBR" in text and "Monte Carlo spreads (ASSUMED)" in text
+
+
+def test_monte_carlo_is_deterministic_per_segment():
+    a = client.post("/v1/assess", json=BASE).json()["monte_carlo"]["dry"]["life_years"]
+    b = client.post("/v1/assess", json=BASE).json()["monte_carlo"]["dry"]["life_years"]
+    assert a == b
+
+
+def test_monte_carlo_states_why_it_did_not_run():
+    no_traffic = {k: v for k, v in BASE.items() if k != "traffic"}
+    assert client.post("/v1/assess", json=no_traffic).json()["monte_carlo"]["status"] == "NO_TRAFFIC"
+    three = {**BASE, "layers": BASE["layers"] + [{"h_mm": 200, "E_mpa": 150, "nu": 0.35}]}
+    assert client.post("/v1/assess", json=three).json()["monte_carlo"]["status"] == "OUTSIDE_SURROGATE_SCOPE"
+    assert client.post("/v1/assess", json={**BASE, "n_mc": 0}).json()["monte_carlo"] is None
 
 
 def test_out_of_range_inputs_are_422():

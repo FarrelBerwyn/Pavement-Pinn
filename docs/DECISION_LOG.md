@@ -242,3 +242,17 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
 - **Not done (M2).** Life index uncertainty covers the traffic range only (`TRAFFIC_ONLY`);
   materials Monte Carlo, PI-surrogate and OpenVINO are not built. The browser engine
   `runPinnSimulation` (RULE_BASED) still drives the legacy screens and What-If.
+
+## D-038 PI-surrogate on OpenVINO and Monte Carlo life index (V3-D-02, V3-D-04, V3-D-05, M2)
+
+- **Decision.** `models/pi-surrogate-v1` (PyTorch → OpenVINO FP32, CPU) trained from 19,894 PyMastic
+  solutions; `/v1/assess` runs 2,000 Monte Carlo samples dry and wet (same seed) and returns life
+  P10/P50/P90, strain percentiles and Spearman sensitivity. Field engineers see it in
+  `StructuralAssessmentPanel` on the road detail page (E3).
+- **Change from the reference code.** Input `ln(d/a)` added: with dual tyres the strain depends on the
+  tyre spacing relative to the contact radius, so similarity is exact only with it.
+- **Guards.** > 5 % of samples outside the training box → refused; fewer → solved by PyMastic;
+  1-in-50 cross-check against PyMastic, withheld above 10 % (εt compared only when ≥ 50 µε).
+- **Not served.** INT8 (10.9 % deviation) and FP16 (3.5 %); see `models/MODEL_CARD.md`.
+- **Hardware.** Dev laptop i5-12450H + UHD iGPU (+ RTX 4050); no NPU, no Intel XPU for training.
+  The Core Ultra requirement for M4–M5 (D-21) is still open.

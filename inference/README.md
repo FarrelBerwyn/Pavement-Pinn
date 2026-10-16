@@ -6,7 +6,7 @@ Python service for the physics and AI modules (Dokumen Induk v3 D-23). Express c
 | Endpoint | Status |
 |---|---|
 | `GET /v1/health` | M1 |
-| `POST /v1/assess` | M1: MLET strains (PyMastic), transfer function, life index from the traffic range. Surrogate + Monte Carlo: M2 |
+| `POST /v1/assess` | M1: MLET strains (PyMastic), transfer function. M2: Monte Carlo life P10/P50/P90 dry vs wet on the PI-surrogate (OpenVINO); see `models/MODEL_CARD.md` |
 | `/v1/screen`, `/v1/brief`, `/v1/measurements` | M3–M5, not built |
 
 ## Setup (Windows, Python 3.11)
@@ -27,3 +27,5 @@ uv pip install --python inference/.venv/Scripts/python.exe -r inference/requirem
 8.16 t, 227/876 µε dual tyres) within 1 %, and elastic similarity.
 
 PyMastic (Apache-2.0) is vendored unmodified in `vendor/pymastic` at commit `be301be`.
+
+Retrain: `python -m training.gen_mlet_dataset` then `python -m training.train_pi_surrogate` (stop the service first).

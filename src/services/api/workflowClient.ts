@@ -9,7 +9,7 @@
  * "offline demo" label in that mode; nothing there is persisted or authorized by a server.
  */
 import { WORKFLOW_API_PATHS } from '../../types';
-import type { DamageReport, UserRole } from '../../types';
+import type { DamageReport, EngineAssessRequest, EngineAssessResult, UserRole } from '../../types';
 import { apiUrl, isStaticHost } from './client';
 import type { Actor, ReportCase, WorkflowAction } from '../../domain/workflow/model';
 import { availableActions, type WorkflowCommand } from '../../domain/workflow/stateMachine';
@@ -87,6 +87,8 @@ export interface WorkflowGateway {
   assessment(segmentId: string): Promise<{ assessment: EngineeringAssessment; explanation: StructuredExplanation }>;
   story(segmentId: string): Promise<{ audience: 'STAFF' | 'PUBLIC'; story: StoryEntry[]; note: string }>;
   simulate(segmentId: string, scenario: Partial<AssessmentInputs>): Promise<WhatIfResult>;
+  /** Layered-elastic assessment + Monte Carlo from the Python inference service (M1–M2). */
+  engineAssess(body: EngineAssessRequest): Promise<EngineAssessResult>;
 }
 
 /** Display report for any view (staff or public). */
@@ -98,7 +100,8 @@ export function displayReport(view: ReportView): DamageReport {
 /** Intelligence endpoints (server/routes/intelligence.routes.ts). */
 export const INTELLIGENCE_PATHS = {
   assessment: '/api/road-segments/:id/assessment',
-  simulations: '/api/simulations'
+  simulations: '/api/simulations',
+  engineAssess: '/api/engine/assess'
 } as const;
 
 const TOKEN_KEY = 'pavement-pinn.workflow-session';
@@ -262,6 +265,10 @@ export class HttpWorkflowGateway implements WorkflowGateway {
   async simulate(segmentId: string, scenario: Partial<AssessmentInputs>): Promise<WhatIfResult> {
     return (await this.request<{ result: WhatIfResult }>('POST', INTELLIGENCE_PATHS.simulations, { segmentId, scenario })).result;
   }
+
+  async engineAssess(body: EngineAssessRequest): Promise<EngineAssessResult> {
+    return (await this.request<{ result: EngineAssessResult }>('POST', INTELLIGENCE_PATHS.engineAssess, body)).result;
+  }
 }
 
 /**
@@ -406,6 +413,11 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
     const result = runWhatIf(this.segment(segmentId), scenario, { now: new Date().toISOString(), cases: await this.service.listCases() });
     await this.service.recordSimulation({ segmentId, requestedBy: this.actor, summary: result.explanation, result });
     return result;
+  }
+
+  async engineAssess(): Promise<EngineAssessResult> {
+    // The static demo host has no Python service; never substitute a browser-side result.
+    throw new WorkflowApiError('INFERENCE_UNAVAILABLE', 'Penilaian struktural butuh layanan inferensi (server + Python); tidak tersedia di demo statis.', 503);
   }
 }
 
