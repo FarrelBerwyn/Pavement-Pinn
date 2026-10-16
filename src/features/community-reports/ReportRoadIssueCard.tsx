@@ -52,6 +52,63 @@ interface ReportRoadIssueCardProps {
   initialCoordinates?: [number, number] | null;
 }
 
+/* Shared look for every step of the report sheet: solid surface, thin borders, one yellow accent. */
+const SHEET =
+  'w-full max-h-[90dvh] sm:max-h-[92vh] sm:max-w-lg bg-[#121826] border-t sm:border border-white/[0.08] rounded-t-3xl sm:rounded-3xl px-5 pt-5 pb-3 sm:p-6 shadow-2xl text-slate-100 flex flex-col overflow-y-auto custom-scrollbar relative box-border';
+const CARD = 'rounded-2xl border border-white/[0.08] bg-white/[0.03]';
+const LABEL = 'text-sm font-medium text-slate-200';
+const HINT = 'text-xs text-slate-400';
+const FIELD =
+  'w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-400/70 transition-colors';
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+const PRIMARY = `w-full h-12 rounded-2xl bg-amber-400 hover:bg-amber-300 active:bg-amber-500 disabled:opacity-60 disabled:cursor-wait text-slate-950 text-sm font-semibold flex items-center justify-center transition-colors cursor-pointer ${FOCUS}`;
+const SECONDARY = `w-full h-12 rounded-2xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-slate-100 text-sm font-medium flex items-center justify-center transition-colors cursor-pointer ${FOCUS}`;
+const TILE = `${CARD} p-4 flex flex-col items-start gap-1 text-left hover:bg-white/[0.06] hover:border-amber-400/40 transition-colors cursor-pointer ${FOCUS}`;
+const ICON_TILE = 'w-10 h-10 mb-1 rounded-xl bg-amber-400/10 text-amber-300 flex items-center justify-center text-lg shrink-0';
+const ICON_BUTTON = `w-9 h-9 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer shrink-0 ${FOCUS}`;
+const TEXT_BUTTON = `inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-amber-300 hover:bg-amber-400/10 transition-colors cursor-pointer ${FOCUS}`;
+const NOTICE = 'rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200';
+const ERROR = 'flex items-start gap-2 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200';
+const REPORT_STEPS = 3;
+
+/** Same header on every step: optional back, title + step count, optional close. */
+const SheetHeader: React.FC<{ step: number; title: string; subtitle: string; onBack?: () => void; onClose?: () => void }> = ({
+  step,
+  title,
+  subtitle,
+  onBack,
+  onClose
+}) => (
+  <div className="space-y-3">
+    <div className="mx-auto h-1 w-10 rounded-full bg-white/15 sm:hidden" aria-hidden="true" />
+    <div className="flex items-start gap-2">
+      {onBack && (
+        <button type="button" onClick={onBack} className={`${ICON_BUTTON} -ml-2`} title="Kembali" aria-label="Kembali">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-amber-300">
+          Langkah {step} dari {REPORT_STEPS}
+        </p>
+        <h3 className="text-lg font-semibold text-white leading-tight">{title}</h3>
+        <p className={`${HINT} mt-0.5`}>{subtitle}</p>
+      </div>
+      {onClose && (
+        <button type="button" onClick={onClose} className={`${ICON_BUTTON} -mr-2`} title="Tutup" aria-label="Tutup">
+          <X className="w-5 h-5" />
+        </button>
+      )}
+    </div>
+    <div className="flex gap-1.5" aria-hidden="true">
+      {Array.from({ length: REPORT_STEPS }, (_, i) => (
+        <span key={i} className={`h-1 flex-1 rounded-full ${i < step ? 'bg-amber-400' : 'bg-white/10'}`} />
+      ))}
+    </div>
+  </div>
+);
+
+
 export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   isOpen,
   onClose,
@@ -367,11 +424,11 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   // Trigger Validation and Advance to CV Processing from manual input
   const handleContinue = () => {
     if (!locationName.trim()) {
-      setValidationError('⚠ Mohon masukkan detail lokasi kerusakan jalan.');
+      setValidationError('Mohon masukkan detail lokasi kerusakan jalan.');
       return;
     }
     if (!selectedImage) {
-      setValidationError('⚠ Mohon ambil foto atau unggah gambar kerusakan.');
+      setValidationError('Mohon ambil foto atau unggah gambar kerusakan.');
       return;
     }
     setValidationError(null);
@@ -616,7 +673,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             <div className="w-full max-w-md bg-black/65 backdrop-blur-2xl border border-white/15 rounded-2xl px-4 py-3 flex items-center justify-between shadow-2xl text-left">
               {/* Left Pin Icon */}
               <div className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/10">
-                <MapPin className="w-4 h-4 text-white" />
+                <MapPin className="w-4 h-4 text-amber-400" />
               </div>
 
               {/* Center Road Name & Subtitle */}
@@ -673,7 +730,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             </button>
 
             <div className="text-center">
-              <h2 className="text-sm sm:text-base font-black text-white tracking-tight drop-shadow-md">
+              <h2 className="text-sm sm:text-base font-semibold text-white tracking-tight drop-shadow-md">
                 Konfirmasi Foto
               </h2>
               <p className="text-[10px] sm:text-xs text-slate-300 font-medium drop-shadow">
@@ -681,7 +738,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               </p>
             </div>
 
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 backdrop-blur-md text-emerald-400 flex items-center justify-center border border-emerald-500/40">
+            <div className="w-10 h-10 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center">
               <Check className="w-5 h-5 stroke-[2.5]" />
             </div>
           </div>
@@ -690,7 +747,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
           <div className="relative z-30 pb-safe pb-6 px-4 sm:px-6 flex flex-col items-center gap-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-8">
             {/* Location preview badge */}
             <div className="w-full max-w-md bg-black/60 backdrop-blur-xl border border-white/15 rounded-2xl px-3.5 py-2.5 flex items-center space-x-2.5 text-left">
-              <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
+              <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-white truncate leading-tight">{mainRoadName}</p>
                 <p className="text-[10px] text-slate-300 truncate leading-tight mt-0.5">{subLocationName}</p>
@@ -703,17 +760,17 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <button
                 type="button"
                 onClick={handleRetakeCapturedPhoto}
-                className="py-3.5 px-4 rounded-2xl bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-lg"
+                className="h-12 px-4 rounded-2xl bg-black/40 hover:bg-black/55 text-white font-medium text-sm flex items-center justify-center gap-1.5 backdrop-blur-md border border-white/20 transition-colors cursor-pointer"
               >
                 <RotateCw className="w-4 h-4 text-white" />
-                <span>Capture Ulang</span>
+                <span>Ulangi</span>
               </button>
 
               {/* Confirm / Continue Button */}
               <button
                 type="button"
                 onClick={handleConfirmCapturedPhoto}
-                className="py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xl shadow-amber-400/20"
+                className="h-12 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span>Lanjutkan</span>
                 <ChevronRight className="w-4 h-4 stroke-[3]" />
@@ -723,11 +780,11 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
         </div>
       ) : (
         /* ========================================================================= */
-        /* STANDARD MODAL CARD (INPUT, PREPARING, CV_PROCESSING, REVIEW, SUCCESS)     */
-        /* 88% OPACITY TRANSPARENT DARK BACKGROUND OVER MAP LAYER (HP / MOBILE & DESKTOP) */
+        /* BOTTOM SHEET (INPUT, PREPARING, CV_PROCESSING, REVIEW, SUCCESS)            */
+        /* One calm style for every step: solid surface, thin borders, yellow accent  */
         /* ========================================================================= */
-        <div className="fixed inset-0 z-[1500] bg-black/40 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          {/* Mobile backdrop click layer */}
+        <div className="fixed inset-0 z-[1500] bg-black/50 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+          {/* Backdrop click closes the sheet */}
           <div
             className="fixed inset-0 -z-10 cursor-pointer"
             onClick={() => {
@@ -736,512 +793,349 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             }}
           />
 
-          <div className="w-full max-h-[88dvh] sm:max-h-[92vh] sm:w-full sm:max-w-lg bg-[#0B0F19]/90 border-t sm:border border-white/20 rounded-t-[32px] sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 text-slate-100 flex flex-col justify-between overflow-y-auto custom-scrollbar relative box-border transition-all">
+          <div className={SHEET}>
             {/* ========================================================================= */}
-            {/* STATE 01: INPUT REPORT (Detailed Notes, Camera/Image, Location, Continue) */}
+            {/* STEP 1: INPUT REPORT (notes, photo, location)                             */}
             {/* ========================================================================= */}
             {currentState === 'INPUT' && (
-              <div className="space-y-4 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-400 text-slate-950 font-black flex items-center justify-center shadow-md shadow-black/40 shrink-0">
-                        <Camera className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm sm:text-base font-black text-white tracking-tight truncate">
-                          Report Road Issue
-                        </h3>
-                        <p className="text-[10px] sm:text-xs text-slate-400 truncate">
-                          Citizen Observation & AI Verification
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        stopCameraStream();
-                        onClose();
-                      }}
-                      className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0"
-                      title="Close"
-                    >
-                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
+              <div className="space-y-5 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
+                <div className="space-y-5">
+                  <SheetHeader
+                    step={1}
+                    title="Report Road Issue"
+                    subtitle="Foto, lokasi, dan catatan singkat"
+                    onClose={() => {
+                      stopCameraStream();
+                      onClose();
+                    }}
+                  />
 
-                  {/* 1. Detailed Notes Input */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                      <span>Detailed Notes</span>
-                      <span className="text-[10px] text-slate-400 font-normal">Optional / Context</span>
+                  {/* 1. Notes */}
+                  <div className="space-y-2">
+                    <label htmlFor="report-notes" className="flex items-center justify-between">
+                      <span className={LABEL}>Catatan</span>
+                      <span className={HINT}>Opsional</span>
                     </label>
                     <textarea
+                      id="report-notes"
                       rows={2}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Describe what you noticed (e.g. Lubang jalan cukup dalam di lajur kiri)..."
-                      className="w-full bg-white/[0.04] border border-white/10 text-slate-100 rounded-2xl p-3 text-xs focus:outline-none focus:border-amber-400 transition-colors placeholder:text-slate-500 resize-none"
+                      placeholder="Contoh: lubang cukup dalam di lajur kiri"
+                      className={`${FIELD} resize-none`}
                     />
                   </div>
 
-                  {/* 2. Evidence: Take Photo & Use Image */}
+                  {/* 2. Evidence photo */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300">Evidence Photo</label>
+                    <p className={LABEL}>Foto kerusakan</p>
 
                     {selectedImage ? (
-                      /* Selected Image Preview with Retake / Remove Option */
-                      <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-slate-950 group">
-                        <img
-                          src={selectedImage}
-                          alt="Evidence Preview"
-                          className="w-full h-36 sm:h-44 object-cover"
-                        />
-                        <div className="absolute top-2 left-2 bg-slate-950/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-mono text-emerald-400 flex items-center gap-1 border border-emerald-500/30">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[150px] sm:max-w-[200px]">{imageFileName}</span>
-                        </div>
-                        <div className="absolute top-2 right-2 flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={handleOpenFullscreenCamera}
-                            className="px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 text-[10px] font-bold shadow-md cursor-pointer flex items-center gap-1"
-                          >
-                            <Camera className="w-3 h-3" />
-                            <span>Retake</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="px-2.5 py-1 rounded-full bg-slate-900/80 hover:bg-slate-900 text-slate-200 text-[10px] font-bold backdrop-blur-md border border-white/20 cursor-pointer"
-                          >
-                            Gallery
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedImage(null)}
-                            className="p-1 rounded-full bg-red-600/80 hover:bg-red-600 text-white backdrop-blur-md cursor-pointer"
-                            title="Remove"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                      <div className={`${CARD} overflow-hidden`}>
+                        <img src={selectedImage} alt="Foto kerusakan yang dipilih" className="w-full h-40 sm:h-48 object-cover" />
+                        <div className="flex items-center justify-between gap-2 px-4 py-3">
+                          <span className="flex items-center gap-2 min-w-0 text-sm text-slate-200">
+                            <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                            <span className="truncate">{imageFileName}</span>
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button type="button" onClick={handleOpenFullscreenCamera} className={TEXT_BUTTON}>
+                              Ulangi
+                            </button>
+                            <button type="button" onClick={() => fileInputRef.current?.click()} className={TEXT_BUTTON}>
+                              Galeri
+                            </button>
+                            <button type="button" onClick={() => setSelectedImage(null)} className={ICON_BUTTON} title="Hapus foto" aria-label="Hapus foto">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      /* Primary Evidence Buttons Matching Reference Image 1 */
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <button
-                          type="button"
-                          onClick={handleOpenFullscreenCamera}
-                          className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-amber-400/50 text-slate-200 flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer group"
-                        >
-                          <div className="w-9 h-9 rounded-xl bg-amber-400/15 group-hover:bg-amber-400/25 text-amber-300 flex items-center justify-center transition-colors">
-                            <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </div>
-                          <span className="text-xs font-bold text-white">Take Photo</span>
-                          <span className="text-[10px] text-slate-400">Device Camera</span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" onClick={handleOpenFullscreenCamera} className={TILE}>
+                          <span className={ICON_TILE}>
+                            <Camera className="w-5 h-5" />
+                          </span>
+                          <span className="text-sm font-medium text-white">Ambil foto</span>
+                          <span className={HINT}>Kamera perangkat</span>
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-slate-300/50 text-slate-200 flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer group"
-                        >
-                          <div className="w-9 h-9 rounded-xl bg-white/10 group-hover:bg-white/20 text-slate-200 flex items-center justify-center transition-colors">
-                            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </div>
-                          <span className="text-xs font-bold text-white">Use Image</span>
-                          <span className="text-[10px] text-slate-400">Upload / Pick</span>
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className={TILE}>
+                          <span className={ICON_TILE}>
+                            <ImageIcon className="w-5 h-5" />
+                          </span>
+                          <span className="text-sm font-medium text-white">Pilih gambar</span>
+                          <span className={HINT}>Dari galeri</span>
                         </button>
                       </div>
                     )}
 
-                    {cameraError && (
-                      <p className="text-[11px] text-amber-300 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
-                        {cameraError}
-                      </p>
-                    )}
+                    {cameraError && <p className={NOTICE}>{cameraError}</p>}
                   </div>
 
-                  {/* 3. Manual Location Details Input Field */}
-                  <div className="space-y-1.5 bg-white/[0.04] border border-white/10 rounded-2xl p-3 sm:p-3.5">
+                  {/* 3. Location */}
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        <span>Detail Lokasi Kerusakan</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleDetectGps}
-                        className="text-[10px] font-mono text-amber-300 hover:text-amber-200 bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 px-2 py-0.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
-                        title="Deteksi ulang GPS"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                        <span>GPS</span>
+                      <label htmlFor="report-location" className={LABEL}>Lokasi</label>
+                      <button type="button" onClick={handleDetectGps} className={TEXT_BUTTON} title="Deteksi ulang GPS">
+                        <Crosshair className={`w-4 h-4 ${locationStatus === 'REQUESTING' ? 'animate-spin' : ''}`} />
+                        <span>Perbarui GPS</span>
                       </button>
                     </div>
-
-                    {/* Manual Text Input for Location */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={locationName}
-                        onChange={(e) => {
-                          setLocationName(e.target.value);
-                          setLocationStatus('MANUAL');
-                        }}
-                        placeholder="Contoh: Jl. Sudirman, Karet Tengsin, Jakarta Pusat"
-                        className="w-full bg-slate-900/80 border border-white/15 text-white rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-amber-400 transition-colors font-medium placeholder:text-slate-500"
-                      />
-                    </div>
-
-                    {/* Coordinates Indicator */}
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5 px-0.5">
-                      <span className="truncate max-w-[200px]">
-                        📍 {coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)}
-                      </span>
-                      <span className="text-emerald-400 font-bold shrink-0">
-                        {locationStatus === 'DETECTED'
-                          ? 'GPS Aktif'
-                          : locationStatus === 'REQUESTING'
-                          ? 'Mencari...'
-                          : 'Manual'}
-                      </span>
+                    <div className={`${CARD} flex items-center gap-3 px-4 py-3`}>
+                      <MapPin className="w-5 h-5 text-amber-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <input
+                          id="report-location"
+                          type="text"
+                          value={locationName}
+                          onChange={(e) => {
+                            setLocationName(e.target.value);
+                            setLocationStatus('MANUAL');
+                          }}
+                          placeholder="Nama jalan atau patokan"
+                          className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                        />
+                        <p className={`${HINT} font-mono mt-0.5`}>
+                          {coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)} ·{' '}
+                          {locationStatus === 'DETECTED' ? 'GPS aktif' : locationStatus === 'REQUESTING' ? 'mencari…' : 'manual'}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Validation Error Message */}
                   {validationError && (
-                    <div className="flex items-center space-x-1.5 bg-red-500/20 text-red-200 border border-red-500/40 p-2.5 rounded-xl text-xs font-bold">
+                    <p role="alert" className={ERROR}>
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{validationError}</span>
-                    </div>
+                    </p>
                   )}
                 </div>
 
-                {/* Continue Action Button */}
-                <div className="pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-                  <button
-                    type="button"
-                    onClick={handleContinue}
-                    className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm flex items-center justify-center space-x-1.5 transition-all shadow-md cursor-pointer active:scale-[0.99]"
-                  >
-                    <span>Continue to AI Analysis</span>
-                    <ChevronRight className="w-4 h-4 stroke-[3]" />
+                <div className="pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                  <button type="button" onClick={handleContinue} className={PRIMARY}>
+                    Lanjutkan
                   </button>
                 </div>
               </div>
             )}
 
             {/* ========================================================================= */}
-            {/* STATE 02 & 03: PREPARING & COMPUTER VISION PROCESSING                     */}
+            {/* STEP 2: PREPARING & PHOTO CHECK                                            */}
             {/* ========================================================================= */}
             {(currentState === 'PREPARING' || currentState === 'CV_PROCESSING') && (
-              <div className="py-8 sm:py-14 px-2 space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col justify-center">
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center mx-auto shadow-lg animate-pulse">
-                    <Sparkles className="w-6 h-6 stroke-[2.5]" />
+              <div className="space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col">
+                <SheetHeader step={2} title="Memeriksa foto" subtitle="Biasanya hanya beberapa detik" />
+                <div className={`${CARD} p-4 space-y-3`}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-200 truncate pr-3">{processingStageText}</span>
+                    <span className="font-mono text-slate-300">{progressPercent}%</span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-white">Analyzing Road Condition</h3>
-                  <p className="text-xs text-slate-400">Edge AI Computer Vision is evaluating pavement health</p>
-                </div>
-
-                {/* Compact Progress Bar Card */}
-                <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-amber-300 flex items-center gap-1 font-medium truncate max-w-[220px]">
-                      {processingStageText}
-                    </span>
-                    <span className="font-mono text-white text-xs font-black">{progressPercent}%</span>
+                  <div
+                    className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={progressPercent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div className="h-full rounded-full bg-amber-400 transition-all duration-300 ease-out" style={{ width: `${progressPercent}%` }} />
                   </div>
-
-                  {/* Animated Progress Bar */}
-                  <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-white/10 p-0.5">
-                    <div
-                      className="h-full rounded-full bg-amber-400 transition-all duration-300 ease-out"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-
-                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                    <span className="truncate max-w-[160px]">Input: {imageFileName}</span>
-                    <span className="text-emerald-400">GPS: Valid ✓</span>
-                  </div>
+                  <p className={`${HINT} truncate`}>{imageFileName}</p>
                 </div>
               </div>
             )}
 
             {/* ========================================================================= */}
-            {/* STATE 04: ANALYSIS RESULT (Full Screen Translucent Review & Submit)       */}
+            {/* STEP 3: REVIEW & SUBMIT                                                    */}
             {/* ========================================================================= */}
             {currentState === 'ANALYSIS_RESULT' && (
-              <div className="space-y-3.5 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
-                <div className="space-y-3.5">
-                  {/* Header with Back, Title & Close */}
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentState('INPUT')}
-                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
-                      title="Back to input / photo"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                    </button>
+              <div className="space-y-5 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
+                <div className="space-y-5">
+                  <SheetHeader
+                    step={3}
+                    title="Periksa laporan"
+                    subtitle="Pastikan jenis dan lokasinya benar"
+                    onBack={() => setCurrentState('INPUT')}
+                    onClose={() => {
+                      stopCameraStream();
+                      onClose();
+                    }}
+                  />
 
-                    <div className="text-center">
-                      <h3 className="text-sm sm:text-base font-black text-white tracking-tight">Review & Submit</h3>
-                      <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Analysis Complete • AI Verified</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        stopCameraStream();
-                        onClose();
-                      }}
-                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
-                      title="Close"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Evidence Image Preview (Clean 16:9) */}
-                  <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-slate-950 aspect-[16/9] shadow-lg group">
+                  <div className={`${CARD} overflow-hidden`}>
                     <img
                       src={selectedImage || analyzedClass.samplePhotoUrl}
-                      alt="Detected Road Damage Evidence"
-                      className="w-full h-full object-cover"
+                      alt="Foto kerusakan jalan"
+                      className="w-full aspect-[16/9] object-cover"
                     />
-
                   </div>
 
-                  {/* 1. AI Detection Section */}
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-slate-400 px-0.5">Jenis kerusakan (perkiraan)</p>
-                    <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-3 flex items-center justify-between">
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <div className="w-9 h-9 rounded-2xl bg-white/10 border border-white/15 text-white flex items-center justify-center text-lg shrink-0">
-                          {analyzedClass.icon}
+                  {/* Damage type (not yet classified by a trained model) */}
+                  <div className="space-y-2">
+                    <p className={LABEL}>Jenis kerusakan</p>
+                    <div className={CARD}>
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <span className={ICON_TILE} aria-hidden="true">{analyzedClass.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-white truncate">{analyzedClass.label}</p>
+                          <p className={HINT}>Perkiraan; belum diklasifikasi model</p>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-extrabold text-white truncate">{analyzedClass.label}</h4>
-                          <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
-                            belum diklasifikasi model
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2 shrink-0">
                         <button
                           type="button"
                           onClick={() => setShowTechnicalAnalysis(!showTechnicalAnalysis)}
-                          className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                          title="Technical Info"
+                          className={ICON_BUTTON}
+                          aria-expanded={showTechnicalAnalysis}
+                          title="Detail"
+                          aria-label="Detail jenis kerusakan"
                         >
-                          <Info className="w-4 h-4" />
+                          {showTechnicalAnalysis ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
-                        <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 font-black flex items-center justify-center shadow-md shrink-0">
-                          <Sparkles className="w-4 h-4" />
-                        </div>
                       </div>
-                    </div>
-
-                    {/* Technical Analysis Collapsible Details */}
-                    {showTechnicalAnalysis && (
-                      <div className="bg-slate-900/90 border border-white/15 rounded-xl p-2.5 text-xs space-y-1.5 animate-in fade-in duration-150">
-                        <div className="flex justify-between border-b border-white/10 pb-1">
-                          <span className="text-slate-400">Model Engine:</span>
-                          <span className="font-mono font-bold text-slate-200">YOLOv8 Edge AI</span>
-                        </div>
-                        <div className="flex justify-between border-b border-white/10 pb-1">
-                          <span className="text-slate-400">Est. Dimension:</span>
-                          <span className="font-mono font-bold text-slate-200">
-                            {analyzedClass.defaultDepthCm} cm depth / {analyzedClass.defaultAreaM2} m²
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Pavement Condition:</span>
-                          <span className="font-mono font-bold text-amber-300">Requires Maintenance Action</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 2. Severity Selector Section */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold text-slate-400 px-0.5">Severity Level</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setCustomSeverity('LIGHT')}
-                        className={`py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-                          effectiveSeverity === 'LIGHT'
-                            ? 'bg-emerald-600 text-white shadow-md'
-                            : 'bg-white/[0.04] border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                        }`}
-                      >
-                        Minor
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setCustomSeverity('MODERATE')}
-                        className={`py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-                          effectiveSeverity === 'MODERATE'
-                            ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
-                            : 'bg-white/[0.04] border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                        }`}
-                      >
-                        Moderate
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setCustomSeverity('CRITICAL')}
-                        className={`py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-                          effectiveSeverity === 'CRITICAL' || effectiveSeverity === 'SEVERE'
-                            ? 'bg-red-600 text-white font-extrabold shadow-md'
-                            : 'bg-white/[0.04] border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                        }`}
-                      >
-                        Critical
-                      </button>
+                      {showTechnicalAnalysis && (
+                        <dl className="border-t border-white/[0.06] px-4 py-3 space-y-2 text-sm">
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-slate-400">Model</dt>
+                            <dd className="text-slate-200 text-right">Belum ada model terlatih (DEMO)</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-slate-400">Ukuran contoh</dt>
+                            <dd className="text-slate-200 text-right">
+                              {analyzedClass.defaultDepthCm} cm · {analyzedClass.defaultAreaM2} m²
+                            </dd>
+                          </div>
+                        </dl>
+                      )}
                     </div>
                   </div>
 
-                  {/* 3. Location Section */}
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-slate-400 px-0.5">Location</p>
-                    <div
-                      onClick={handleViewOnMap}
-                      className="bg-white/[0.04] border border-white/10 rounded-2xl p-3 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors group"
-                    >
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-bold text-white truncate">
-                            {mainRoadName}
-                          </h4>
-                          <p className="text-[10px] text-slate-400 truncate">
-                            {locationName || `${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}`}
-                          </p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-300 transition-colors shrink-0" />
+                  {/* Severity */}
+                  <div className="space-y-2">
+                    <p className={LABEL}>Tingkat keparahan</p>
+                    <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Tingkat keparahan">
+                      {([
+                        ['LIGHT', 'Ringan'],
+                        ['MODERATE', 'Sedang'],
+                        ['CRITICAL', 'Parah']
+                      ] as const).map(([value, label]) => {
+                        const active = value === 'CRITICAL' ? effectiveSeverity === 'CRITICAL' || effectiveSeverity === 'SEVERE' : effectiveSeverity === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => setCustomSeverity(value)}
+                            className={`h-11 rounded-2xl text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 ${
+                              active ? 'bg-amber-400 text-slate-950 font-semibold' : 'border border-white/[0.08] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* 4. Add Notes (Optional) */}
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-slate-400 px-0.5">Add Notes (Optional)</p>
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <p className={LABEL}>Lokasi</p>
+                    <button type="button" onClick={handleViewOnMap} className={`${CARD} w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.06] transition-colors cursor-pointer`}>
+                      <MapPin className="w-5 h-5 text-amber-400 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-white truncate">{mainRoadName}</span>
+                        <span className={`${HINT} block truncate`}>
+                          {locationName || `${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}`}
+                        </span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+                    </button>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <label htmlFor="report-notes-review" className="flex items-center justify-between">
+                      <span className={LABEL}>Catatan</span>
+                      <span className={HINT}>Opsional</span>
+                    </label>
                     <textarea
+                      id="report-notes-review"
                       rows={2}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="e.g. Large pothole, deep, affecting left lane..."
-                      className="w-full bg-white/[0.04] border border-white/10 rounded-2xl p-3 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400 transition-colors resize-none"
+                      placeholder="Contoh: lubang besar, memengaruhi lajur kiri"
+                      className={`${FIELD} resize-none`}
                     />
                   </div>
                 </div>
 
-                {/* 5. Primary Submit Action Button */}
-                <div className="pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleSubmitReport}
-                    disabled={isSubmitting}
-                    aria-busy={isSubmitting}
-                    className="w-full h-12 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] disabled:opacity-60 disabled:cursor-wait text-slate-950 font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <span>{isSubmitting ? 'Menyimpan laporan…' : 'Submit Report'}</span>
+                <div className="pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-3">
+                  <button type="button" onClick={handleSubmitReport} disabled={isSubmitting} aria-busy={isSubmitting} className={PRIMARY}>
+                    {isSubmitting ? 'Mengirim laporan…' : 'Kirim laporan'}
                   </button>
                   {submitError && (
-                    <p role="alert" className="text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2 text-center">
-                      Laporan belum tersimpan: {submitError}
+                    <p role="alert" className={ERROR}>
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>Laporan belum tersimpan: {submitError}</span>
                     </p>
                   )}
-
-                  <p className="text-[11px] text-slate-400 text-center font-medium">
-                    Your report helps improve our roads. Thank you! 💛
-                  </p>
+                  <p className={`${HINT} text-center`}>Laporan diperiksa petugas sebelum ditindaklanjuti.</p>
                 </div>
               </div>
             )}
 
             {/* ========================================================================= */}
-            {/* STATE 05: SUBMISSION SUCCESS & LEAFLET PIN CREATED                         */}
+            {/* STEP 4: SUBMITTED                                                          */}
             {/* ========================================================================= */}
             {currentState === 'SUCCESS' && (
-              <div className="space-y-4 py-4 sm:py-6 animate-in fade-in duration-200 text-center flex-1 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border-2 border-emerald-500/50 shadow-xl">
-                    <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
+              <div className="space-y-5 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
+                <div className="space-y-5">
+                  <div className="pt-2 text-center space-y-3">
+                    <span className="w-12 h-12 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center mx-auto">
+                      <Check className="w-6 h-6 stroke-[2.5]" />
+                    </span>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold text-white">Laporan terkirim</h3>
+                      <p className="text-sm text-slate-400">Terima kasih. Laporan Anda sudah ada di peta.</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <h3 className="text-base sm:text-lg font-black text-white">Report Submitted</h3>
-                    <p className="text-xs text-slate-300">
-                      Your road issue has been reported and placed on the monitoring map.
-                    </p>
-                    {savedState === 'NEEDS_REVIEW' && (
-                      <p className="text-[11px] text-amber-200">
-                        Status: menunggu peninjauan petugas. Klasifikasi AI berstatus DEMO, jadi laporan diperiksa manusia sebelum ditindaklanjuti.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Created Report Receipt Card */}
-                  <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-3.5 sm:p-4 text-left space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                      <div>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Report ID</p>
-                        <p className="text-xs sm:text-sm font-black font-mono text-amber-400">{createdReportId}</p>
+                  <div className={`${CARD} divide-y divide-white/[0.06]`}>
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className={HINT}>Kode laporan</p>
+                        <p className="text-sm font-mono text-amber-300 truncate">{createdReportId}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleCopyReportId}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-slate-300 flex items-center gap-1 border border-white/10 cursor-pointer"
-                      >
-                        {copiedId ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedId ? 'Copied' : 'Copy'}</span>
+                      <button type="button" onClick={handleCopyReportId} className={TEXT_BUTTON}>
+                        {copiedId ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        <span>{copiedId ? 'Tersalin' : 'Salin'}</span>
                       </button>
                     </div>
-
-                    <div className="space-y-0.5">
-                      <div className="flex items-center space-x-1 text-[10px] text-slate-400 font-bold uppercase">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                        <span>Location</span>
-                      </div>
-                      <p className="text-xs sm:text-sm font-bold text-white truncate">{mainRoadName}</p>
-                      <p className="text-[10px] font-mono text-slate-400">
+                    <div className="px-4 py-3">
+                      <p className={HINT}>Lokasi</p>
+                      <p className="text-sm text-white truncate">{mainRoadName}</p>
+                      <p className={`${HINT} font-mono`}>
                         {coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)}
                       </p>
                     </div>
-
-                    <div className="flex items-center justify-between border-t border-white/10 pt-2">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="text-lg">{analyzedClass.icon}</span>
-                        <span className="text-xs font-bold text-slate-200">{analyzedClass.label}</span>
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className={HINT}>Jenis</p>
+                        <p className="text-sm text-white truncate">{analyzedClass.label}</p>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        Reported
+                      <span className="rounded-full border border-amber-400/40 px-2.5 py-0.5 text-xs text-amber-300 shrink-0">
+                        {savedState === 'NEEDS_REVIEW' ? 'Menunggu peninjauan' : 'Terkirim'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Notification Badge about Map Pin */}
-                  <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-semibold flex items-center justify-center space-x-1.5">
-                    <MapPin className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                    <span>📍 Pin created on Leaflet Map</span>
-                  </div>
+                  {savedState === 'NEEDS_REVIEW' && (
+                    <p className={`${HINT} text-center`}>
+                      Klasifikasi foto masih DEMO, jadi petugas memeriksa laporan ini sebelum ditindaklanjuti.
+                    </p>
+                  )}
                 </div>
 
-                {/* Action Buttons: View on Map & Close */}
-                <div className="grid grid-cols-2 gap-2.5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                <div className="grid grid-cols-2 gap-3 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                   <button
                     type="button"
                     onClick={() => {
@@ -1251,12 +1145,10 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                       handleReset();
                       onClose();
                     }}
-                    className="py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center space-x-1.5 shadow-md cursor-pointer"
+                    className={SECONDARY}
                   >
-                    <MapPin className="w-4 h-4" />
-                    <span>View on Map</span>
+                    Selesai
                   </button>
-
                   <button
                     type="button"
                     onClick={() => {
@@ -1266,9 +1158,9 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                       handleReset();
                       onClose();
                     }}
-                    className="py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs sm:text-sm flex items-center justify-center cursor-pointer"
+                    className={PRIMARY}
                   >
-                    <span>Done</span>
+                    Lihat di peta
                   </button>
                 </div>
               </div>
