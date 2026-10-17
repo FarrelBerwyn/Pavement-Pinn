@@ -63,6 +63,8 @@ interface FieldEngineerToolsProps {
   onSelectSegment: (segment: RoadSegment) => void;
   communityReports: DamageReport[];
   onUpdateReportStatus?: (reportId: string, status: DamageReport['status'], engineerNote?: string) => void;
+  /** Open the shared task list, where recommendations enter the approval workflow. */
+  onOpenTasks?: () => void;
 }
 
 export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
@@ -72,7 +74,8 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
   selectedSegment,
   onSelectSegment,
   communityReports,
-  onUpdateReportStatus
+  onUpdateReportStatus,
+  onOpenTasks
 }) => {
   const result = simulationResult;
 
@@ -244,13 +247,16 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
               <span>Cetak PDF Rekayasa</span>
             </button>
           )}
-          <button
-            onClick={() => setIsCreateSpkModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Terbitkan SPK Baru</span>
-          </button>
+          {onOpenTasks && (
+            <button
+              onClick={onOpenTasks}
+              title="Rekomendasi diajukan dari Tugas Saya; perintah kerja diterbitkan M.O setelah disetujui"
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Ajukan Penanganan (Tugas Saya)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -498,15 +504,11 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
               <FileText className="w-4 h-4 text-amber-400" />
-              <span>Daftar Surat Perintah Kerja (SPK) Aktif BBPJN Karawang</span>
+              <span>Contoh SPK (ILUSTRATIF)</span>
             </h3>
-            <button
-              onClick={() => setIsCreateSpkModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs flex items-center space-x-2 shadow-md cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Buat SPK Baru</span>
-            </button>
+            <p className="text-xs text-slate-400 max-w-md">
+              Daftar ini contoh tampilan, tidak tersimpan dan tidak terhubung ke laporan. Perintah kerja resmi diterbitkan M.O setelah rekomendasi F.E disetujui.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

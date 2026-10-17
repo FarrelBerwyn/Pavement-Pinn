@@ -12,32 +12,14 @@ import type { WorkflowCommand } from '../../domain/workflow/stateMachine';
 import type { EngineerSummary, GatewayMode, ReportView } from '../../services/api/workflowClient';
 import type { ReportMutationOutcome } from '../../types';
 import { ReportWorkflowPanel, StateBadge, actorName } from '../workflow/ReportWorkflowPanel';
+import { fieldTasks, flowStep, RANK, type FieldTask, type Filter, type Priority, type Stage } from './fieldTasks';
 
-type Stage = 'TODO' | 'WAITING' | 'DONE';
-type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
-type Filter = 'ALL' | Stage | 'HIGH';
-
-interface FieldTask {
-  c: ReportCase;
-  stage: Stage;
-  priority: Priority;
-  title: string;
-  /** What happens next, in one line. */
-  next: string;
-  /** The transition the main button opens, when this engineer may take it now. */
-  cta: { action: WorkflowAction; label: string } | null;
-  overdue: boolean;
-}
-
-const PRIORITY_OF: Record<string, Priority> = { CRITICAL: 'HIGH', SEVERE: 'HIGH', MODERATE: 'MEDIUM', LIGHT: 'LOW' };
 const PRIORITY_LABEL: Record<Priority, string> = { HIGH: 'Prioritas tinggi', MEDIUM: 'Prioritas sedang', LOW: 'Prioritas rendah' };
 const PRIORITY_CLASS: Record<Priority, string> = {
   HIGH: 'bg-rose-500/10 text-rose-300 border-rose-500/30',
   MEDIUM: 'bg-amber-400/10 text-amber-300 border-amber-400/30',
   LOW: 'bg-elevated text-slate-300 border-line'
 };
-const RANK: Record<Priority, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70';
 
 const fmtDate = (iso: string | undefined) => {
@@ -46,42 +28,6 @@ const fmtDate = (iso: string | undefined) => {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-/** Where a case stands for the assigned engineer, and which step is theirs. */
-function toTask(c: ReportCase, allowed: WorkflowAction[]): FieldTask {
-  const priority = PRIORITY_OF[c.inspection?.severity ?? c.report.severity] ?? 'MEDIUM';
-  const can = (action: WorkflowAction) => allowed.includes(action);
-  const overdue = c.state === 'FIELD_INSPECTION_REQUESTED' && !!c.assignment && Date.parse(c.assignment.dueAt) < Date.now();
-  const base = { c, priority, overdue };
-
-  switch (c.state) {
-    case 'FIELD_INSPECTION_REQUESTED':
-      return { ...base, stage: 'TODO', title: 'Inspeksi lapangan', next: 'Periksa lokasi, ukur kerusakan, kirim hasil ke M.O.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Tugas' } : null };
-    case 'INSPECTED':
-      return c.inspection?.verdict === 'CONFIRMED'
-        ? { ...base, stage: 'TODO', title: 'Susun rekomendasi penanganan', next: 'Kerusakan terkonfirmasi. Ajukan penanganan untuk diputuskan M.O.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Susun Rekomendasi' } : null }
-        : { ...base, stage: 'WAITING', title: 'Inspeksi selesai', next: 'Tidak terkonfirmasi. Menunggu M.O menutup laporan.', cta: null };
-    case 'ACTION_RECOMMENDED':
-      return { ...base, stage: 'WAITING', title: 'Rekomendasi diajukan', next: 'Menunggu persetujuan M.O; terlihat di prioritas D.M.', cta: null };
-    case 'ACTION_APPROVED':
-      return { ...base, stage: 'WAITING', title: 'Penanganan disetujui', next: 'Menunggu M.O menerbitkan perintah kerja.', cta: null };
-    case 'IN_PROGRESS':
-      return c.workOrder?.status === 'COMPLETED'
-        ? { ...base, stage: 'TODO', title: 'Verifikasi hasil perbaikan', next: 'Pekerjaan dilaporkan selesai. Cek hasil di lapangan.', cta: can('RESOLVE') ? { action: 'RESOLVE', label: 'Verifikasi Perbaikan' } : null }
-        : { ...base, stage: 'WAITING', title: 'Perbaikan berjalan', next: 'Perintah kerja aktif; verifikasi setelah pekerjaan selesai.', cta: null };
-    case 'RESOLVED':
-      return { ...base, stage: 'DONE', title: 'Perbaikan terverifikasi', next: 'Menunggu M.O menutup laporan.', cta: null };
-    default:
-      return { ...base, stage: 'DONE', title: 'Laporan ditutup', next: 'Tidak ada tindakan lagi.', cta: null };
-  }
-}
-
-/** R.E → M.O → F.E → D.M, as the four hand-offs of one report. */
-function flowStep(c: ReportCase): number {
-  if (c.state === 'RESOLVED' || c.state === 'CLOSED') return 4;
-  if (['ACTION_RECOMMENDED', 'ACTION_APPROVED', 'IN_PROGRESS'].includes(c.state)) return 3;
-  if (c.assignment) return 2;
-  return 1;
-}
 const FLOW = [
   { short: 'R.E', label: 'Laporan warga' },
   { short: 'M.O', label: 'Verifikasi & penugasan' },
@@ -136,13 +82,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
   const [sort, setSort] = useState<'DUE' | 'PRIORITY' | 'NEWEST'>('DUE');
   const [open, setOpen] = useState<{ id: string; action: WorkflowAction | null } | null>(null);
 
-  const tasks = useMemo(
-    () =>
-      Object.values(workflow.views)
-        .filter((v) => v.audience === 'STAFF' && (v.case as ReportCase).assignment?.engineerId === me)
-        .map((v) => toTask(v.case as ReportCase, v.availableActions)),
-    [workflow.views, me]
-  );
+  const tasks = useMemo(() => fieldTasks(Object.values(workflow.views), me), [workflow.views, me]);
 
   const counts = useMemo(
     () => ({

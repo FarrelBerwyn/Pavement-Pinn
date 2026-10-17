@@ -44,6 +44,7 @@ export const EngineeringPage: React.FC<EngineeringPageProps> = ({ searchQuery, s
         onNavigateToSPK={() => setActiveNav('SPK_ORDERS')}
         onNavigateToMap={() => setActiveNav('MAP')}
         assignedTasks={assignedTasks}
+        onOpenRoadHistory={() => setActiveNav('ROAD_HISTORY')}
       />
     </div>
   );

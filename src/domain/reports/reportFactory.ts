@@ -69,9 +69,20 @@ export function createSessionReport(draft: ReportDraft, creator: ReportCreator |
     throw new ReportCreationError('The creation time is invalid.');
   }
 
+  // A new report carries only what the citizen observed. Repair evidence, WIM correlation,
+  // community upvotes and workflow fields are produced later by the system and staff;
+  // values sent by the caller are dropped so they cannot appear as evidence. A client-side
+  // classification is never a verified model output.
+  const { repairDetails: _repair, wimCorrelation: _wim, workflowState: _state, caseVersion: _version, upvotesCount: _votes, userUpvoted: _voted, ...content } = draft;
+  void _repair; void _wim; void _state; void _version; void _votes; void _voted;
+  const aiAnalysis = content.aiAnalysis ? { ...content.aiAnalysis, confidence: null, modelStatus: 'NOT_CLASSIFIED' as const, modelVersion: undefined, detectionBox: undefined } : undefined;
+
   // Factory-owned fields are written last so caller content can never override them.
   return {
-    ...draft,
+    ...content,
+    ...(aiAnalysis ? { aiAnalysis } : {}),
+    upvotesCount: 0,
+    userUpvoted: false,
     id: generateReportId(),
     status: 'PENDING',
     creatorAccountId: creator.id,

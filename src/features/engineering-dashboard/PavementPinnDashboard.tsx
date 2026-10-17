@@ -51,6 +51,8 @@ interface PavementPinnDashboardProps {
   onOpenTechnicalDetails?: () => void;
   onNavigateToSPK?: () => void;
   onNavigateToMap?: () => void;
+  /** Open Riwayat Jalan for the selected segment. */
+  onOpenRoadHistory?: () => void;
   /** Open workflow cases assigned to this engineer, soonest deadline first. */
   assignedTasks?: ReportCase[];
   searchQuery?: string;
@@ -68,6 +70,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
   onOpenTechnicalDetails,
   onNavigateToSPK,
   onNavigateToMap,
+  onOpenRoadHistory,
   assignedTasks = [],
   searchQuery: externalSearchQuery
 }) => {
@@ -582,7 +585,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
 
                 {/* 3. Riwayat */}
                 <button
-                  onClick={() => alert(`Riwayat Penurunan Segmen ${selectedSegment.name}:\n- 2024: PCI 78 (Baik)\n- 2025: PCI 68 (Perlu Perhatian)\n- 2026: PCI ${pciValue} (${pciCategory})`)}
+                  onClick={onOpenRoadHistory}
                   className="flex flex-col items-center justify-center p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all cursor-pointer group"
                   title="Riwayat Degradasi Jalan"
                 >
@@ -752,23 +755,13 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
 
                 <button
                   onClick={() => {
-                    if (completedChecklistCount === 5) {
-                      alert('Checklist pemeriksaan selesai 100%! Data terverifikasi tersimpan dalam sistem.');
-                    } else {
-                      setChecklist({
-                        damage_type: true,
-                        dimension: true,
-                        photo: true,
-                        drainage: true,
-                        recommendation: true
-                      });
-                      alert('Memulai mode pemeriksaan lapangan terpandu.');
-                    }
+                    // The checklist is a local reminder; results are saved only through the assigned task.
+                    onNavigateToSPK?.();
                   }}
                   className="w-full mt-2 h-10 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{completedChecklistCount === 5 ? 'Pemeriksaan Selesai' : 'Mulai Pemeriksaan'}</span>
+                  <span>Kirim hasil lewat Tugas Saya</span>
                 </button>
               </div>
             </div>

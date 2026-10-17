@@ -45,6 +45,7 @@ export const FwdPage: React.FC = () => {
           selectedSegment={selectedSegment}
           onSelectSegment={onSelectSegment}
           communityReports={communityReports}
+          onOpenTasks={() => setActiveNav('SPK_ORDERS')}
           onUpdateReportStatus={(repId, status, note) => {
             const rep = communityReports.find((r) => r.id === repId);
             if (rep && onEditReport) {
