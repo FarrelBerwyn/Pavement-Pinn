@@ -10,7 +10,10 @@ import type { PublicReportView } from '../../domain/workflow/projections';
 import type { WorkflowCommand } from '../../domain/workflow/stateMachine';
 import type { EngineerSummary, GatewayMode, ReportView } from '../../services/api/workflowClient';
 import type { ReportMutationOutcome } from '../../types';
-import { ACTION_LABEL, stateTone, TONE_CLASS, WORKFLOW_STATE_LABEL } from './workflowLabels';
+import { USER_ACCOUNTS } from '../../data/reference/demoAccounts';
+import { ACTION_LABEL, ROLE_SHORT, stateTone, TONE_CLASS, TONE_CLASS_LIGHT, WORKFLOW_STATE_LABEL } from './workflowLabels';
+
+export type PanelTone = 'dark' | 'light';
 
 export interface ReportWorkflowPanelProps {
   view: ReportView | null;
@@ -21,7 +24,60 @@ export interface ReportWorkflowPanelProps {
   onShowOnMap?: () => void;
   /** Smaller paddings for use inside the map bottom sheet. */
   compact?: boolean;
+  /** Surface the panel sits on. Dark by default (map sheets, queues). */
+  tone?: PanelTone;
+  /** Open this action's form immediately (e.g. "Mulai Tugas" opens the inspection form). */
+  initialAction?: WorkflowAction | null;
 }
+
+/** One class set per surface, so both themes use the same brand yellow and muted status colours. */
+const SKIN = {
+  dark: {
+    section: 'border-white/10 bg-slate-900/60 text-slate-200',
+    card: 'bg-white/[0.03] border-white/10',
+    strong: 'text-slate-100',
+    body: 'text-slate-300',
+    muted: 'text-slate-400',
+    label: 'text-slate-300',
+    form: 'border-white/10 bg-slate-950/50',
+    input: 'bg-slate-900/80 border-white/15 text-slate-100 placeholder:text-slate-500',
+    ghost: 'text-slate-300 hover:bg-white/5',
+    chip: 'bg-white/[0.04] border-white/15 text-slate-100 hover:bg-white/[0.08]',
+    chipOn: 'bg-brand/15 border-brand/60 text-brand-hover',
+    link: 'text-brand hover:text-brand-hover',
+    line: 'border-white/10',
+    ok: 'text-emerald-200 bg-emerald-500/10 border-emerald-500/30',
+    err: 'text-rose-200 bg-rose-500/10 border-rose-500/30',
+    tagDemo: 'border-amber-500/40 text-amber-200 bg-amber-500/10',
+    tagObserved: 'border-emerald-500/40 text-emerald-200 bg-emerald-500/10',
+    tagNeutral: 'border-slate-500/40 text-slate-300 bg-slate-700/30',
+    note: 'text-amber-200'
+  },
+  light: {
+    section: 'border-slate-200 bg-white text-slate-700',
+    card: 'bg-slate-50 border-slate-200',
+    strong: 'text-slate-900',
+    body: 'text-slate-700',
+    muted: 'text-slate-500',
+    label: 'text-slate-600',
+    form: 'border-slate-200 bg-slate-50',
+    input: 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400',
+    ghost: 'text-slate-600 hover:bg-slate-100',
+    chip: 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50',
+    chipOn: 'bg-amber-50 border-amber-500 text-amber-800',
+    link: 'text-amber-700 hover:text-amber-800',
+    line: 'border-slate-200',
+    ok: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    err: 'text-rose-800 bg-rose-50 border-rose-200',
+    tagDemo: 'border-amber-300 text-amber-800 bg-amber-50',
+    tagObserved: 'border-emerald-200 text-emerald-800 bg-emerald-50',
+    tagNeutral: 'border-slate-300 text-slate-600 bg-slate-100',
+    note: 'text-amber-800'
+  }
+} as const;
+type Skin = (typeof SKIN)[PanelTone];
+
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70';
 
 const fmt = (iso: string) => {
   const d = new Date(iso);
@@ -33,35 +89,33 @@ const inDays = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-export const StateBadge: React.FC<{ state: WorkflowState | string }> = ({ state }) => (
-  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-semibold ${TONE_CLASS[stateTone(state)]}`}>
-    <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+/** Display name for an actor id, with the role in short form (R.E, M.O, F.E, D.M). */
+export function actorName(id: string): string {
+  if (id.startsWith('system')) return 'Sistem';
+  const account = USER_ACCOUNTS.find((a) => a.id === id);
+  return account ? `${account.name} (${ROLE_SHORT[account.role] ?? account.role})` : id;
+}
+
+export const StateBadge: React.FC<{ state: WorkflowState | string; tone?: PanelTone }> = ({ state, tone = 'dark' }) => (
+  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-semibold ${(tone === 'light' ? TONE_CLASS_LIGHT : TONE_CLASS)[stateTone(state)]}`}>
+    <span aria-hidden="true" className="w-2 h-2 rounded-full bg-current opacity-80" />
     {WORKFLOW_STATE_LABEL[state as WorkflowState] ?? state}
   </span>
 );
 
-const DataTag: React.FC<{ children: React.ReactNode; tone?: 'demo' | 'observed' | 'neutral' }> = ({ children, tone = 'neutral' }) => (
-  <span
-    className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide border ${
-      tone === 'demo' ? 'border-amber-500/40 text-amber-200 bg-amber-500/10' : tone === 'observed' ? 'border-emerald-500/40 text-emerald-200 bg-emerald-500/10' : 'border-slate-500/40 text-slate-300 bg-slate-700/30'
-    }`}
-  >
-    {children}
-  </span>
+const DataTag: React.FC<{ children: React.ReactNode; tone?: 'demo' | 'observed' | 'neutral'; skin: Skin }> = ({ children, tone = 'neutral', skin }) => (
+  <span className={`inline-block px-2 py-1 rounded text-xs font-bold tracking-wide border ${tone === 'demo' ? skin.tagDemo : tone === 'observed' ? skin.tagObserved : skin.tagNeutral}`}>{children}</span>
 );
 
-const Field: React.FC<{ label: string; htmlFor: string; children: React.ReactNode; hint?: string }> = ({ label, htmlFor, children, hint }) => (
+const Field: React.FC<{ label: string; htmlFor: string; children: React.ReactNode; hint?: string; skin: Skin }> = ({ label, htmlFor, children, hint, skin }) => (
   <div className="space-y-1">
-    <label htmlFor={htmlFor} className="block text-[11px] font-semibold text-slate-300">
+    <label htmlFor={htmlFor} className={`block text-xs font-semibold ${skin.label}`}>
       {label}
     </label>
     {children}
-    {hint && <p className="text-[10px] text-slate-400">{hint}</p>}
+    {hint && <p className={`text-xs ${skin.muted}`}>{hint}</p>}
   </div>
 );
-
-const inputClass =
-  'w-full rounded-lg bg-slate-900/80 border border-white/15 px-2.5 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 transition-shadow';
 
 /** Inline form for one action; builds the command and calls onRun. */
 const ActionForm: React.FC<{
@@ -69,10 +123,12 @@ const ActionForm: React.FC<{
   engineers: EngineerSummary[];
   caseData: ReportCase;
   busy: boolean;
+  skin: Skin;
   onSubmit: (command: WorkflowCommand) => void;
   onCancel: () => void;
-}> = ({ action, engineers, caseData, busy, onSubmit, onCancel }) => {
+}> = ({ action, engineers, caseData, busy, skin, onSubmit, onCancel }) => {
   const id = (name: string) => `wf-${caseData.id}-${action}-${name}`;
+  const inputClass = `w-full rounded-lg border px-3 py-2 text-xs transition-shadow ${skin.input} ${FOCUS}`;
   const [reason, setReason] = useState('');
   const [engineerId, setEngineerId] = useState(engineers[0]?.id ?? '');
   const [dueAt, setDueAt] = useState(inDays(3));
@@ -82,7 +138,7 @@ const ActionForm: React.FC<{
   const [correctedClass, setCorrectedClass] = useState('');
   const [depth, setDepth] = useState('');
   const [area, setArea] = useState('');
-  const [severity, setSeverity] = useState<'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL'>(caseData.report.severity);
+  const [severity, setSeverity] = useState<'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL'>(caseData.inspection?.severity ?? caseData.report.severity);
   const [notes, setNotes] = useState('');
   const [treatment, setTreatment] = useState('');
   const [urgency, setUrgency] = useState<'ROUTINE' | 'PRIORITY' | 'URGENT'>('PRIORITY');
@@ -118,12 +174,12 @@ const ActionForm: React.FC<{
   const needsReason = !['SUBMIT_INSPECTION', 'RECOMMEND_ACTION'].includes(action);
 
   return (
-    <form onSubmit={submit} className="mt-2 space-y-2 rounded-xl border border-white/10 bg-slate-950/50 p-3">
-      <p className="text-[11px] font-bold text-slate-100">{ACTION_LABEL[action]}</p>
+    <form onSubmit={submit} className={`mt-2 space-y-2 rounded-xl border p-3 ${skin.form}`}>
+      <p className={`text-xs font-bold ${skin.strong}`}>{ACTION_LABEL[action]}</p>
 
       {action === 'REQUEST_INSPECTION' && (
         <>
-          <Field label="Insinyur lapangan" htmlFor={id('eng')}>
+          <Field skin={skin} label="Insinyur lapangan (F.E)" htmlFor={id('eng')}>
             <select id={id('eng')} className={inputClass} value={engineerId} onChange={(e) => setEngineerId(e.target.value)} required>
               {engineers.map((en) => (
                 <option key={en.id} value={en.id}>
@@ -132,10 +188,10 @@ const ActionForm: React.FC<{
               ))}
             </select>
           </Field>
-          <Field label="Batas waktu inspeksi" htmlFor={id('due')}>
+          <Field skin={skin} label="Batas waktu inspeksi" htmlFor={id('due')}>
             <input id={id('due')} type="date" className={inputClass} value={dueAt} min={inDays(1)} onChange={(e) => setDueAt(e.target.value)} required />
           </Field>
-          <Field label="Instruksi" htmlFor={id('ins')}>
+          <Field skin={skin} label="Instruksi untuk insinyur" htmlFor={id('ins')}>
             <textarea id={id('ins')} className={inputClass} rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Mis. ukur kedalaman & luas, foto tepi lubang" />
           </Field>
         </>
@@ -143,32 +199,32 @@ const ActionForm: React.FC<{
 
       {action === 'SUBMIT_INSPECTION' && (
         <>
-          <Field label="Hasil pemeriksaan" htmlFor={id('verdict')}>
+          <Field skin={skin} label="Hasil pemeriksaan" htmlFor={id('verdict')}>
             <select id={id('verdict')} className={inputClass} value={verdict} onChange={(e) => setVerdict(e.target.value as typeof verdict)}>
               <option value="CONFIRMED">Kerusakan terkonfirmasi</option>
               <option value="NOT_CONFIRMED">Tidak ditemukan kerusakan</option>
             </select>
           </Field>
           <div className="flex items-center gap-2">
-            <input id={id('cv')} type="checkbox" checked={cvAccepted} onChange={(e) => setCvAccepted(e.target.checked)} className="accent-sky-400" />
-            <label htmlFor={id('cv')} className="text-[11px] text-slate-300">
+            <input id={id('cv')} type="checkbox" checked={cvAccepted} onChange={(e) => setCvAccepted(e.target.checked)} className="accent-amber-500" />
+            <label htmlFor={id('cv')} className={`text-xs ${skin.label}`}>
               Jenis kerusakan pada laporan sudah benar ({caseData.report.damageTypeLabel})
             </label>
           </div>
           {!cvAccepted && (
-            <Field label="Koreksi jenis kerusakan" htmlFor={id('cls')}>
+            <Field skin={skin} label="Koreksi jenis kerusakan" htmlFor={id('cls')}>
               <input id={id('cls')} className={inputClass} value={correctedClass} onChange={(e) => setCorrectedClass(e.target.value)} required placeholder="Mis. ALLIGATOR_CRACK" />
             </Field>
           )}
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Kedalaman terukur (cm)" htmlFor={id('depth')}>
-              <input id={id('depth')} type="number" min={0} step="0.1" inputMode="decimal" className={inputClass} value={depth} onChange={(e) => setDepth(e.target.value)} />
+            <Field skin={skin} label="Kedalaman terukur (cm)" htmlFor={id('depth')}>
+              <input id={id('depth')} type="number" min={0} step="0.1" inputMode="decimal" className={inputClass} value={depth} onChange={(e) => setDepth(e.target.value)} placeholder={`laporan: ${caseData.report.estimatedDepthCm}`} />
             </Field>
-            <Field label="Luas terukur (m²)" htmlFor={id('area')}>
-              <input id={id('area')} type="number" min={0} step="0.1" inputMode="decimal" className={inputClass} value={area} onChange={(e) => setArea(e.target.value)} />
+            <Field skin={skin} label="Luas terukur (m²)" htmlFor={id('area')}>
+              <input id={id('area')} type="number" min={0} step="0.1" inputMode="decimal" className={inputClass} value={area} onChange={(e) => setArea(e.target.value)} placeholder={`laporan: ${caseData.report.estimatedAreaM2}`} />
             </Field>
           </div>
-          <Field label="Tingkat keparahan" htmlFor={id('sev')}>
+          <Field skin={skin} label="Tingkat keparahan" htmlFor={id('sev')}>
             <select id={id('sev')} className={inputClass} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}>
               <option value="LIGHT">Ringan</option>
               <option value="MODERATE">Sedang</option>
@@ -176,7 +232,7 @@ const ActionForm: React.FC<{
               <option value="CRITICAL">Kritis</option>
             </select>
           </Field>
-          <Field label="Catatan inspeksi" htmlFor={id('notes')}>
+          <Field skin={skin} label="Catatan inspeksi" htmlFor={id('notes')}>
             <textarea id={id('notes')} className={inputClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} required placeholder="Kondisi yang diamati di lapangan" />
           </Field>
         </>
@@ -184,54 +240,55 @@ const ActionForm: React.FC<{
 
       {action === 'RECOMMEND_ACTION' && (
         <>
-          <Field label="Penanganan yang direkomendasikan" htmlFor={id('tr')}>
+          <Field skin={skin} label="Penanganan yang direkomendasikan" htmlFor={id('tr')}>
             <input id={id('tr')} className={inputClass} value={treatment} onChange={(e) => setTreatment(e.target.value)} required placeholder="Mis. patching + overlay tipis AC-WC" />
           </Field>
-          <Field label="Urgensi" htmlFor={id('urg')}>
+          <Field skin={skin} label="Urgensi" htmlFor={id('urg')}>
             <select id={id('urg')} className={inputClass} value={urgency} onChange={(e) => setUrgency(e.target.value as typeof urgency)}>
               <option value="ROUTINE">Rutin</option>
               <option value="PRIORITY">Prioritas</option>
               <option value="URGENT">Mendesak</option>
             </select>
           </Field>
-          <Field label="Alasan teknis" htmlFor={id('rat')} hint="Penilaian rekayasa (RULE_BASED, belum tervalidasi) dilampirkan otomatis oleh server.">
+          <Field skin={skin} label="Alasan teknis" htmlFor={id('rat')} hint="Penilaian ruas (RULE_BASED, belum tervalidasi) dilampirkan otomatis saat disimpan, lalu terlihat oleh M.O dan D.M.">
             <textarea id={id('rat')} className={inputClass} rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} required />
           </Field>
         </>
       )}
 
       {action === 'START_WORK' && (
-        <Field label="Catatan pelaksana" htmlFor={id('con')} hint="Perintah kerja internal sistem — bukan dokumen SPK resmi.">
+        <Field skin={skin} label="Catatan pelaksana" htmlFor={id('con')} hint="Perintah kerja internal sistem — bukan dokumen SPK resmi.">
           <input id={id('con')} className={inputClass} value={contractorNote} onChange={(e) => setContractorNote(e.target.value)} placeholder="Mis. tim swakelola BBPJN" />
         </Field>
       )}
 
       {needsReason && (
-        <Field label="Alasan (tercatat di audit trail)" htmlFor={id('reason')}>
+        <Field skin={skin} label="Alasan (tercatat di audit trail)" htmlFor={id('reason')}>
           <textarea id={id('reason')} className={inputClass} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} required />
         </Field>
       )}
 
       <div className="flex items-center justify-end gap-2 pt-1">
-        <button type="button" onClick={onCancel} disabled={busy} className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-slate-300 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 transition-colors">
+        <button type="button" onClick={onCancel} disabled={busy} className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${skin.ghost} ${FOCUS}`}>
           Batal
         </button>
-        <button type="submit" disabled={busy} aria-busy={busy} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-sky-500 text-slate-950 hover:bg-sky-400 disabled:opacity-60 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 transition-colors">
-          {busy ? 'Menyimpan…' : 'Simpan'}
+        <button type="submit" disabled={busy} aria-busy={busy} className={`px-3 py-2 rounded-lg text-xs font-bold bg-brand text-navy hover:bg-brand-hover active:bg-brand-press disabled:opacity-60 disabled:cursor-wait transition-colors ${FOCUS}`}>
+          {busy ? 'Menyimpan…' : 'Simpan & kirim'}
         </button>
       </div>
     </form>
   );
 };
 
-export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, mode, engineers, onRun, onShowOnMap, compact }) => {
-  const [openAction, setOpenAction] = useState<WorkflowAction | null>(null);
+export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, mode, engineers, onRun, onShowOnMap, compact, tone = 'dark', initialAction = null }) => {
+  const skin = SKIN[tone];
+  const [openAction, setOpenAction] = useState<WorkflowAction | null>(initialAction && view?.availableActions.includes(initialAction) ? initialAction : null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const engineerName = useMemo(() => new Map(engineers.map((e) => [e.id, e.name])), [engineers]);
 
   if (!view) {
-    return <p className="text-[11px] text-slate-400">Status alur kerja belum dimuat.</p>;
+    return <p className={`text-xs ${skin.muted}`}>Status alur kerja belum dimuat.</p>;
   }
 
   const isStaff = view.audience === 'STAFF';
@@ -250,40 +307,58 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
       return;
     }
     setOpenAction(null);
-    setMessage({ tone: 'ok', text: `${ACTION_LABEL[command.action as WorkflowAction]} — tersimpan.` });
+    setMessage({ tone: 'ok', text: `${ACTION_LABEL[command.action as WorkflowAction]} — tersimpan dan terkirim ke peran berikutnya.` });
   };
 
   const assignmentOverdue = staffCase?.assignment && state === 'FIELD_INSPECTION_REQUESTED' && Date.parse(staffCase.assignment.dueAt) < Date.now();
+  const card = `rounded-xl border p-3 ${skin.card}`;
 
   return (
-    <section aria-label="Status alur kerja laporan" className={`rounded-2xl border border-white/10 bg-slate-900/60 ${compact ? 'p-2.5' : 'p-3.5'} space-y-3 text-slate-200`}>
+    <section aria-label="Status alur kerja laporan" className={`rounded-2xl border ${skin.section} ${compact ? 'p-3' : 'p-4'} space-y-3`}>
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <StateBadge state={state} />
-          <span className="text-[10px] font-mono text-slate-400">{view.case.id}</span>
-          {mode === 'OFFLINE_DEMO' && <DataTag tone="demo">DEMO OFFLINE — tidak tersimpan di server</DataTag>}
-          {staffCase && staffCase.dataStatus === 'SYNTHETIC' && <DataTag tone="demo">DATA CONTOH (SYNTHETIC)</DataTag>}
+          <StateBadge state={state} tone={tone} />
+          <span className={`text-xs font-mono ${skin.muted}`}>{view.case.id}</span>
+          {mode === 'OFFLINE_DEMO' && (
+            <DataTag skin={skin} tone="demo">
+              DEMO OFFLINE — tidak tersimpan di server
+            </DataTag>
+          )}
+          {staffCase && staffCase.dataStatus === 'SYNTHETIC' && (
+            <DataTag skin={skin} tone="demo">
+              DATA CONTOH (SYNTHETIC)
+            </DataTag>
+          )}
         </div>
         {onShowOnMap && (
-          <button type="button" onClick={onShowOnMap} className="text-[11px] font-semibold text-sky-300 hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 rounded px-1">
+          <button type="button" onClick={onShowOnMap} className={`text-xs font-semibold rounded px-1 ${skin.link} ${FOCUS}`}>
             Lihat di peta
           </button>
         )}
       </header>
 
       {staffCase && (
-        <div className="grid gap-2 text-[11px]">
+        <div className="grid gap-2 text-xs">
+          <div className={`${card} space-y-1`}>
+            <span className={`font-semibold ${skin.strong}`}>Laporan warga (R.E)</span>
+            <p className={skin.body}>
+              {staffCase.report.damageTypeLabel} · {staffCase.report.segmentName} · estimasi {staffCase.report.estimatedDepthCm} cm / {staffCase.report.estimatedAreaM2} m²
+            </p>
+            {staffCase.report.description && <p className={skin.muted}>{staffCase.report.description}</p>}
+          </div>
           {staffCase.screening && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 space-y-1">
+            <div className={`${card} space-y-1`}>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-100">Penyaringan otomatis</span>
-                <DataTag tone={staffCase.screening.modelStatus === 'REAL' ? 'observed' : 'demo'}>{staffCase.screening.modelStatus}</DataTag>
+                <span className={`font-semibold ${skin.strong}`}>Penyaringan otomatis</span>
+                <DataTag skin={skin} tone={staffCase.screening.modelStatus === 'REAL' ? 'observed' : 'demo'}>
+                  {staffCase.screening.modelStatus}
+                </DataTag>
               </div>
-              <p className="text-slate-300">
+              <p className={skin.body}>
                 {staffCase.screening.detectedClass ? `Kelas: ${staffCase.screening.detectedClass}` : 'Tidak ada keluaran model'}
                 {staffCase.screening.confidence !== null && ` · kepercayaan ${(staffCase.screening.confidence * 100).toFixed(0)}% (${staffCase.screening.modelStatus})`}
               </p>
-              <ul className="list-disc pl-4 text-slate-400 space-y-0.5">
+              <ul className={`list-disc pl-4 space-y-1 ${skin.muted}`}>
                 {staffCase.screening.reasons.map((r) => (
                   <li key={r}>{r}</li>
                 ))}
@@ -291,75 +366,83 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
             </div>
           )}
           {staffCase.assignment && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5">
-              <span className="font-semibold text-slate-100">Penugasan inspeksi</span>
-              <p className="text-slate-300">
-                {engineerName.get(staffCase.assignment.engineerId) ?? staffCase.assignment.engineerId} · batas {fmt(staffCase.assignment.dueAt)}
-                {assignmentOverdue && <span className="ml-1 font-bold text-rose-300">(lewat batas waktu)</span>}
+            <div className={card}>
+              <span className={`font-semibold ${skin.strong}`}>Penugasan inspeksi (M.O → F.E)</span>
+              <p className={skin.body}>
+                {engineerName.get(staffCase.assignment.engineerId) ?? actorName(staffCase.assignment.engineerId)} · batas {fmt(staffCase.assignment.dueAt)}
+                {assignmentOverdue && <span className="ml-1 font-bold text-rose-600">(lewat batas waktu)</span>}
               </p>
-              {staffCase.assignment.instructions && <p className="text-slate-400">{staffCase.assignment.instructions}</p>}
+              <p className={skin.muted}>Ditugaskan oleh {actorName(staffCase.assignment.assignedBy)}</p>
+              {staffCase.assignment.instructions && <p className={skin.muted}>Instruksi: {staffCase.assignment.instructions}</p>}
             </div>
           )}
           {staffCase.inspection && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 space-y-0.5">
+            <div className={`${card} space-y-1`}>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-100">Hasil inspeksi lapangan</span>
-                <DataTag tone="observed">OBSERVED</DataTag>
+                <span className={`font-semibold ${skin.strong}`}>Hasil inspeksi lapangan (F.E)</span>
+                <DataTag skin={skin} tone="observed">
+                  OBSERVED
+                </DataTag>
               </div>
-              <p className="text-slate-300">
+              <p className={skin.body}>
                 {staffCase.inspection.verdict === 'CONFIRMED' ? 'Terkonfirmasi' : 'Tidak terkonfirmasi'} · {staffCase.inspection.severity}
                 {staffCase.inspection.measuredDepthCm !== null && ` · ${staffCase.inspection.measuredDepthCm} cm`}
                 {staffCase.inspection.measuredAreaM2 !== null && ` · ${staffCase.inspection.measuredAreaM2} m²`}
               </p>
-              <p className="text-slate-400">
+              <p className={skin.muted}>
                 Klasifikasi laporan {staffCase.inspection.cvReview.accepted ? 'diterima' : `dikoreksi menjadi ${staffCase.inspection.cvReview.correctedClass}`}. {staffCase.inspection.notes}
               </p>
             </div>
           )}
           {staffCase.recommendation && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 space-y-0.5">
-              <span className="font-semibold text-slate-100">Rekomendasi penanganan</span>
-              <p className="text-slate-300">
+            <div className={`${card} space-y-1`}>
+              <span className={`font-semibold ${skin.strong}`}>Rekomendasi penanganan (F.E)</span>
+              <p className={skin.body}>
                 {staffCase.recommendation.treatment} · {staffCase.recommendation.urgency}
               </p>
-              <p className="text-slate-400">{staffCase.recommendation.rationale}</p>
-              {staffCase.recommendation.assessment && (
-                <p className="text-slate-400">
+              <p className={skin.muted}>{staffCase.recommendation.rationale}</p>
+              {staffCase.recommendation.assessment ? (
+                <p className={skin.muted}>
                   Penilaian: risiko {staffCase.recommendation.assessment.risk}, skor kondisi prototipe {staffCase.recommendation.assessment.conditionScorePrototype}{' '}
-                  <DataTag tone="demo">{staffCase.recommendation.assessment.engine}</DataTag> <DataTag>{staffCase.recommendation.assessment.validationStatus}</DataTag>
+                  <DataTag skin={skin} tone="demo">
+                    {staffCase.recommendation.assessment.engine}
+                  </DataTag>{' '}
+                  <DataTag skin={skin}>{staffCase.recommendation.assessment.validationStatus}</DataTag>
                 </p>
+              ) : (
+                <p className={skin.muted}>Tanpa lampiran penilaian ruas.</p>
               )}
             </div>
           )}
           {staffCase.approvals.length > 0 && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5">
-              <span className="font-semibold text-slate-100">Keputusan</span>
-              <ul className="mt-0.5 space-y-0.5">
+            <div className={card}>
+              <span className={`font-semibold ${skin.strong}`}>Keputusan (M.O)</span>
+              <ul className="mt-1 space-y-1">
                 {staffCase.approvals.map((a) => (
-                  <li key={a.id} className="text-slate-300">
-                    {a.decision === 'APPROVED' ? 'Disetujui' : 'Dikembalikan'} oleh {a.decidedBy} · {fmt(a.decidedAt)} — <span className="text-slate-400">{a.reason}</span>
+                  <li key={a.id} className={skin.body}>
+                    {a.decision === 'APPROVED' ? 'Disetujui' : 'Dikembalikan'} oleh {actorName(a.decidedBy)} · {fmt(a.decidedAt)} — <span className={skin.muted}>{a.reason}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
           {staffCase.workOrder && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5">
-              <span className="font-semibold text-slate-100">Perintah kerja internal {staffCase.workOrder.id}</span>
-              <p className="text-slate-300">
+            <div className={card}>
+              <span className={`font-semibold ${skin.strong}`}>Perintah kerja internal {staffCase.workOrder.id}</span>
+              <p className={skin.body}>
                 Status: {staffCase.workOrder.status === 'COMPLETED' ? `selesai ${fmt(staffCase.workOrder.completedAt!)}` : 'diterbitkan'}
                 {staffCase.workOrder.contractorNote && ` · ${staffCase.workOrder.contractorNote}`}
               </p>
-              <p className="text-[10px] text-amber-200">Catatan sistem, bukan dokumen SPK resmi pemerintah.</p>
+              <p className={`text-xs ${skin.note}`}>Catatan sistem, bukan dokumen SPK resmi pemerintah.</p>
             </div>
           )}
         </div>
       )}
 
       {view.availableActions.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tindakan Anda</p>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="space-y-2">
+          <p className={`text-xs font-bold uppercase tracking-wider ${skin.muted}`}>Tindakan Anda</p>
+          <div className="flex flex-wrap gap-2">
             {view.availableActions.map((action) => (
               <button
                 key={action}
@@ -369,39 +452,37 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
                   setMessage(null);
                   setOpenAction(openAction === action ? null : action);
                 }}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 ${
-                  openAction === action ? 'bg-sky-500/20 border-sky-400/60 text-sky-100' : 'bg-white/[0.04] border-white/15 text-slate-100 hover:bg-white/[0.08]'
-                }`}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${FOCUS} ${openAction === action ? skin.chipOn : skin.chip}`}
               >
                 {ACTION_LABEL[action]}
               </button>
             ))}
           </div>
           {openAction && staffCase && (
-            <ActionForm action={openAction} engineers={engineers} caseData={staffCase} busy={busy} onSubmit={run} onCancel={() => setOpenAction(null)} />
+            <ActionForm key={openAction} action={openAction} engineers={engineers} caseData={staffCase} busy={busy} skin={skin} onSubmit={run} onCancel={() => setOpenAction(null)} />
           )}
         </div>
       )}
 
       {message && (
-        <p role={message.tone === 'error' ? 'alert' : 'status'} className={`text-[11px] rounded-lg px-2.5 py-1.5 border ${message.tone === 'error' ? 'text-rose-200 bg-rose-500/10 border-rose-500/30' : 'text-emerald-200 bg-emerald-500/10 border-emerald-500/30'}`}>
+        <p role={message.tone === 'error' ? 'alert' : 'status'} className={`text-xs rounded-lg px-3 py-2 border ${message.tone === 'error' ? skin.err : skin.ok}`}>
           {message.text}
         </p>
       )}
 
       <details className="group" open={!compact}>
-        <summary className="cursor-pointer text-[11px] font-semibold text-slate-300 hover:text-slate-100 select-none">Riwayat status</summary>
-        <ol className="mt-2 space-y-1.5 border-l border-white/10 pl-3">
+        <summary className={`cursor-pointer text-xs font-semibold select-none ${skin.label}`}>Riwayat status</summary>
+        <ol className={`mt-2 space-y-2 border-l pl-3 ${skin.line}`}>
           {(staffCase
-            ? [...staffCase.history].reverse().map((h) => ({ key: h.id, at: h.at, state: h.to, text: `${ACTION_LABEL[h.action]} · ${h.actor.role === 'SYSTEM' ? 'sistem' : h.actor.id}${h.reason ? ` — ${h.reason}` : ''}` }))
+            ? [...staffCase.history].reverse().map((h) => ({ key: h.id, at: h.at, state: h.to, text: `${ACTION_LABEL[h.action]} · ${h.actor.role === 'SYSTEM' ? 'sistem' : actorName(h.actor.id)}${h.reason ? ` — ${h.reason}` : ''}` }))
             : [...(publicCase?.timeline ?? [])].reverse().map((t, i) => ({ key: `${t.at}-${i}`, at: t.at, state: t.state, text: t.note }))
           ).map((entry) => (
-            <li key={entry.key} className="text-[11px]">
-              <span className="text-slate-400 font-mono">{fmt(entry.at)}</span>
-              <span className="ml-1.5">
-                <StateBadge state={entry.state} />
+            <li key={entry.key} className="text-xs">
+              <span className={`font-mono ${skin.muted}`}>{fmt(entry.at)}</span>
+              <span className="ml-2">
+                <StateBadge state={entry.state} tone={tone} />
               </span>
-              <p className="text-slate-300 mt-0.5">{entry.text}</p>
+              <p className={`mt-1 ${skin.body}`}>{entry.text}</p>
             </li>
           ))}
         </ol>

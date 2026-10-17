@@ -1,37 +1,51 @@
 import React from 'react';
 import { MyTasksView } from '../../features/work-orders/MyTasksView';
 import { usePageContext } from '../../app/pageContext';
+import { useAppState } from '../../app/providers/AppStateProvider';
+import { useRouter } from '../../app/router';
 import { WorkflowQueueSection } from '../workflow/WorkflowQueueSection';
-import { DataNotice } from '../../components/ui/DataNotice';
 
 /**
  * Routes: /engineering/tasks/ and /operations/tasks/ — tasks, inspections and work
- * orders (SPK). Shared by field engineers and operations managers.
- * Markup moved verbatim from the modern shell's "SPK_ORDERS" branch.
+ * orders. Both read the shared report workflow:
+ * - Field Engineer: "Tugas Saya", the cases assigned to this account.
+ * - Operations Manager: the operations queue (triage, assignment, decisions, work orders).
  */
 export const WorkOrdersPage: React.FC = () => {
-  const { currentAccount, roadSegments, selectedSegment, onSelectSegment, communityReports, currentResult, onLaunchSimulation, setActiveNav } = usePageContext();
+  const { isFieldEngineer, currentAccount, roadSegments, onSelectSegment, onLaunchSimulation } = usePageContext();
+  const { workflow } = useAppState();
+  const { navigateTo } = useRouter();
+
+  if (!isFieldEngineer) {
+    return (
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
+        <WorkflowQueueSection />
+      </div>
+    );
+  }
+
+  const segmentOf = (segmentId: string) => roadSegments.find((s) => s.id === segmentId);
 
   return (
-    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#f8fafc]">
-      {/* Shared workflow queue (server-backed). The task list below is the earlier demo planner. */}
-      <WorkflowQueueSection />
-      <DataNotice label="DEMO LOKAL">
-        Perencana tugas di bawah adalah demo lama yang hanya hidup di browser (tidak tersimpan dan tidak terhubung ke laporan). Penugasan dan inspeksi resmi ada di antrian di atas.
-      </DataNotice>
+    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-slate-50">
       <MyTasksView
-        currentAccount={currentAccount}
-        roadSegments={roadSegments}
-        selectedSegment={selectedSegment}
-        onSelectSegment={onSelectSegment}
-        simulationResult={currentResult}
-        communityReports={communityReports}
-        onOpenSimulation={(seg) => {
-          onLaunchSimulation(seg);
-          setActiveNav('SIMULATION');
+        views={workflow.views}
+        engineerId={workflow.actor?.id ?? currentAccount.id}
+        mode={workflow.mode}
+        engineers={workflow.engineers}
+        loading={workflow.loading}
+        error={workflow.error}
+        onRefresh={() => void workflow.refresh()}
+        onRun={workflow.runTransition}
+        onShowOnMap={(c) => {
+          const segment = segmentOf(c.segmentId);
+          if (segment) onSelectSegment(segment);
+          navigateTo('dashboard');
         }}
-        onNavigateToMap={() => setActiveNav('MAP')}
-        onNavigateToTechnicalRef={() => setActiveNav('TECHNICAL_REFERENCE')}
+        onOpenSimulation={(c) => {
+          const segment = segmentOf(c.segmentId);
+          if (segment) onLaunchSimulation(segment);
+        }}
       />
     </div>
   );

@@ -6,8 +6,8 @@ import { Link, useRouter } from '../../app/router';
 import { allowedRolesFor, buildPath, RouteDefinition } from '../../app/routeConfig';
 import { homeRouteFor, loginPathFor } from '../../app/guards/routeAccess';
 
-const cardClass = 'bg-[#121622] border border-white/10 rounded-3xl p-6 space-y-4 max-w-2xl';
-const primaryLink = 'inline-block px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs';
+const cardClass = 'bg-surface border border-white/10 rounded-2xl p-6 space-y-4 max-w-2xl';
+const primaryLink = 'inline-block px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs';
 const secondaryLink = 'inline-block px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-slate-200 font-bold text-xs';
 
 /** Unknown URL. */

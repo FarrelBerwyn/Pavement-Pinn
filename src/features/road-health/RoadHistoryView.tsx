@@ -195,18 +195,18 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
   ];
 
   return (
-    <div className="min-h-full w-full bg-[#07090e] text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="min-h-full w-full bg-canvas text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
       {/* 1. Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <div className="flex items-center space-x-2.5 mb-1">
+          <div className="flex items-center space-x-3 mb-1">
             <div className="p-2 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30">
               <History className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
               Riwayat Penanganan & Log Siklus Jalan
             </h1>
-            <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
+            <span className="text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-full border border-indigo-500/30">
               Database BAST & FWD
             </span>
           </div>
@@ -224,7 +224,7 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
               const seg = roadSegments.find((s) => s.id === e.target.value);
               if (seg) onSelectSegment(seg);
             }}
-            className="bg-[#121724] border border-white/15 text-slate-200 text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 transition-colors cursor-pointer shadow-md"
+            className="bg-surface border border-white/15 text-slate-200 text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 transition-colors cursor-pointer shadow-md"
           >
             {roadSegments.map((seg) => (
               <option key={seg.id} value={seg.id}>
@@ -237,45 +237,45 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
 
       {/* 2. Key Metrics & Status Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-3.5 shadow-lg">
+        <div className="bg-surface border border-white/10 rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
             <span>PCI Saat Ini</span>
             <Activity className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-2xl font-black text-white">{currentSegment.currentPci} <span className="text-xs font-normal text-slate-400">/ 100</span></div>
-          <p className="text-[10px] text-amber-300 mt-0.5">Kondisi {currentSegment.currentPci > 70 ? 'Mantap' : currentSegment.currentPci > 50 ? 'Sedang' : 'Kritis'}</p>
+          <div className="text-2xl font-semibold text-white">{currentSegment.currentPci} <span className="text-xs font-normal text-slate-400">/ 100</span></div>
+          <p className="text-xs text-amber-300 mt-1">Kondisi {currentSegment.currentPci > 70 ? 'Mantap' : currentSegment.currentPci > 50 ? 'Sedang' : 'Kritis'}</p>
         </div>
 
-        <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-3.5 shadow-lg">
+        <div className="bg-surface border border-white/10 rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
             <span>Total Penanganan</span>
             <Layers className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl font-black text-white">{historyList.length} <span className="text-xs font-normal text-slate-400">Kegiatan</span></div>
-          <p className="text-[10px] text-slate-400 mt-0.5">Rentang 2019 - 2025</p>
+          <div className="text-2xl font-semibold text-white">{historyList.length} <span className="text-xs font-normal text-slate-400">Kegiatan</span></div>
+          <p className="text-xs text-slate-400 mt-1">Rentang 2019 - 2025</p>
         </div>
 
-        <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-3.5 shadow-lg">
+        <div className="bg-surface border border-white/10 rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
             <span>Jaminan Aktif</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-emerald-400">1 <span className="text-xs font-normal text-slate-400">SPK Retensi</span></div>
-          <p className="text-[10px] text-emerald-300 mt-0.5">Masa garansi s/d Feb 2026</p>
+          <div className="text-2xl font-semibold text-emerald-400">1 <span className="text-xs font-normal text-slate-400">SPK Retensi</span></div>
+          <p className="text-xs text-emerald-300 mt-1">Masa garansi s/d Feb 2026</p>
         </div>
 
-        <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-3.5 shadow-lg">
+        <div className="bg-surface border border-white/10 rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
             <span>Beban Historis</span>
             <TrendingDown className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="text-2xl font-black text-white">— <span className="text-xs font-normal text-slate-400">ESAL/thn</span></div>
-          <p className="text-[10px] text-rose-300 mt-0.5">Data ESAL belum tersedia</p>
+          <div className="text-2xl font-semibold text-white">— <span className="text-xs font-normal text-slate-400">ESAL/thn</span></div>
+          <p className="text-xs text-rose-300 mt-1">Data ESAL belum tersedia</p>
         </div>
       </div>
 
       {/* 3. Multi-Year Degradation Curve & Comparative Trajectory */}
-      <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+      <div className="bg-surface border border-white/10 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
@@ -289,10 +289,10 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
           {onNavigateToSimulation && (
             <button
               onClick={() => onNavigateToSimulation(currentSegment)}
-              className="px-3 py-1.5 bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs rounded-xl flex items-center space-x-1.5 transition-all self-start sm:self-auto cursor-pointer"
+              className="px-3 py-2 bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs rounded-xl flex items-center space-x-2 transition-all self-start sm:self-auto cursor-pointer"
             >
               <span>Simulasi Prediksi Lanjut (PINN)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -300,8 +300,8 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
         {/* Timeline Degradation Bar Chart */}
         <div className="grid grid-cols-5 gap-2 sm:gap-4 pt-2">
           {pciTrend.map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center bg-[#141a29] border border-white/5 rounded-xl p-3 text-center">
-              <span className="text-[11px] font-mono text-slate-400 mb-2">{item.year}</span>
+            <div key={idx} className="flex flex-col items-center bg-surface border border-white/5 rounded-xl p-3 text-center">
+              <span className="text-xs font-mono text-slate-400 mb-2">{item.year}</span>
               <div className="w-full bg-slate-800 rounded-full h-3 mb-2 relative overflow-hidden">
                 <div
                   className={`h-full rounded-full ${
@@ -310,9 +310,9 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
                   style={{ width: `${item.pci}%` }}
                 />
               </div>
-              <span className="text-sm sm:text-base font-black text-white">{item.pci}</span>
-              <span className="text-[10px] font-bold text-slate-300 mt-1 truncate max-w-full">{item.status}</span>
-              <span className="text-[9px] text-amber-300/80 mt-0.5 truncate max-w-full font-mono">{item.action}</span>
+              <span className="text-sm sm:text-base font-semibold text-white">{item.pci}</span>
+              <span className="text-xs font-bold text-slate-300 mt-1 truncate max-w-full">{item.status}</span>
+              <span className="text-xs text-amber-300/80 mt-1 truncate max-w-full font-mono">{item.action}</span>
             </div>
           ))}
         </div>
@@ -325,10 +325,10 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 filterType === type
-                  ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                  : 'bg-[#121724] text-slate-400 hover:text-white border border-white/10'
+                  ? 'bg-amber-400 text-slate-950 shadow-md '
+                  : 'bg-surface text-slate-400 hover:text-white border border-white/10'
               }`}
             >
               {type === 'ALL'
@@ -345,13 +345,13 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
         </div>
 
         <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari kontraktor / no SPK..."
-            className="w-full bg-[#121724] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
+            className="w-full bg-surface border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
           />
         </div>
       </div>
@@ -361,16 +361,16 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
         {filteredHistory.map((item) => (
           <div
             key={item.id}
-            className="bg-[#0e1320] border border-white/10 hover:border-amber-400/40 rounded-2xl p-4 sm:p-5 transition-all shadow-md space-y-3"
+            className="bg-surface border border-white/10 hover:border-amber-400/40 rounded-2xl p-4 sm:p-5 transition-all shadow-md space-y-3"
           >
             {/* Top row: Year Badge, Title, Status */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
-              <div className="flex items-center space-x-2.5">
-                <span className="text-xs font-mono font-black bg-amber-400 text-slate-950 px-2.5 py-1 rounded-xl shadow-sm">
+              <div className="flex items-center space-x-3">
+                <span className="text-xs font-mono font-semibold bg-amber-400 text-slate-950 px-3 py-1 rounded-xl shadow-sm">
                   {item.year}
                 </span>
                 <span className="text-xs font-mono text-slate-400 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />
+                  <Calendar className="w-4 h-4" />
                   {item.date}
                 </span>
                 <span className="text-xs font-bold text-white">{item.title}</span>
@@ -378,7 +378,7 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
 
               <div className="flex items-center space-x-2">
                 <span
-                  className={`text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full border ${
+                  className={`text-xs font-bold font-mono px-3 py-1 rounded-full border ${
                     item.status === 'IN_WARRANTY'
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                       : 'bg-slate-700/40 text-slate-300 border-slate-600/30'
@@ -391,25 +391,25 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
 
             {/* Middle row: Technical details */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="bg-[#141a29] p-2.5 rounded-xl border border-white/5">
-                <span className="text-slate-400 text-[10px] block">Kontraktor Pelaksana</span>
-                <span className="font-bold text-white flex items-center gap-1 truncate mt-0.5">
+              <div className="bg-surface p-3 rounded-xl border border-white/5">
+                <span className="text-slate-400 text-xs block">Kontraktor Pelaksana</span>
+                <span className="font-bold text-white flex items-center gap-1 truncate mt-1">
                   <UserCheck className="w-3 h-3 text-amber-400 shrink-0" />
                   {item.contractor}
                 </span>
               </div>
 
-              <div className="bg-[#141a29] p-2.5 rounded-xl border border-white/5">
-                <span className="text-slate-400 text-[10px] block">No. SPK & Anggaran</span>
-                <span className="font-bold text-slate-200 truncate mt-0.5 block font-mono text-[11px]">
+              <div className="bg-surface p-3 rounded-xl border border-white/5">
+                <span className="text-slate-400 text-xs block">No. SPK & Anggaran</span>
+                <span className="font-bold text-slate-200 truncate mt-1 block font-mono text-xs">
                   {item.spkNumber}
                 </span>
-                <span className="text-amber-400 font-mono font-bold text-[10px]">{item.budget}</span>
+                <span className="text-amber-400 font-mono font-bold text-xs">{item.budget}</span>
               </div>
 
-              <div className="bg-[#141a29] p-2.5 rounded-xl border border-white/5">
-                <span className="text-slate-400 text-[10px] block">Volume & Delta PCI</span>
-                <div className="flex items-center space-x-1.5 mt-0.5 font-bold">
+              <div className="bg-surface p-3 rounded-xl border border-white/5">
+                <span className="text-slate-400 text-xs block">Volume & Delta PCI</span>
+                <div className="flex items-center space-x-2 mt-1 font-bold">
                   <span className="text-white">{item.volume}</span>
                   <span className="text-slate-500">&bull;</span>
                   <span className="text-rose-400">{item.pciBefore}</span>
@@ -418,9 +418,9 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
                 </div>
               </div>
 
-              <div className="bg-[#141a29] p-2.5 rounded-xl border border-white/5">
-                <span className="text-slate-400 text-[10px] block">Uji FWD Defleksi ($D_0$)</span>
-                <div className="flex items-center space-x-1.5 mt-0.5 font-mono text-[11px] font-bold">
+              <div className="bg-surface p-3 rounded-xl border border-white/5">
+                <span className="text-slate-400 text-xs block">Uji FWD Defleksi ($D_0$)</span>
+                <div className="flex items-center space-x-2 mt-1 font-mono text-xs font-bold">
                   <span className="text-rose-400">{item.fwdDeflectionBefore}&mu;m</span>
                   <span className="text-slate-500">&rarr;</span>
                   <span className="text-emerald-400">{item.fwdDeflectionAfter}&mu;m</span>
@@ -429,8 +429,8 @@ export const RoadHistoryView: React.FC<RoadHistoryViewProps> = ({
             </div>
 
             {/* Bottom row: Notes & Remarks */}
-            <div className="text-xs text-slate-300 bg-[#121724]/80 p-2.5 rounded-xl border border-white/5 flex items-start gap-2">
-              <FileCheck className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-300 bg-surface/80 p-3 rounded-xl border border-white/5 flex items-start gap-2">
+              <FileCheck className="w-4 h-4 text-amber-400 shrink-0 mt-1" />
               <span>{item.notes} &bull; Masa Pemeliharaan Garansi: s/d {item.warrantyEnd}</span>
             </div>
           </div>

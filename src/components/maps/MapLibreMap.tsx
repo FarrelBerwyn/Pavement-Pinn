@@ -195,7 +195,7 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
         });
       } else {
         const report = cluster.items[0];
-        const color = report.status === 'REPAIRED' ? '#10b981' : SEVERITY_COLOR[report.severity];
+        const color = report.status === 'REPAIRED' ? '#57ae78' : SEVERITY_COLOR[report.severity];
         const isHighlighted = report.id === highlighted;
         element.className = 'report-marker';
         element.dataset.reportId = report.id;
@@ -264,15 +264,15 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
             0,
             'rgba(6,182,212,0)',
             0.2,
-            '#06b6d4',
+            '#8296b0',
             0.4,
-            '#22c55e',
+            '#57ae78',
             0.6,
-            '#eab308',
+            '#e8b23a',
             0.8,
-            '#f97316',
+            '#e2823d',
             1,
-            '#ef4444'
+            '#d9655d'
           ]
         }
       } as never,
@@ -592,7 +592,7 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       <div
         data-testid="demo-data-badge"
         title={DEMO_DATA_NOTE[language]}
-        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-[9px] font-black tracking-wide px-2 py-0.5 rounded-md"
+        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-xs font-semibold tracking-wide px-2 py-1 rounded-md"
       >
         {DEMO_DATA_LABEL[language]}
       </div>
@@ -602,9 +602,9 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
         <div
           role="status"
           data-testid="basemap-status"
-          className="absolute bottom-[136px] md:bottom-16 left-1/2 -translate-x-1/2 z-20 w-max max-w-[calc(100%-1.5rem)] flex items-center gap-2 bg-slate-900/95 border border-amber-400/50 text-white text-[11px] font-bold px-3 py-2 rounded-2xl shadow-lg"
+          className="absolute bottom-[136px] md:bottom-16 left-1/2 -translate-x-1/2 z-20 w-max max-w-[calc(100%-1.5rem)] flex items-center gap-2 bg-slate-900/95 border border-amber-400/50 text-white text-xs font-bold px-3 py-2 rounded-2xl shadow-lg"
         >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
           <span>
             {stageProvider === 'NONE'
               ? language === 'en'

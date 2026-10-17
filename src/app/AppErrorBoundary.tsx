@@ -37,15 +37,15 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
     }
 
     return (
-      <div className="h-screen w-screen bg-[#0b0f19] text-slate-100 flex items-center justify-center p-6" role="alert">
-        <div className="bg-[#121622] border border-white/15 rounded-3xl max-w-lg w-full p-6 space-y-4">
-          <h1 className="text-lg font-black text-white">Tampilan mengalami galat</h1>
+      <div className="h-screen w-screen bg-canvas text-slate-100 flex items-center justify-center p-6" role="alert">
+        <div className="bg-surface border border-white/15 rounded-2xl max-w-lg w-full p-6 space-y-4">
+          <h1 className="text-lg font-semibold text-white">Tampilan mengalami galat</h1>
           <p className="text-sm text-slate-300">
             Sebuah komponen berhenti bekerja. Data sesi di peramban tidak terpengaruh. Coba muat ulang tampilan.
           </p>
           <p className="text-xs font-mono text-amber-300 break-words">{this.state.error.message}</p>
           <div className="flex flex-wrap gap-2">
-            <button onClick={this.retry} className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs cursor-pointer">
+            <button onClick={this.retry} className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs cursor-pointer">
               Muat ulang tampilan
             </button>
             <button

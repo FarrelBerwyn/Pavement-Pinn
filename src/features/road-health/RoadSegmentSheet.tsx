@@ -4,28 +4,28 @@ import { Language } from '../../i18n/translations';
 import { DEMO_DATA_LABEL } from '../../data/provenance';
 
 const CONDITION: Record<RoadConditionCategory, { id: string; en: string; color: string }> = {
-  GOOD: { id: 'Mantap', en: 'Good', color: '#10b981' },
-  MODERATE: { id: 'Sedang', en: 'Moderate', color: '#f59e0b' },
-  LIGHT_DAMAGE: { id: 'Rusak ringan', en: 'Light damage', color: '#f97316' },
-  HEAVY_DAMAGE: { id: 'Rusak berat', en: 'Heavy damage', color: '#ef4444' }
+  GOOD: { id: 'Mantap', en: 'Good', color: '#57ae78' },
+  MODERATE: { id: 'Sedang', en: 'Moderate', color: '#e8b23a' },
+  LIGHT_DAMAGE: { id: 'Rusak ringan', en: 'Light damage', color: '#e2823d' },
+  HEAVY_DAMAGE: { id: 'Rusak berat', en: 'Heavy damage', color: '#d9655d' }
 };
 
 const SEVERITY_COLOR: Record<DamageReport['severity'], string> = {
-  CRITICAL: '#ef4444',
-  SEVERE: '#f97316',
-  MODERATE: '#f59e0b',
-  LIGHT: '#10b981'
+  CRITICAL: '#d9655d',
+  SEVERE: '#e2823d',
+  MODERATE: '#e8b23a',
+  LIGHT: '#57ae78'
 };
 
 export const DemoTag: React.FC<{ language: Language }> = ({ language }) => (
-  <span className="shrink-0 text-[9px] font-bold tracking-wide text-amber-300 border border-amber-400/40 rounded px-1.5 py-0.5">
+  <span className="shrink-0 text-xs font-bold tracking-wide text-amber-300 border border-amber-400/40 rounded px-2 py-1">
     {DEMO_DATA_LABEL[language]}
   </span>
 );
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex items-baseline justify-between gap-4 py-1.5">
-    <dt className="text-[11px] text-slate-400 shrink-0">{label}</dt>
+  <div className="flex items-baseline justify-between gap-4 py-2">
+    <dt className="text-xs text-slate-400 shrink-0">{label}</dt>
     <dd className="text-xs text-slate-100 text-right min-w-0">{children}</dd>
   </div>
 );
@@ -49,11 +49,11 @@ export const ReportList: React.FC<{
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SEVERITY_COLOR[report.severity] }} />
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold text-slate-100 truncate">{report.damageTypeLabel}</span>
-              <span className="block text-[10px] text-slate-400 truncate">
+              <span className="block text-xs text-slate-400 truncate">
                 {report.id} · {report.timestamp}
               </span>
             </span>
-            <span className="text-[10px] text-slate-400 shrink-0">{report.severity}</span>
+            <span className="text-xs text-slate-400 shrink-0">{report.severity}</span>
           </button>
         </li>
       ))}
@@ -90,14 +90,14 @@ export const RoadSegmentSheet: React.FC<RoadSegmentSheetProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <span className="w-1.5 self-stretch rounded-full" style={{ backgroundColor: condition.color }} />
+        <span className="w-2 self-stretch rounded-full" style={{ backgroundColor: condition.color }} />
         <div className="min-w-0">
-          <p className="text-[11px] text-slate-400">{en ? 'Pavement condition' : 'Kondisi perkerasan'}</p>
+          <p className="text-xs text-slate-400">{en ? 'Pavement condition' : 'Kondisi perkerasan'}</p>
           <p className="text-base font-bold text-white leading-tight">
             {en ? condition.en : condition.id}
             <span className="ml-2 text-xs font-medium text-slate-300">PCI {segment.currentPci}</span>
           </p>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {en ? 'Survey date in dataset' : 'Tanggal survei pada dataset'}: {segment.lastSurveyDate}
           </p>
         </div>
@@ -124,7 +124,7 @@ export const RoadSegmentSheet: React.FC<RoadSegmentSheetProps> = ({
       </dl>
 
       <section>
-        <h3 className="text-[11px] font-semibold text-slate-300 mb-1">{en ? 'Related reports' : 'Laporan terkait'}</h3>
+        <h3 className="text-xs font-semibold text-slate-300 mb-1">{en ? 'Related reports' : 'Laporan terkait'}</h3>
         <ReportList
           reports={reports}
           onSelectReport={onSelectReport}
@@ -132,7 +132,7 @@ export const RoadSegmentSheet: React.FC<RoadSegmentSheetProps> = ({
         />
       </section>
 
-      <section className="text-[11px] leading-relaxed text-slate-400 space-y-1.5">
+      <section className="text-xs leading-relaxed text-slate-400 space-y-2">
         <h3 className="font-semibold text-slate-300">{en ? 'Data status' : 'Status data'}</h3>
         <p>
           {en

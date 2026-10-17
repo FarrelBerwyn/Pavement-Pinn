@@ -115,28 +115,28 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const isRepairedStatus = report.status === 'REPAIRED';
 
   return (
-    <div className="fixed inset-0 z-[1400] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200 pointer-events-auto overflow-y-auto">
+    <div className="fixed inset-0 z-[1400] bg-slate-950/85 flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200 pointer-events-auto overflow-y-auto">
       {/* Main Glassmorphism Card Container (Matched to Right-Side Recent Reports / Issue Details Card) */}
-      <div className="bg-[#121622]/98 backdrop-blur-2xl border border-white/15 rounded-3xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-100 max-h-[92vh] overflow-y-auto my-auto relative font-sans custom-scrollbar">
+      <div className="bg-surface/98 border border-white/15 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-100 max-h-[92vh] overflow-y-auto my-auto relative font-sans custom-scrollbar">
         {/* Floating Top Bar / Header */}
         <div className="flex items-start justify-between border-b border-white/10 pb-3 gap-3">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-2xl bg-amber-400 text-slate-950 font-black shrink-0 shadow-md shadow-amber-400/20">
+            <div className="p-3 rounded-2xl bg-amber-400 text-slate-950 font-semibold shrink-0 shadow-md ">
               <Camera className="w-5 h-5 text-slate-950" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                   {report.id}
                 </span>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${severityColors[report.severity]}`}>
+                <span className={`text-xs font-mono font-bold px-2 py-1 rounded-full border ${severityColors[report.severity]}`}>
                   {report.severity}
                 </span>
-                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${statusBadges[report.status]}`}>
+                <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full border ${statusBadges[report.status]}`}>
                   {report.status === 'REPAIRED' ? (isEn ? '🎉 Repair Completed' : '🎉 Selesai Perbaikan') : statusLabels[report.status]}
                 </span>
               </div>
-              <h2 className="text-sm sm:text-base font-black text-white mt-1 leading-tight">
+              <h2 className="text-sm sm:text-base font-semibold text-white mt-1 leading-tight">
                 {report.damageTypeLabel} &bull; {report.segmentName}
               </h2>
             </div>
@@ -150,10 +150,10 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   onClose();
                   onStartEdit(report);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center space-x-1.5 shadow-md shadow-amber-400/30 transition-all cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
                 title="Edit Laporan Anda"
               >
-                <Edit3 className="w-3.5 h-3.5" />
+                <Edit3 className="w-4 h-4" />
                 <span>Edit Laporan</span>
               </button>
             )}
@@ -168,25 +168,25 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         </div>
 
         {/* Reporter Metadata & Timestamp Card */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#171d2e] border border-white/10 p-3 rounded-2xl text-xs">
-          <div className="flex items-center space-x-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-elevated border border-white/10 p-3 rounded-2xl text-xs">
+          <div className="flex items-center space-x-3">
             <img
               src={report.reporterAvatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200'}
               alt={report.reporterName}
               className="w-8 h-8 rounded-full object-cover border border-amber-400/50"
             />
             <div>
-              <p className="font-extrabold text-white text-xs">{report.reporterName}</p>
-              <p className="text-[10px] text-slate-400 font-mono">{report.reporterRole}</p>
+              <p className="font-semibold text-white text-xs">{report.reporterName}</p>
+              <p className="text-xs text-slate-400 font-mono">{report.reporterRole}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 text-[10px] text-slate-300 font-mono">
+          <div className="flex items-center space-x-3 text-xs text-slate-300 font-mono">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-amber-400" />
               {report.timestamp}
             </span>
-            <span className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold">
+            <span className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-full border border-cyan-500/30 font-bold">
               <ThumbsUp className="w-3 h-3 text-cyan-400" />
               {report.upvotesCount} {isEn ? 'Upvotes' : 'Dukungan Warga'}
             </span>
@@ -197,24 +197,24 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-amber-400" />
                 {t.beforeAfterComparison}
               </h3>
               {isRepairedStatus && (
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
                   {isEn ? '🎉 Repair Completed' : '🎉 Penanganan Selesai'}
                 </span>
               )}
             </div>
 
             {/* View Mode Switcher Buttons */}
-            <div className="flex items-center space-x-1 bg-[#171d2e] p-1 rounded-2xl border border-white/10 text-[10px] font-mono font-bold">
+            <div className="flex items-center space-x-1 bg-elevated p-1 rounded-2xl border border-white/10 text-xs font-mono font-bold">
               <button
                 onClick={() => setActivePhotoView('SIDE_BY_SIDE')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                className={`px-3 py-2 rounded-xl transition-all cursor-pointer ${
                   activePhotoView === 'SIDE_BY_SIDE'
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                    ? 'bg-amber-400 text-slate-950 font-semibold shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -222,9 +222,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </button>
               <button
                 onClick={() => setActivePhotoView('BEFORE')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                className={`px-3 py-2 rounded-xl transition-all cursor-pointer ${
                   activePhotoView === 'BEFORE'
-                    ? 'bg-rose-500 text-white font-black shadow-md'
+                    ? 'bg-rose-500 text-white font-semibold shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -232,9 +232,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </button>
               <button
                 onClick={() => setActivePhotoView('AFTER')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                className={`px-3 py-2 rounded-xl transition-all cursor-pointer ${
                   activePhotoView === 'AFTER'
-                    ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                    ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -247,16 +247,16 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* BEFORE PHOTO */}
             {(activePhotoView === 'SIDE_BY_SIDE' || activePhotoView === 'BEFORE') && (
-              <div className={`relative bg-[#171d2e] rounded-2xl overflow-hidden border border-rose-500/30 shadow-lg p-2.5 space-y-2 ${activePhotoView === 'BEFORE' ? 'md:col-span-2' : ''}`}>
+              <div className={`relative bg-elevated rounded-2xl overflow-hidden border border-rose-500/30 shadow-lg p-3 space-y-2 ${activePhotoView === 'BEFORE' ? 'md:col-span-2' : ''}`}>
                 <div className="flex items-center justify-between text-xs pb-1 border-b border-white/5">
-                  <span className="font-extrabold text-rose-400 flex items-center gap-1 text-[11px]">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="font-semibold text-rose-400 flex items-center gap-1 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
                     <span>🔴 {t.beforeLabel}</span>
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">{report.timestamp}</span>
+                  <span className="text-xs font-mono text-slate-400">{report.timestamp}</span>
                 </div>
                 <div className="relative rounded-xl overflow-hidden border border-white/10 h-44 group">
-                  <span className="absolute bottom-2 left-2 z-10 bg-slate-950/80 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded">
+                  <span className="absolute bottom-2 left-2 z-10 bg-slate-950/80 text-amber-300 text-xs font-bold px-2 py-1 rounded">
                     {ILLUSTRATIVE_PHOTO_LABEL[language]}
                   </span>
                   <img
@@ -264,11 +264,11 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                     alt={t.beforeLabel}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-2 left-2 bg-slate-950/80 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold text-rose-300 border border-rose-500/30">
+                  <div className="absolute top-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-xs font-mono font-bold text-rose-300 border border-rose-500/30">
                     {report.damageTypeLabel.split(' ')[0]} ({report.estimatedDepthCm} cm)
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-[#141a29] p-2 rounded-xl border border-white/5">
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-surface p-2 rounded-xl border border-white/5">
                   <div>
                     <span className="text-slate-400">Kedalaman:</span> <strong className="text-rose-300">{report.estimatedDepthCm} cm</strong>
                   </div>
@@ -281,13 +281,13 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
             {/* AFTER PHOTO */}
             {(activePhotoView === 'SIDE_BY_SIDE' || activePhotoView === 'AFTER') && (
-              <div className={`relative bg-[#171d2e] rounded-2xl overflow-hidden border border-emerald-500/30 shadow-lg p-2.5 space-y-2 ${activePhotoView === 'AFTER' ? 'md:col-span-2' : ''}`}>
+              <div className={`relative bg-elevated rounded-2xl overflow-hidden border border-emerald-500/30 shadow-lg p-3 space-y-2 ${activePhotoView === 'AFTER' ? 'md:col-span-2' : ''}`}>
                 <div className="flex items-center justify-between text-xs pb-1 border-b border-white/5">
-                  <span className="font-extrabold text-emerald-400 flex items-center gap-1 text-[11px]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="font-semibold text-emerald-400 flex items-center gap-1 text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span>🟢 {t.afterLabel}</span>
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">{repairDate}</span>
+                  <span className="text-xs font-mono text-emerald-400 font-bold">{repairDate}</span>
                 </div>
                 <div className="relative rounded-xl overflow-hidden border border-white/10 h-44 group">
                   <img
@@ -295,13 +295,13 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                     alt={t.afterLabel}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-2 left-2 bg-slate-950/80 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-300 border border-emerald-500/30">
+                  <div className="absolute top-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-xs font-mono font-bold text-emerald-300 border border-emerald-500/30">
                     AC-WC 8.5 cm Overlay
                   </div>
                 </div>
-                <div className="text-[11px] font-mono bg-[#141a29] p-2 rounded-xl border border-white/5 text-slate-300 flex items-center justify-between">
+                <div className="text-xs font-mono bg-surface p-2 rounded-xl border border-white/5 text-slate-300 flex items-center justify-between">
                   <span className="text-slate-400">Status: <strong className="text-emerald-300">{pciImprovement}</strong></span>
-                  <span className="text-[10px] text-slate-400 truncate max-w-[160px]">{agencyInCharge.split('(')[0]}</span>
+                  <span className="text-xs text-slate-400 truncate max-w-[160px]">{agencyInCharge.split('(')[0]}</span>
                 </div>
               </div>
             )}
@@ -309,15 +309,15 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         </div>
 
         {/* Location & GPS Info */}
-        <div className="bg-[#171d2e] p-3.5 rounded-2xl border border-white/10 space-y-2 text-xs">
+        <div className="bg-elevated p-4 rounded-2xl border border-white/10 space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-amber-400" /> Lokasi & Koordinat Geospasial:
+            <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+              <MapPin className="w-4 h-4 text-amber-400" /> Lokasi & Koordinat Geospasial:
             </span>
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleCopyLocation}
-                className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
               >
                 {copiedLocation ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                 <span>{copiedLocation ? 'Tersalin' : 'Salin GPS'}</span>
@@ -326,29 +326,29 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1"
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1"
               >
                 <span>Buka Google Maps</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </div>
-          <p className="font-extrabold text-white leading-tight">{report.segmentName}</p>
-          <p className="text-[11px] text-slate-400">
+          <p className="font-semibold text-white leading-tight">{report.segmentName}</p>
+          <p className="text-xs text-slate-400">
             {report.province} &bull; GPS: {report.coordinates[0].toFixed(5)}, {report.coordinates[1].toFixed(5)}
           </p>
         </div>
 
         {/* Description & Engineer Notes */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Deskripsi Pelapor:</span>
+          <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1">
+            <span className="text-xs font-bold text-slate-400">Deskripsi Pelapor:</span>
             <p className="text-slate-300 italic leading-relaxed">"{report.description}"</p>
           </div>
 
-          <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-[10px] font-mono uppercase font-bold text-emerald-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> Tindak Lanjut Penanganan:
+          <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1">
+            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+              <ShieldCheck className="w-4 h-4" /> Tindak Lanjut Penanganan:
             </span>
             <p className="text-slate-300 leading-relaxed">{engineerNote}</p>
           </div>
@@ -358,17 +358,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
         {/* Dedicated WIM Correlation Box */}
         {report.wimCorrelation && (
-          <div className="bg-[#171d2e] p-3.5 rounded-2xl border border-indigo-500/30 space-y-2 text-xs">
-            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-              <span className="font-bold font-mono text-cyan-300 flex items-center gap-1.5">
+          <div className="bg-elevated p-4 rounded-2xl border border-indigo-500/30 space-y-2 text-xs">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="font-bold font-mono text-cyan-300 flex items-center gap-2">
                 <Truck className="w-4 h-4 text-cyan-400 animate-pulse" />
                 KORELASI TELEMETRI SENSOR WEIGH-IN-MOTION (WIM):
               </span>
-              <span className="bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-rose-500/30">
+              <span className="bg-rose-500/20 text-rose-300 text-xs font-mono font-bold px-2 py-1 rounded-full border border-rose-500/30">
                 OVERLOAD +{report.wimCorrelation.overloadPercent}%
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono text-slate-300">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-300">
               <div>
                 <span className="text-slate-400">Stasiun WIM:</span> <strong className="text-white">{report.wimCorrelation.stationName}</strong>
               </div>
@@ -376,19 +376,19 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 <span className="text-slate-400">Truk Terdeteksi:</span> <strong className="text-white">{report.wimCorrelation.recentTruckPlate}</strong> ({report.wimCorrelation.maxAxleLoadTon} Ton)
               </div>
             </div>
-            <p className="text-indigo-200 text-[11px] leading-relaxed">
+            <p className="text-indigo-200 text-xs leading-relaxed">
               💡 {report.wimCorrelation.causeAnalysisSummary}
             </p>
           </div>
         )}
 
         {/* ACTION FOOTER */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-white/10 text-xs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs">
           <button
             onClick={() => onUpvote && onUpvote(report.id)}
-            className={`w-full sm:w-auto px-4 py-2.5 rounded-2xl font-black text-xs flex items-center justify-center space-x-2 border transition-all cursor-pointer ${
+            className={`w-full sm:w-auto px-4 py-3 rounded-2xl font-semibold text-xs flex items-center justify-center space-x-2 border transition-all cursor-pointer ${
               report.userUpvoted
-                ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/25'
+                ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg '
                 : 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/10'
             }`}
           >
@@ -407,7 +407,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   onFocusMap(report);
                   onClose();
                 }}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center justify-center space-x-2 shadow-lg shadow-amber-400/30 transition-all cursor-pointer"
+                className="w-full sm:w-auto px-4 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs flex items-center justify-center space-x-2 shadow-lg transition-all cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-slate-950" />
                 <span>{isEn ? 'Focus on Map' : 'Fokuskan ke Peta'}</span>

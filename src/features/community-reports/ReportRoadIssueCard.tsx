@@ -55,7 +55,7 @@ interface ReportRoadIssueCardProps {
 
 /* Shared look for every step of the report sheet: solid surface, thin borders, one yellow accent. */
 const SHEET =
-  'w-full max-h-[90dvh] sm:max-h-[92vh] sm:max-w-lg bg-[#121826] border-t sm:border border-white/[0.08] rounded-t-3xl sm:rounded-3xl px-5 pt-5 pb-3 sm:p-6 shadow-2xl text-slate-100 flex flex-col overflow-y-auto custom-scrollbar relative box-border';
+  'w-full max-h-[90dvh] sm:max-h-[92vh] sm:max-w-lg bg-surface border-t sm:border border-white/[0.08] rounded-t-2xl sm:rounded-2xl px-5 pt-5 pb-3 sm:p-6 shadow-2xl text-slate-100 flex flex-col overflow-y-auto custom-scrollbar relative box-border';
 const CARD = 'rounded-2xl border border-white/[0.08] bg-white/[0.03]';
 const LABEL = 'text-sm font-medium text-slate-200';
 const HINT = 'text-xs text-slate-400';
@@ -67,7 +67,7 @@ const SECONDARY = `w-full h-12 rounded-2xl border border-white/[0.1] bg-white/[0
 const TILE = `${CARD} p-4 flex flex-col items-start gap-1 text-left hover:bg-white/[0.06] hover:border-amber-400/40 transition-colors cursor-pointer ${FOCUS}`;
 const ICON_TILE = 'w-10 h-10 mb-1 rounded-xl bg-amber-400/10 text-amber-300 flex items-center justify-center text-lg shrink-0';
 const ICON_BUTTON = `w-9 h-9 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer shrink-0 ${FOCUS}`;
-const TEXT_BUTTON = `inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-amber-300 hover:bg-amber-400/10 transition-colors cursor-pointer ${FOCUS}`;
+const TEXT_BUTTON = `inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-amber-300 hover:bg-amber-400/10 transition-colors cursor-pointer ${FOCUS}`;
 const NOTICE = 'rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200';
 const ERROR = 'flex items-start gap-2 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200';
 const REPORT_STEPS = 3;
@@ -93,7 +93,7 @@ const SheetHeader: React.FC<{ step: number; title: string; subtitle: string; onB
           Langkah {step} dari {REPORT_STEPS}
         </p>
         <h3 className="text-lg font-semibold text-white leading-tight">{title}</h3>
-        <p className={`${HINT} mt-0.5`}>{subtitle}</p>
+        <p className={`${HINT} mt-1`}>{subtitle}</p>
       </div>
       {onClose && (
         <button type="button" onClick={onClose} className={`${ICON_BUTTON} -mr-2`} title="Tutup" aria-label="Tutup">
@@ -101,7 +101,7 @@ const SheetHeader: React.FC<{ step: number; title: string; subtitle: string; onB
         </button>
       )}
     </div>
-    <div className="flex gap-1.5" aria-hidden="true">
+    <div className="flex gap-2" aria-hidden="true">
       {Array.from({ length: REPORT_STEPS }, (_, i) => (
         <span key={i} className={`h-1 flex-1 rounded-full ${i < step ? 'bg-amber-400' : 'bg-white/10'}`} />
       ))}
@@ -580,7 +580,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
           )}
 
           {/* Live camera feed on a dark page; nothing else is shown until access is granted */}
-          <div className="absolute inset-0 w-full h-full overflow-hidden z-0 bg-[#0B0F17]">
+          <div className="absolute inset-0 w-full h-full overflow-hidden z-0 bg-canvas">
             <video
               ref={videoRef}
               autoPlay
@@ -591,13 +591,13 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
             {/* Viewfinder Center Reticle (Subtle Framing Corners) */}
             <div className={`absolute inset-0 flex items-center justify-center pointer-events-none ${isCameraActive ? '' : 'hidden'}`}>
-              <div className="w-64 h-64 sm:w-80 sm:h-80 border border-white/20 rounded-3xl relative">
+              <div className="w-64 h-64 sm:w-80 sm:h-80 border border-white/20 rounded-2xl relative">
                 <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white/80 rounded-tl-xl" />
                 <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white/80 rounded-tr-xl" />
                 <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-white/80 rounded-bl-xl" />
                 <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white/80 rounded-br-xl" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-white/40 animate-ping" />
+                  <div className="w-2 h-2 rounded-full bg-white/40 animate-ping" />
                 </div>
               </div>
             </div>
@@ -656,7 +656,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                 stopCameraStream();
                 setCurrentState('INPUT');
               }}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 active:scale-95 transition-all cursor-pointer border border-white/10"
+              className="w-10 h-10 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 active:scale-95 transition-all cursor-pointer border border-white/10"
               title="Back"
             >
               <ChevronLeft className="w-6 h-6 text-white stroke-[2.5]" />
@@ -671,7 +671,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             <button
               type="button"
               onClick={handleToggleFlash}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 active:scale-95 transition-all cursor-pointer border border-white/10"
+              className="w-10 h-10 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 active:scale-95 transition-all cursor-pointer border border-white/10"
               title={`Flash Mode: ${flashMode}`}
             >
               {flashMode === 'ON' ? (
@@ -685,14 +685,14 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
           </div>
 
           {/* BOTTOM CONTROLS OVERLAY: Shutter Controls + Floating Location Card */}
-          <div className="relative z-30 pb-safe pb-6 px-4 sm:px-6 flex flex-col items-center gap-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-12">
+          <div className="relative z-30 pb-safe pb-6 px-4 sm:px-6 flex flex-col items-center gap-4 from-black/85 via-black/40 pt-12">
             {/* 1. Shutter Control Row: Gallery (Left) - Shutter (Center) - Flip (Right) */}
             <div className="w-full max-w-sm flex items-center justify-between px-6 sm:px-10">
               {/* Left: Gallery / Pick Image Button */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-lg"
+                className="w-12 h-12 rounded-full bg-black/50 border border-white/20 text-white flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-lg"
                 title="Pilih dari Galeri"
               >
                 <ImageIcon className="w-5 h-5 text-white" />
@@ -713,7 +713,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <button
                 type="button"
                 onClick={handleFlipCamera}
-                className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-lg"
+                className="w-12 h-12 rounded-full bg-black/50 border border-white/20 text-white flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-lg"
                 title="Balik Kamera"
               >
                 <RotateCw
@@ -725,7 +725,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             </div>
 
             {/* 2. Floating Location Pill (Exact match with Reference Image 2) */}
-            <div className="w-full max-w-md bg-black/65 backdrop-blur-2xl border border-white/15 rounded-2xl px-4 py-3 flex items-center justify-between shadow-2xl text-left">
+            <div className="w-full max-w-md bg-black/65 border border-white/15 rounded-2xl px-4 py-3 flex items-center justify-between shadow-2xl text-left">
               {/* Left Pin Icon */}
               <div className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/10">
                 <MapPin className="w-4 h-4 text-amber-400" />
@@ -736,7 +736,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                 <h4 className="text-sm font-bold text-white leading-tight truncate">
                   {mainRoadName}
                 </h4>
-                <p className="text-[11px] text-white/70 leading-tight mt-0.5 truncate">
+                <p className="text-xs text-white/70 leading-tight mt-1 truncate">
                   {subLocationName}
                 </p>
               </div>
@@ -770,7 +770,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               className="w-full h-full object-cover"
             />
             {/* Subtle Gradient Overlay for Top and Bottom readability */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/85 pointer-events-none" />
+            <div className="absolute inset-0 from-black/60 to-black/85 pointer-events-none" />
           </div>
 
           {/* TOP BAR: Back Button & Confirmation Status */}
@@ -778,7 +778,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             <button
               type="button"
               onClick={handleRetakeCapturedPhoto}
-              className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all cursor-pointer border border-white/15"
+              className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 active:scale-95 transition-all cursor-pointer border border-white/15"
               title="Capture Ulang"
             >
               <ChevronLeft className="w-6 h-6 text-white stroke-[2.5]" />
@@ -788,7 +788,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <h2 className="text-sm sm:text-base font-semibold text-white tracking-tight drop-shadow-md">
                 Konfirmasi Foto
               </h2>
-              <p className="text-[10px] sm:text-xs text-slate-300 font-medium drop-shadow">
+              <p className="text-xs sm:text-xs text-slate-300 font-medium drop-shadow">
                 Pastikan kerusakan terlihat jelas
               </p>
             </div>
@@ -799,13 +799,13 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
           </div>
 
           {/* BOTTOM BAR: Location Badge & 2 Action Buttons (Capture Ulang vs Lanjutkan) */}
-          <div className="relative z-30 pb-safe pb-6 px-4 sm:px-6 flex flex-col items-center gap-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-8">
+          <div className="relative z-30 pb-safe pb-6 px-4 sm:px-6 flex flex-col items-center gap-3 from-black/90 via-black/60 pt-8">
             {/* Location preview badge */}
-            <div className="w-full max-w-md bg-black/60 backdrop-blur-xl border border-white/15 rounded-2xl px-3.5 py-2.5 flex items-center space-x-2.5 text-left">
+            <div className="w-full max-w-md bg-black/60 border border-white/15 rounded-2xl px-4 py-3 flex items-center space-x-3 text-left">
               <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-white truncate leading-tight">{mainRoadName}</p>
-                <p className="text-[10px] text-slate-300 truncate leading-tight mt-0.5">{subLocationName}</p>
+                <p className="text-xs text-slate-300 truncate leading-tight mt-1">{subLocationName}</p>
               </div>
             </div>
 
@@ -815,7 +815,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <button
                 type="button"
                 onClick={handleRetakeCapturedPhoto}
-                className="h-12 px-4 rounded-2xl bg-black/40 hover:bg-black/55 text-white font-medium text-sm flex items-center justify-center gap-1.5 backdrop-blur-md border border-white/20 transition-colors cursor-pointer"
+                className="h-12 px-4 rounded-2xl bg-black/40 hover:bg-black/55 text-white font-medium text-sm flex items-center justify-center gap-2 border border-white/20 transition-colors cursor-pointer"
               >
                 <RotateCw className="w-4 h-4 text-white" />
                 <span>Ulangi</span>
@@ -825,7 +825,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmCapturedPhoto}
-                className="h-12 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="h-12 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <span>Lanjutkan</span>
                 <ChevronRight className="w-4 h-4 stroke-[3]" />
@@ -951,7 +951,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                           placeholder="Nama jalan atau patokan"
                           className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
                         />
-                        <p className={`${HINT} font-mono mt-0.5`}>
+                        <p className={`${HINT} font-mono mt-1`}>
                           {coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)} ·{' '}
                           {locationStatus === 'DETECTED' ? 'GPS aktif' : locationStatus === 'REQUESTING' ? 'mencari…' : 'manual'}
                         </p>
@@ -987,7 +987,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                     <span className="font-mono text-slate-300">{progressPercent}%</span>
                   </div>
                   <div
-                    className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden"
+                    className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden"
                     role="progressbar"
                     aria-valuenow={progressPercent}
                     aria-valuemin={0}
@@ -1177,7 +1177,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                         <p className={HINT}>Jenis</p>
                         <p className="text-sm text-white truncate">{analyzedClass.label}</p>
                       </div>
-                      <span className="rounded-full border border-amber-400/40 px-2.5 py-0.5 text-xs text-amber-300 shrink-0">
+                      <span className="rounded-full border border-amber-400/40 px-3 py-1 text-xs text-amber-300 shrink-0">
                         {savedState === 'NEEDS_REVIEW' ? 'Menunggu peninjauan' : 'Terkirim'}
                       </span>
                     </div>

@@ -176,6 +176,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const [provinceFilter, setProvinceFilter] = useState<string>('ALL');
   const [conditionFilter, setConditionFilter] = useState<string>('ALL');
   const [showWimOnly, setShowWimOnly] = useState<boolean>(false);
+  // Phones: secondary map filters fold behind one Filter button so the map stays visible.
+  const [showMapFilters, setShowMapFilters] = useState<boolean>(false);
   const [showCommunityReports, setShowCommunityReports] = useState<boolean>(true);
   const [showAllCommunityReports, setShowAllCommunityReports] = useState<boolean>(false);
   const [wimStatusFilter, setWimStatusFilter] = useState<string>('ALL');
@@ -549,12 +551,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     filteredSegments.forEach((segment) => {
       const color =
         segment.conditionCategory === 'GOOD'
-          ? '#10b981'
+          ? '#57ae78'
           : segment.conditionCategory === 'MODERATE'
-          ? '#f59e0b'
+          ? '#e8b23a'
           : segment.conditionCategory === 'LIGHT_DAMAGE'
-          ? '#f97316'
-          : '#ef4444';
+          ? '#e2823d'
+          : '#d9655d';
 
       // Segment line (illustrative geometry from the demo dataset), drawn once it is long enough to read
       if (zoom >= SEGMENT_LINE_MIN_ZOOM && segment.polyline.length > 1) {
@@ -642,10 +644,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         const wim = segment.wimDetails;
         const wimAlertColor =
           wim.alertSeverity === 'RED'
-            ? '#ef4444'
+            ? '#d9655d'
             : wim.alertSeverity === 'YELLOW'
-            ? '#f59e0b'
-            : '#10b981';
+            ? '#e8b23a'
+            : '#57ae78';
 
         const wimIconHtml = `
           <div style="
@@ -718,7 +720,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                 <span style="color: #64748b;">Beban Sumbu Maks:</span>
-                <span style="font-weight: 800; color: ${wim.maxAxleLoadTon > 10 ? '#dc2626' : '#16a34a'};">
+                <span style="font-weight: 800; color: ${wim.maxAxleLoadTon > 10 ? '#d9655d' : '#57ae78'};">
                   ${wim.maxAxleLoadTon} Ton ${wim.maxAxleLoadTon > 10 ? `(+${wim.overloadPercent}% ODOL)` : ''}
                 </span>
               </div>
@@ -750,7 +752,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <div style="display: flex; gap: 4px;">
               <button id="btn-wim-sim-${segment.id}" style="
                 flex: 1;
-                background: linear-gradient(135deg, #4f46e5, #0284c7);
+                background: #141a35;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -801,7 +803,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span style="color: #64748b;">Beban Sumbu Rata-rata:</span>
-              <span style="font-weight: 700; color: ${segment.defaultAxleLoadTon > 18 ? '#dc2626' : '#2563eb'};">
+              <span style="font-weight: 700; color: ${segment.defaultAxleLoadTon > 18 ? '#d9655d' : '#2563eb'};">
                 ${segment.defaultAxleLoadTon} Ton ${segment.defaultAxleLoadTon > 10 ? '(ODOL)' : ''}
               </span>
             </div>
@@ -812,7 +814,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               ? `<div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 6px 8px; font-size: 10.5px; color: #991b1b; margin-bottom: 8px;">
                   <div style="display: flex; items-center; justify-content: space-between; margin-bottom: 2px;">
                     <span style="font-weight: 800;">⚖️ ${segment.wimDetails.stationName}</span>
-                    <span style="background-color: #ef4444; color: white; padding: 1px 5px; border-radius: 8px; font-weight: bold; font-size: 8.5px;">WIM ACTIVE</span>
+                    <span style="background-color: #d9655d; color: white; padding: 1px 5px; border-radius: 8px; font-weight: bold; font-size: 8.5px;">WIM ACTIVE</span>
                   </div>
                   <div style="font-size: 9.5px; color: #7f1d1d; font-family: monospace;">
                     📍 Sensor Lat/Lng: ${segment.wimDetails.coordinates[0].toFixed(4)}, ${segment.wimDetails.coordinates[1].toFixed(4)}
@@ -827,7 +829,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div style="display: flex; gap: 4px;">
             <button id="btn-sim-${segment.id}" style="
               flex: 1;
-              background: linear-gradient(135deg, #6366f1, #4f46e5);
+              background: #141a35;
               color: white;
               border: none;
               border-radius: 10px;
@@ -859,14 +861,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       filteredWimStations.forEach((wim) => {
         const pinColor =
           wim.overloadCategory === 'EXTREME' || wim.overloadPercent > 100
-            ? '#ef4444' // Red
+            ? '#d9655d' // Red
             : wim.overloadCategory === 'HEAVY' || wim.overloadPercent > 50
-            ? '#a855f7' // Purple
+            ? '#8296b0' // Purple
             : wim.overloadCategory === 'MODERATE' || wim.overloadPercent > 20
-            ? '#f97316' // Orange
+            ? '#e2823d' // Orange
             : wim.overloadCategory === 'LIGHT' || wim.overloadPercent > 0
-            ? '#eab308' // Yellow
-            : '#10b981'; // Green
+            ? '#e8b23a' // Yellow
+            : '#57ae78'; // Green
 
         const pinCategoryText =
           wim.overloadCategory === 'EXTREME' || wim.overloadPercent > 100
@@ -948,7 +950,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                 <span style="color: #64748b;">Beban Sumbu Maks:</span>
-                <span style="font-weight: 800; color: ${wim.maxAxleLoadTon > 10 ? '#dc2626' : '#16a34a'};">
+                <span style="font-weight: 800; color: ${wim.maxAxleLoadTon > 10 ? '#d9655d' : '#57ae78'};">
                   ${wim.maxAxleLoadTon} Ton ${wim.overloadPercent > 0 ? `(+${wim.overloadPercent}%)` : ''}
                 </span>
               </div>
@@ -1010,11 +1012,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           max: 1.0,
           minOpacity: 0.35,
           gradient: {
-            0.2: '#06b6d4',
-            0.4: '#22c55e',
-            0.6: '#eab308',
-            0.8: '#f97316',
-            1.0: '#ef4444'
+            0.2: '#8296b0',
+            0.4: '#57ae78',
+            0.6: '#e8b23a',
+            0.8: '#e2823d',
+            1.0: '#d9655d'
           }
         });
         // 3. Add the heat layer to map/layerGroup
@@ -1083,7 +1085,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         const heatmapPinHtml = `
           <div style="position: relative; width: 36px; height: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer; filter: drop-shadow(0 4px 10px rgba(220,38,38,0.55)); transition: transform 0.15s ease;">
             <!-- SVG Map Pin in Crimson Red -->
-            <svg viewBox="0 0 384 512" width="34" height="44" fill="#dc2626" xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 384 512" width="34" height="44" fill="#d9655d" xmlns="http://www.w3.org/2000/svg">
               <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             </svg>
             <!-- Background Bulat Putih Dibelakang Layer Icon -->
@@ -1139,14 +1141,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               height: 32px;
               border-radius: 50%;
               object-fit: cover;
-              border: 2px solid #ef4444;
+              border: 2px solid #d9655d;
             " />
             <div style="text-align: left; line-height: 1.2;">
               <div style="font-size: 11px; font-weight: 800; color: #0f172a; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
                 ${shortTitle}
               </div>
               <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="font-size: 9px; font-weight: 800; color: #ef4444;">🔥 ${cluster.count} ${isEn ? 'REPORTS' : 'LAPORAN'}</span>
+                <span style="font-size: 9px; font-weight: 800; color: #d9655d;">🔥 ${cluster.count} ${isEn ? 'REPORTS' : 'LAPORAN'}</span>
                 <span style="font-size: 8.5px; color: #64748b;">• HOTSPOT</span>
               </div>
             </div>
@@ -1171,7 +1173,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         heatmapPopupContainer.innerHTML = `
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-            <span style="background-color: #fef2f2; color: #dc2626; font-weight: 800; font-size: 10.5px; padding: 2.5px 8px; border-radius: 12px; border: 1px solid #fecaca; display: flex; align-items: center; gap: 4px;">
+            <span style="background-color: #fef2f2; color: #d9655d; font-weight: 800; font-size: 10.5px; padding: 2.5px 8px; border-radius: 12px; border: 1px solid #fecaca; display: flex; align-items: center; gap: 4px;">
               🔥 ${t.heatmapHotspots}
             </span>
             <span style="font-size: 10px; font-weight: 800; color: #475569; background: #f1f5f9; padding: 2px 7px; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -1180,11 +1182,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
 
           <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-            <img src="${previewPhoto}" alt="${shortTitle}" style="width: 76px; height: 60px; object-fit: cover; border-radius: 8px; border: 1.5px solid #ef4444; flex-shrink: 0;" />
+            <img src="${previewPhoto}" alt="${shortTitle}" style="width: 76px; height: 60px; object-fit: cover; border-radius: 8px; border: 1.5px solid #d9655d; flex-shrink: 0;" />
             <div style="flex: 1; min-width: 0;">
               <h4 style="font-size: 12px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0; line-height: 1.3;">${shortTitle}</h4>
               <p style="font-size: 10px; color: #64748b; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cluster.areaName}</p>
-              <div style="font-size: 9.5px; font-weight: 800; color: #dc2626; font-family: monospace;">
+              <div style="font-size: 9.5px; font-weight: 800; color: #d9655d; font-family: monospace;">
                 ${cluster.criticalCount} ${isEn ? 'Critical Potholes' : 'Lubang Kritis'}
               </div>
             </div>
@@ -1203,7 +1205,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
           <button id="btn-open-compare-${clusterIdx}" style="
             width: 100%;
-            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            background: #141a35;
             color: #ffffff;
             border: none;
             padding: 8px 12px;
@@ -1293,14 +1295,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         const isRepaired = report.status === 'REPAIRED';
 
         const reportColor = isRepaired
-          ? '#10b981'
+          ? '#57ae78'
           : report.severity === 'CRITICAL'
-          ? '#ef4444'
+          ? '#d9655d'
           : report.severity === 'SEVERE'
-          ? '#f97316'
+          ? '#e2823d'
           : report.severity === 'MODERATE'
-          ? '#f59e0b'
-          : '#10b981';
+          ? '#e8b23a'
+          : '#57ae78';
 
         const glowColor = isRepaired
           ? 'rgba(16, 185, 129, 0.4)'
@@ -1358,7 +1360,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   top: -16px;
                   left: 50%;
                   transform: translateX(-50%);
-                  background: #f59e0b;
+                  background: #e8b23a;
                   color: #0f172a;
                   font-size: 8px;
                   font-weight: 900;
@@ -1383,7 +1385,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 height: 44px;
                 border-radius: 50%;
                 background: #ffffff;
-                border: 3.5px solid ${isNewlyCreated ? '#f59e0b' : reportColor};
+                border: 3.5px solid ${isNewlyCreated ? '#e8b23a' : reportColor};
                 box-shadow: ${isNewlyCreated ? '0 0 16px rgba(245,158,11,0.9)' : '0 2px 8px rgba(0,0,0,0.22)'};
                 display: flex;
                 align-items: center;
@@ -1409,7 +1411,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 height: 0;
                 border-left: 6.5px solid transparent;
                 border-right: 6.5px solid transparent;
-                border-top: 8px solid ${isNewlyCreated ? '#f59e0b' : reportColor};
+                border-top: 8px solid ${isNewlyCreated ? '#e8b23a' : reportColor};
                 margin-top: -1.5px;
               "></div>
             </div>
@@ -1453,7 +1455,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     if (mapSelectedPoint) {
       const selectedPinHtml = `
         <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.9));">
-          <div style="position: relative; z-index: 10; background-color: #10b981; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; border: 2px solid white; box-shadow: 0 0 14px rgba(16, 185, 129, 0.9);">
+          <div style="position: relative; z-index: 10; background-color: #57ae78; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; border: 2px solid white; box-shadow: 0 0 14px rgba(16, 185, 129, 0.9);">
             📍
           </div>
         </div>
@@ -1487,7 +1489,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <strong style="color: #0f172a; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px;">${mapSelectedPoint.nearestSegment.name}</strong>
         </div>
         <div style="display: flex; gap: 4px;">
-          <button id="pop-approve-btn" style="flex: 1; background-color: #10b981; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-weight: 800; font-size: 9.5px; cursor: pointer; box-shadow: 0 2px 5px rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; gap: 3px;">
+          <button id="pop-approve-btn" style="flex: 1; background-color: #57ae78; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-weight: 800; font-size: 9.5px; cursor: pointer; box-shadow: 0 2px 5px rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; gap: 3px;">
             ✓ ${t.approveLocation}
           </button>
           <button id="pop-cancel-btn" style="background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 5px 7px; border-radius: 6px; font-weight: 700; font-size: 9.5px; cursor: pointer;">
@@ -1588,7 +1590,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       radius: userLocation.accuracyM,
       color: '#2563eb',
       weight: 1,
-      fillColor: '#3b82f6',
+      fillColor: '#8296b0',
       fillOpacity: 0.12,
       interactive: false
     }).addTo(group);
@@ -1618,7 +1620,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       <div
         data-testid="demo-data-badge"
         title={DEMO_DATA_NOTE[language]}
-        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-[9px] font-black tracking-wide px-2 py-0.5 rounded-md shadow"
+        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-xs font-semibold tracking-wide px-2 py-1 rounded-md shadow"
       >
         {DEMO_DATA_LABEL[language]}
       </div>
@@ -1628,9 +1630,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         <div
           role="status"
           data-testid="basemap-status"
-          className="absolute top-28 left-1/2 -translate-x-1/2 z-20 w-max max-w-[calc(100%-1.5rem)] flex items-center gap-2 bg-slate-900/95 backdrop-blur-xl border border-amber-400/50 text-white text-[11px] font-bold px-3 py-2 rounded-2xl shadow-xl"
+          className="absolute top-28 left-1/2 -translate-x-1/2 z-20 w-max max-w-[calc(100%-1.5rem)] flex items-center gap-2 bg-slate-900/95 border border-amber-400/50 text-white text-xs font-bold px-3 py-2 rounded-2xl shadow-xl"
         >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
           <span>
             {tileStage === 'fallback'
               ? language === 'en'
@@ -1652,28 +1654,38 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       {/* Top Floating Control Bar (Filters & Search) - ONLY for Official Roles */}
       {!isRegularUser && (
-        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none transition-all duration-300 max-w-full overflow-hidden">
-          {/* Search & Filters in 1 Single Horizontal Row */}
-          <div className="flex items-center gap-1.5 pointer-events-auto bg-slate-900/95 backdrop-blur-xl border border-slate-800 p-1.5 rounded-xl shadow-lg overflow-x-auto whitespace-nowrap max-w-full custom-scrollbar">
+        <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-start gap-2 pointer-events-none">
+          {/* Search & filters: wrap onto a second row when the map is narrow */}
+          <div className="min-w-0 flex flex-wrap items-center gap-2 pointer-events-auto bg-slate-900 border border-slate-700 p-2 rounded-lg shadow-md max-w-full">
             {/* Search Box */}
             <div className="relative shrink-0">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-2.5 top-2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Cari ruas jalan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-slate-950/80 border border-slate-800 text-slate-100 text-[10.5px] rounded-lg pl-8 pr-2.5 py-1 w-28 sm:w-40 focus:outline-none focus:border-slate-600 transition-all placeholder:text-slate-500 font-medium"
+                className="bg-slate-950/80 border border-slate-800 text-slate-100 text-xs rounded-lg pl-8 pr-3 py-1 w-28 sm:w-40 focus:outline-none focus:border-slate-600 transition-all placeholder:text-slate-500 font-medium"
               />
             </div>
 
+            <button
+              type="button"
+              onClick={() => setShowMapFilters(!showMapFilters)}
+              aria-expanded={showMapFilters}
+              className="sm:hidden h-8 px-3 rounded-lg border border-slate-700 text-xs font-medium text-slate-200 inline-flex items-center gap-2 cursor-pointer"
+            >
+              <Filter className="w-4 h-4" />
+              Filter
+            </button>
+            <div className={`${showMapFilters ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-2 w-full sm:w-auto`}>
             {/* Province Filter */}
             <div className="flex items-center space-x-1 shrink-0">
               <Filter className="w-3 h-3 text-slate-400 ml-1 shrink-0" />
               <select
                 value={provinceFilter}
                 onChange={(e) => setProvinceFilter(e.target.value)}
-                className="bg-slate-950/80 border border-slate-800 text-slate-200 text-[10.5px] rounded-lg px-2 py-1 focus:outline-none focus:border-slate-600 font-medium cursor-pointer"
+                className="bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-slate-600 font-medium cursor-pointer"
               >
                 <option value="ALL">Semua Provinsi</option>
                 <option value="DKI Jakarta">DKI Jakarta</option>
@@ -1690,7 +1702,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <select
               value={conditionFilter}
               onChange={(e) => setConditionFilter(e.target.value)}
-              className="bg-slate-950/80 border border-slate-800 text-slate-200 text-[10.5px] rounded-lg px-2 py-1 focus:outline-none focus:border-slate-600 shrink-0 font-medium cursor-pointer"
+              className="bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-slate-600 shrink-0 font-medium cursor-pointer"
             >
               <option value="ALL">Semua Kondisi PCI</option>
               <option value="GOOD">Kondisi Mantap (PCI &gt; 70)</option>
@@ -1702,7 +1714,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             {/* WIM Only Toggle */}
             <button
               onClick={() => setShowWimOnly(!showWimOnly)}
-              className={`shrink-0 px-2.5 py-1 rounded-lg text-[10.5px] font-semibold flex items-center space-x-1 transition-all border ${
+              className={`shrink-0 px-3 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all border ${
                 showWimOnly
                   ? 'bg-slate-800 text-white border-slate-700 shadow-sm'
                   : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:bg-slate-800/60'
@@ -1711,7 +1723,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <Truck className="w-3 h-3 text-cyan-400 shrink-0" />
               <span>Ada Stasiun WIM</span>
               {showWimOnly && (
-                <span className="ml-1 px-1.5 py-0.2 text-[9px] bg-slate-700 text-white rounded-md font-mono font-bold">
+                <span className="ml-1 px-2 py-0.2 text-xs bg-slate-700 text-white rounded-md font-mono font-bold">
                   {filteredWimStations.length} Pin
                 </span>
               )}
@@ -1720,7 +1732,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             {/* Community Reports Pin Toggle */}
             <button
               onClick={() => setShowCommunityReports(!showCommunityReports)}
-              className={`shrink-0 px-2.5 py-1 rounded-lg text-[10.5px] font-semibold flex items-center space-x-1 transition-all border ${
+              className={`shrink-0 px-3 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all border ${
                 showCommunityReports
                   ? 'bg-slate-800 text-white border-slate-700 shadow-sm'
                   : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:bg-slate-800/60'
@@ -1729,7 +1741,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <Camera className="w-3 h-3 text-rose-400 shrink-0" />
               <span>Laporan Warga</span>
               {showCommunityReports && (
-                <span className="ml-1 px-1.5 py-0.2 text-[9px] bg-slate-700 text-white rounded-md font-mono font-bold">
+                <span className="ml-1 px-2 py-0.2 text-xs bg-slate-700 text-white rounded-md font-mono font-bold">
                   {communityReports.length} Pin
                 </span>
               )}
@@ -1740,7 +1752,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <select
                 value={wimStatusFilter}
                 onChange={(e) => setWimStatusFilter(e.target.value)}
-                className="bg-slate-950/90 border border-slate-750 text-slate-200 text-[10.5px] rounded-lg px-2 py-1 focus:outline-none focus:border-slate-600 font-semibold shadow-md shrink-0 cursor-pointer"
+                className="bg-slate-950/90 border border-slate-750 text-slate-200 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-slate-600 font-semibold shadow-md shrink-0 cursor-pointer"
               >
                 <option value="ALL">Semua Stasiun WIM (100%)</option>
                 <option value="EXTREME">Overload Ekstrim (&gt;100%)</option>
@@ -1750,25 +1762,23 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 <option value="NONE">Tidak Overload (Normal)</option>
               </select>
             )}
+            </div>
           </div>
 
           {/* Floating Quick Action CTA - ONLY for Official Roles */}
           {selectedSegment && (
-            <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-xl border border-slate-800 p-2.5 rounded-xl shadow-lg flex items-center space-x-3">
-              <div>
-                <p className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                  Ruas Terpilih
-                </p>
-                <p className="text-xs font-semibold text-white max-w-[160px] truncate">
+            <div className="ml-auto min-w-0 pointer-events-auto bg-slate-900 border border-slate-700 p-2 pl-3 rounded-lg shadow-md flex items-center gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400">Ruas terpilih</p>
+                <p className="text-sm font-medium text-white max-w-[200px] truncate" title={selectedSegment.name}>
                   {selectedSegment.name}
                 </p>
               </div>
               <button
                 onClick={() => onLaunchSimulation(selectedSegment)}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm flex items-center space-x-1.5 transition-all cursor-pointer"
+                className="shrink-0 h-9 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Jalankan PINN</span>
+                <span className="whitespace-nowrap">Jalankan PINN</span>
               </button>
             </div>
           )}
@@ -1779,72 +1789,72 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       {!isRegularUser && (
         <div className="absolute bottom-6 sm:bottom-8 left-2 sm:left-4 right-2 sm:right-4 z-10 pointer-events-none space-y-3">
           {/* BOTTOM STATS & LEGEND COLUMN */}
-          <div className="pointer-events-auto max-w-7xl mx-auto bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-xl p-2 sm:p-3 shadow-xl grid grid-cols-2 md:grid-cols-5 gap-1.5 sm:gap-2.5 text-slate-200 text-xs">
+          <div className="pointer-events-auto max-w-7xl mx-auto bg-slate-900/95 border border-slate-800 rounded-xl p-2 sm:p-3 shadow-xl grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 text-slate-200 text-xs">
             {/* Stat 1 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-2.5 flex items-center space-x-2 sm:space-x-2.5">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-slate-700/60 text-slate-300 border border-slate-600/60 shrink-0">
-                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
+              <div className="p-2 sm:p-2 rounded-lg bg-slate-700/60 text-slate-300 border border-slate-600/60 shrink-0">
+                <MapPin className="w-4 h-4 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 uppercase truncate">
+                <p className="text-xs sm:text-xs text-slate-400 truncate">
                   Total Jaringan
                 </p>
-                <p className="text-[11px] sm:text-xs font-semibold text-white font-mono">
-                  {totalLengthKm} <span className="text-[9px] sm:text-[10px] font-normal text-slate-400">km</span>
+                <p className="text-xs sm:text-xs font-semibold text-white font-mono">
+                  {totalLengthKm.toLocaleString('id-ID', { maximumFractionDigits: 1 })} <span className="text-xs sm:text-xs font-normal text-slate-400">km</span>
                 </p>
               </div>
             </div>
 
             {/* Stat 2 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-2.5 flex items-center space-x-2 sm:space-x-2.5">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-rose-950/60 text-rose-400 border border-rose-800/60 shrink-0">
-                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
+              <div className="p-2 sm:p-2 rounded-lg bg-rose-950/60 text-rose-400 border border-rose-800/60 shrink-0">
+                <AlertTriangle className="w-4 h-4 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 uppercase truncate">
+                <p className="text-xs sm:text-xs text-slate-400 truncate">
                   Tidak Mantap (2025)
                 </p>
-                <p className="text-[11px] sm:text-xs font-semibold text-rose-400 font-mono">
-                  {damagedPercent}% <span className="text-[9px] sm:text-[10px] font-normal text-slate-400">({damagedKm}km)</span>
+                <p className="text-xs sm:text-xs font-semibold text-rose-400 font-mono">
+                  {damagedPercent}% <span className="text-xs sm:text-xs font-normal text-slate-400">({Number(damagedKm).toLocaleString('id-ID', { maximumFractionDigits: 1 })} km)</span>
                 </p>
               </div>
             </div>
 
             {/* Stat 3 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-2.5 flex items-center space-x-2 sm:space-x-2.5">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/60 shrink-0">
-                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
+              <div className="p-2 sm:p-2 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/60 shrink-0">
+                <AlertTriangle className="w-4 h-4 sm:w-4 sm:h-4 text-amber-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 uppercase truncate">
+                <p className="text-xs sm:text-xs text-slate-400 truncate">
                   Peringatan ODOL
                 </p>
-                <p className="text-[11px] sm:text-xs font-semibold text-amber-300 font-mono">
+                <p className="text-xs sm:text-xs font-semibold text-amber-300 font-mono">
                   {activeRedAlertsCount} Ruas
                 </p>
               </div>
             </div>
 
             {/* Stat 4 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-2.5 flex items-center space-x-2 sm:space-x-2.5">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 shrink-0">
-                <BarChart2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
+              <div className="p-2 sm:p-2 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 shrink-0">
+                <BarChart2 className="w-4 h-4 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 uppercase truncate">
+                <p className="text-xs sm:text-xs text-slate-400 truncate">
                   Rata-rata PCI
                 </p>
-                <p className="text-[11px] sm:text-xs font-semibold text-emerald-400 font-mono">
+                <p className="text-xs sm:text-xs font-semibold text-emerald-400 font-mono">
                   {avgPci} / 100
                 </p>
               </div>
             </div>
 
             {/* Map PCI Legend & WIM Overload Legend */}
-            <div className="col-span-2 md:col-span-5 bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-2.5 flex flex-col gap-1.5 sm:gap-2 text-[9.5px] sm:text-[10px]">
-              <div className="flex flex-wrap items-center justify-between gap-1.5">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[9px] sm:text-[9.5px]">
-                  <span className="font-semibold text-slate-300 uppercase font-mono border-r border-slate-700 pr-1.5">
+            <div className="col-span-2 md:col-span-5 bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex flex-col gap-2 sm:gap-2 text-xs sm:text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-xs">
+                  <span className="font-semibold text-slate-300 border-r border-slate-700 pr-2">
                     PCI:
                   </span>
                   <span className="flex items-center text-slate-300">
@@ -1861,15 +1871,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   </span>
                 </div>
 
-                <div className="hidden sm:flex items-center space-x-1.5 text-[9px] text-slate-300 font-mono bg-slate-900 px-2 py-0.5 rounded-md border border-slate-700">
+                <div className="hidden sm:flex items-center space-x-2 text-xs text-slate-300 font-mono bg-slate-900 px-2 py-1 rounded-md border border-slate-700">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   <span>Animasi Radius Berbanding Terbalik Nilai PCI</span>
                 </div>
               </div>
 
               {/* WIM & Radius Legends */}
-              <div className="flex flex-wrap items-center gap-2 text-[9px] sm:text-[9.5px] border-t border-slate-700/80 pt-1.5 mt-0.5">
-                <span className="font-semibold text-slate-300 font-mono flex items-center gap-1 border-r border-slate-700 pr-1.5">
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-xs border-t border-slate-700/80 pt-2 mt-1">
+                <span className="font-semibold text-slate-300 font-mono flex items-center gap-1 border-r border-slate-700 pr-2">
                   <Truck className="w-3 h-3 text-cyan-400" /> WIM (PUPR):
                 </span>
                 <span className="flex items-center text-slate-300">
@@ -1889,8 +1899,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-[9px] sm:text-[9.5px] border-t border-slate-700/80 pt-1.5 mt-0.5">
-                <span className="font-semibold text-slate-300 font-mono flex items-center gap-1 border-r border-slate-700 pr-1.5">
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-xs border-t border-slate-700/80 pt-2 mt-1">
+                <span className="font-semibold text-slate-300 font-mono flex items-center gap-1 border-r border-slate-700 pr-2">
                   <Camera className="w-3 h-3 text-rose-400" /> LAPORAN WARGA:
                 </span>
                 <span className="flex items-center text-slate-300">
@@ -1913,8 +1923,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       {/* Absolute Bottom Copyright Text Outside Cards - ONLY for Official Roles */}
       {!isRegularUser && (
-        <div className="absolute bottom-1 sm:bottom-1.5 left-0 right-0 z-20 text-center pointer-events-none pb-0.5 px-2">
-          <p className="text-[9.5px] sm:text-[11px] font-medium text-slate-400 font-sans tracking-wide drop-shadow truncate">
+        <div className="absolute bottom-1 sm:bottom-1.5 left-0 right-0 z-20 text-center pointer-events-none pb-1 px-2">
+          <p className="text-xs sm:text-xs font-medium text-slate-400 font-sans tracking-wide drop-shadow truncate">
             PAVEMENT-PINN © 2026 | Intel AI Global Impact Festival 2026
           </p>
         </div>
@@ -1922,15 +1932,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       {/* REPORT FORM MODAL INSIDE LEAFLETMAP */}
       {isReportFormOpen && (
-        <div className="fixed inset-0 z-[1300] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 pointer-events-auto">
-          <div className="bg-slate-900/95 border border-white/20 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-100 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[1300] bg-slate-950/85 flex items-center justify-center p-4 animate-in fade-in duration-200 pointer-events-auto">
+          <div className="bg-slate-900/95 border border-white/20 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-100 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-indigo-500/20 text-cyan-300 rounded-2xl border border-indigo-500/30">
+                <div className="p-3 bg-indigo-500/20 text-cyan-300 rounded-2xl border border-indigo-500/30">
                   <Camera className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">
+                  <h3 className="text-base font-semibold text-white">
                     Formulir Pelaporan Kerusakan Jalan Komunitas
                   </h3>
                   <p className="text-xs text-slate-300">
@@ -1952,13 +1962,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 <div className="flex items-center space-x-2 text-cyan-300 font-mono font-bold">
                   <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span>📍 Koordinat Titik Peta:</span>
-                  <span className="text-white bg-slate-950 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+                  <span className="text-white bg-slate-950 px-3 py-1 rounded-lg border border-cyan-500/30">
                     {customCoordinates
                       ? `${customCoordinates[0]}, ${customCoordinates[1]}`
                       : `${activeFormSegment.coordinates[0]}, ${activeFormSegment.coordinates[1]}`}
                   </span>
                 </div>
-                <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
+                <span className="text-xs text-emerald-400 font-mono font-bold bg-emerald-500/20 px-2 py-1 rounded-full border border-emerald-500/30 shrink-0">
                   ✓ Terisi Otomatis
                 </span>
               </div>
@@ -1966,11 +1976,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               {/* Form Select Segment */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between flex-wrap gap-1">
-                  <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                  <label className="block text-xs font-bold text-slate-300">
                     1. Lokasi Ruas Jalan
                   </label>
                   {customCoordinates && (
-                    <span className="text-[9.5px] text-cyan-300 font-mono font-bold bg-cyan-950/80 px-2 py-0.5 rounded-lg border border-cyan-500/40">
+                    <span className="text-xs text-cyan-300 font-mono font-bold bg-cyan-950/80 px-2 py-1 rounded-lg border border-cyan-500/40">
                       📍 Terdeteksi Otomatis di Sekitar Pin Point
                     </span>
                   )}
@@ -1986,7 +1996,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-slate-400 italic">
+                <p className="text-xs text-slate-400 italic">
                   *Nama ruas jalan dipilih secara presisi berdasarkan analisis radius wilayah geografis di sekitar lokasi pin point peta.
                 </p>
               </div>
@@ -1994,7 +2004,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               {/* Damage Type & Severity */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                  <label className="block text-xs font-bold text-slate-300">
                     2. Jenis Kerusakan Jalan
                   </label>
                   <select
@@ -2011,7 +2021,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                  <label className="block text-xs font-bold text-slate-300">
                     3. Tingkat Keparahan
                   </label>
                   <select
@@ -2029,7 +2039,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               {/* Estimated Depth & Area */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                  <label className="block text-xs font-bold text-slate-300">
                     4. Estimasi Kedalaman (cm)
                   </label>
                   <input
@@ -2043,7 +2053,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                  <label className="block text-xs font-bold text-slate-300">
                     5. Estimasi Luas Kerusakan (m²)
                   </label>
                   <input
@@ -2060,7 +2070,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
               {/* Sample Photo Preset Selector */}
               <div className="space-y-1">
-                <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                <label className="block text-xs font-bold text-slate-300">
                   6. Foto Lampiran Lapangan
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -2089,7 +2099,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                       }`}
                     >
                       <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
-                      <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[9px] text-white py-0.5 text-center font-bold">
+                      <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-xs text-white py-1 text-center font-bold">
                         {preset.label}
                       </span>
                     </button>
@@ -2099,7 +2109,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="block text-[11px] font-mono font-bold text-slate-300 uppercase">
+                <label className="block text-xs font-bold text-slate-300">
                   7. Deskripsi & Detail Kejadian
                 </label>
                 <textarea
@@ -2123,7 +2133,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 border border-white/20 transition-all"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg border border-white/20 transition-all"
                 >
                   <Send className="w-4 h-4 text-cyan-200" />
                   <span>Kirim Laporan Kerusakan</span>

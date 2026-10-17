@@ -80,7 +80,7 @@ export const LoginPage: React.FC = () => {
 
   const signedIn = !isAnonymousAccount(currentAccount);
   const inputClass = (invalid: boolean) =>
-    `block w-full rounded-md border bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500 ${
+    `block w-full rounded-md border bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500 ${
       invalid ? 'border-red-500' : 'border-slate-300 hover:border-slate-400'
     }`;
 
@@ -88,7 +88,7 @@ export const LoginPage: React.FC = () => {
     <div className="fixed inset-0 z-[2000] overflow-y-auto bg-slate-100 text-slate-900 font-sans">
       <div className="min-h-full lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
         {/* Brand panel (wide screens) */}
-        <aside className="hidden lg:flex flex-col justify-between bg-[#0b1f3a] px-12 py-10 text-white">
+        <aside className="hidden lg:flex flex-col justify-between bg-surface px-12 py-10 text-white">
           <div className="flex items-center gap-3">
             <img src={logoImg} alt="" className="h-10 w-10 rounded-md object-cover" />
             <div>
@@ -143,7 +143,7 @@ export const LoginPage: React.FC = () => {
 
               <form noValidate onSubmit={onSubmit} className="mt-5 space-y-4" aria-busy={submitting}>
                 <div>
-                  <label htmlFor="login-identifier" className="mb-1.5 block text-sm font-medium text-slate-800">
+                  <label htmlFor="login-identifier" className="mb-2 block text-sm font-medium text-slate-800">
                     Email atau nama pengguna
                   </label>
                   <input
@@ -170,7 +170,7 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-slate-800">
+                  <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-slate-800">
                     Kata sandi
                   </label>
                   <div className="relative">
@@ -208,7 +208,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0b1f3a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#13305a] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-white hover:bg-[#13305a] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
                 >
                   {submitting && <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
                   {submitting ? 'Memeriksa…' : 'Masuk ke Sistem'}
@@ -224,7 +224,7 @@ export const LoginPage: React.FC = () => {
                     className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 cursor-pointer"
                   >
                     Akses akun demo
-                    <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-amber-800">DEMO</span>
+                    <span className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-bold tracking-wide text-amber-800">DEMO</span>
                   </button>
                 )}
                 <button

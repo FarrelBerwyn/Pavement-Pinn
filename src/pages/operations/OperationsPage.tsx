@@ -64,7 +64,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'BERANDA_OPERASI') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0f172a]">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}
@@ -86,7 +86,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'DASHBOARD') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0f172a]">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
         {/* "Where should we act now?" — the shared report queue comes first. */}
         <WorkflowQueueSection />
         <DataNotice label="SIMULASI">
@@ -113,7 +113,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'MONITORING_KONDISI_JALAN' || activeNav === 'MONITORING_POS_WIM' || activeNav === 'MONITORING_ODOL' || activeNav === 'MONITORING_CUACA_BANJIR' || activeNav === 'TINDAKAN_REKAYASA') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#07090e]">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-canvas">
         <DataNotice label="SIMULASI">
           Data WIM, plat nomor, korelasi beban, dan tombol penindakan pada halaman ini adalah simulasi demo, bukan pengukuran atau tindakan nyata.
         </DataNotice>
@@ -149,7 +149,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'ALERTS' || activeNav === 'TINDAKAN_PERINGATAN' || activeNav === 'WEATHER_FLOOD' || activeNav === 'TRAFFIC_ENG') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0f172a]">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}

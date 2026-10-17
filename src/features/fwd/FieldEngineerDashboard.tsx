@@ -69,17 +69,17 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Banner */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-amber-500/20 text-amber-300 rounded-2xl border border-amber-500/30">
             <HardHat className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span className="text-xs bg-amber-500/20 text-amber-300 font-mono font-bold px-2 py-1 rounded-full border border-amber-500/30">
                 Lensa Akses: Insinyur Lapangan (BBPJN/PUPR)
               </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+              <span className="text-xs bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-1 rounded-full border border-emerald-500/30">
                 Akses Terbuka Hak RBAC Level 3
               </span>
             </div>
@@ -95,7 +95,7 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
         {result && (
           <button
             onClick={() => generateOfficialReportPdf(result, 'FIELD_ENGINEER')}
-            className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg shadow-indigo-500/25 border border-white/20 flex items-center space-x-2 transition-all active:scale-95"
+            className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-lg border border-white/20 flex items-center space-x-2 transition-all active:scale-95"
           >
             <FileDown className="w-4 h-4" />
             <span>Cetak PDF Desain Overlay</span>
@@ -104,7 +104,7 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
       </div>
 
       {/* RBAC Scope Explanation Bar */}
-      <div className="bg-amber-950/20 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <div className="bg-amber-950/20 border border-amber-500/30 p-4 rounded-2xl text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex items-center space-x-2">
           <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
           <span className="font-bold text-amber-300">Hak Akses Data Role Insinyur:</span>
@@ -117,13 +117,13 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Chart 1: Deflection Basin Curve (6 cols) */}
-        <div className="lg:col-span-6 bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl space-y-3">
+        <div className="lg:col-span-6 bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl space-y-3">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <h3 className="text-sm font-bold text-white flex items-center">
               <Activity className="w-4 h-4 text-cyan-400 mr-2" />
               Kurva Mangkok Lendutan Surface Deflection Basin w(r)
             </h3>
-            <span className="text-[11px] font-mono text-cyan-300 bg-cyan-500/20 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+            <span className="text-xs font-mono text-cyan-300 bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30">
               Profil Defleksi FWD
             </span>
           </div>
@@ -161,19 +161,19 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono">
+          <p className="text-xs text-slate-400 font-mono">
             *Lendutan maksimum di bawah pusat beban: {result ? result.tensors.surfaceDeflectionMaxMicron : 480} µm.
           </p>
         </div>
 
         {/* Chart 2: Tensile & Compressive Strain vs AASHTO Limit (6 cols) */}
-        <div className="lg:col-span-6 bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl space-y-3">
+        <div className="lg:col-span-6 bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl space-y-3">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <h3 className="text-sm font-bold text-white flex items-center">
               <Ruler className="w-4 h-4 text-amber-400 mr-2" />
               Tensor Regangan Kritis (Microstrain µε) vs Batas Ijin
             </h3>
-            <span className="text-[11px] font-mono text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+            <span className="text-xs font-mono text-amber-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30">
               Kriteria Lelehan Lelah
             </span>
           </div>
@@ -195,12 +195,12 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="NilaiSimulasi" name="Hasil Simulasi PINN" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="NilaiSimulasi" name="Hasil Simulasi PINN" fill="#e8b23a" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="BatasIjinAashto" name="Nilai Acuan (referensi)" fill="#475569" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono">
+          <p className="text-xs text-slate-400 font-mono">
             *Estimasi RULE_BASED, bukan putusan kelayakan; keputusan overlay memerlukan kajian engineer.
           </p>
         </div>
@@ -208,7 +208,7 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
 
       {/* Structural Engineering Recommendation Cards */}
       {result && (
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl space-y-4">
+        <div className="bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center border-b border-white/10 pb-3">
             <Layers className="w-4 h-4 text-emerald-400 mr-2" />
             Spesifikasi & Cetak Biru Rekayasa Lapisan Tambah (Overlay Design Blueprint)
@@ -217,10 +217,10 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {/* Box 1 */}
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+              <span className="text-xs text-slate-400 font-bold">
                 Rekomendasi Tebal Overlay
               </span>
-              <p className="text-2xl font-extrabold text-emerald-400 font-mono">
+              <p className="text-2xl font-semibold text-emerald-400 font-mono">
                 {result.roleOutputs.fieldEngineer.recommendedOverlayThicknessCm} cm
               </p>
               <p className="text-slate-300 font-medium pt-1">
@@ -230,10 +230,10 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
 
             {/* Box 2 */}
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+              <span className="text-xs text-slate-400 font-bold">
                 Estimasi Pothole Horizon
               </span>
-              <p className="text-2xl font-extrabold text-cyan-400 font-mono">
+              <p className="text-2xl font-semibold text-cyan-400 font-mono">
                 {result.roleOutputs.fieldEngineer.potholeHorizonDays} Hari
               </p>
               <p className="text-slate-300 font-medium pt-1">
@@ -243,10 +243,10 @@ export const FieldEngineerDashboard: React.FC<FieldEngineerDashboardProps> = ({
 
             {/* Box 3 */}
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+              <span className="text-xs text-slate-400 font-bold">
                 Prioritas Penanganan Teknik
               </span>
-              <p className="text-2xl font-extrabold text-amber-400 font-mono">
+              <p className="text-2xl font-semibold text-amber-400 font-mono">
                 PERINGKAT #{result.roleOutputs.fieldEngineer.structuralPriorityRank}
               </p>
               <p className="text-slate-300 font-medium pt-1">

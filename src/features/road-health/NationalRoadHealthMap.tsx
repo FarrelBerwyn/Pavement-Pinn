@@ -245,7 +245,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
     <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden">
       {/* Card Header matching screenshot */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-1.5 text-slate-800 font-extrabold text-sm sm:text-base">
+        <div className="flex items-center space-x-2 text-slate-800 font-semibold text-sm sm:text-base">
           <span>Peta Kesehatan Jalan Nasional</span>
           <Info className="w-4 h-4 text-slate-400 cursor-help" />
         </div>
@@ -263,9 +263,9 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
             <button
               key={item.id}
               onClick={() => setActiveIslandFilter(item.id)}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 activeIslandFilter === item.id
-                  ? 'bg-white text-amber-600 shadow-xs font-extrabold'
+                  ? 'bg-white text-amber-600 shadow-xs font-semibold'
                   : 'hover:text-slate-900'
               }`}
             >
@@ -308,17 +308,17 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
             className="p-2 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
             title="Kembali ke Pandangan Nasional"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            <RefreshCw className="w-4 h-4 text-slate-500" />
           </button>
         </div>
 
         {/* Base Layer Switcher Dropdown */}
         {isLayerMenuOpen && (
           <div className="absolute top-3 left-14 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-30 w-44 space-y-1 text-xs font-semibold">
-            <p className="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Pilih Basemap GIS</p>
+            <p className="text-xs font-bold text-slate-400 px-2 py-1">Pilih Basemap GIS</p>
             <button
               onClick={() => handleChangeBaseMap('CARTO_LIGHT')}
-              className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`w-full text-left px-3 py-2 rounded-lg transition-colors cursor-pointer ${
                 activeBaseLayer === 'CARTO_LIGHT' ? 'bg-amber-50 text-amber-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
               }`}
             >
@@ -326,7 +326,7 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
             </button>
             <button
               onClick={() => handleChangeBaseMap('OSM_STANDARD')}
-              className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`w-full text-left px-3 py-2 rounded-lg transition-colors cursor-pointer ${
                 activeBaseLayer === 'OSM_STANDARD' ? 'bg-amber-50 text-amber-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
               }`}
             >
@@ -336,22 +336,22 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
         )}
 
         {/* Floating Legend Top-Right (Exact match from screenshot) */}
-        <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-md border border-slate-200 z-20 text-[11px] font-semibold space-y-1.5 min-w-[150px]">
+        <div className="absolute top-3 right-3 bg-white/95 rounded-xl p-3 shadow-md border border-slate-200 z-20 text-xs font-semibold space-y-2 min-w-[150px]">
           <p className="text-slate-800 font-bold mb-1">Kesehatan Jalan (RHI)</p>
           <div className="flex items-center space-x-2">
-            <span className="w-4 h-1.5 bg-[#16a34a] rounded-full"></span>
+            <span className="w-4 h-2 bg-[#57ae78] rounded-full"></span>
             <span className="text-slate-700">Baik (≥ 70)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-4 h-1.5 bg-[#eab308] rounded-full"></span>
+            <span className="w-4 h-2 bg-[#e8b23a] rounded-full"></span>
             <span className="text-slate-700">Sedang (50 - 69)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-4 h-1.5 bg-[#f97316] rounded-full"></span>
+            <span className="w-4 h-2 bg-[#e2823d] rounded-full"></span>
             <span className="text-slate-700">Buruk (30 - 49)</span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="w-4 h-1.5 bg-[#ef4444] rounded-full"></span>
+            <span className="w-4 h-2 bg-[#d9655d] rounded-full"></span>
             <span className="text-slate-700">Sangat Buruk (&lt; 30)</span>
           </div>
         </div>
@@ -367,10 +367,10 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
 
         <button
           onClick={onNavigateToMap}
-          className="flex items-center space-x-1.5 text-slate-700 hover:text-slate-900 font-bold px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer self-start sm:self-auto"
+          className="flex items-center space-x-2 text-slate-700 hover:text-slate-900 font-bold px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer self-start sm:self-auto"
         >
           <span>Lihat Peta Interaktif</span>
-          <ExternalLink className="w-3.5 h-3.5 text-slate-600" />
+          <ExternalLink className="w-4 h-4 text-slate-600" />
         </button>
       </div>
     </div>

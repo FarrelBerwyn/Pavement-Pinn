@@ -172,6 +172,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
   const { workflow } = useAppState();
   const { navigateTo } = useRouter();
+  // Sidebar badge: assigned cases where the engineer can act now (inspect, recommend, verify).
+  const fieldTasksDue = Object.values(workflow.views).filter(
+    (v) => v.audience === 'STAFF' && (v.case as { assignment?: { engineerId: string } | null }).assignment?.engineerId === workflow.actor?.id && v.availableActions.length > 0
+  ).length;
 
   // Navigation tab in Public User interface (defaults to DASHBOARD for Operations Manager, Field Engineer and Policy Maker, MAP for public users)
   const setActiveNav = onNavigate;
@@ -810,7 +814,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
   return (
     <div
-      className="flex h-screen w-screen bg-[#0b0f19] text-slate-100 overflow-hidden font-sans select-none antialiased"
+      className="flex h-screen w-screen bg-canvas text-slate-100 overflow-hidden font-sans select-none antialiased"
       // Full-screen pages start after the sidebar on md+ (it is static there): see PageOverlay.
       style={{ ['--sidebar-w' as string]: isSidebarCollapsed ? '5rem' : '16rem' } as React.CSSProperties}
     >
@@ -818,7 +822,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       <aside
         className={`fixed inset-y-0 left-0 z-50 ${
           isSidebarCollapsed ? 'w-20' : 'w-64'
-        } bg-[#0e1320] border-r border-white/10 flex flex-col justify-between p-3.5 transition-all duration-300 ease-in-out md:static md:translate-x-0 overflow-x-hidden ${
+        } bg-surface border-r border-white/10 flex flex-col justify-between p-4 transition-all duration-300 ease-in-out md:static md:translate-x-0 overflow-x-hidden ${
           isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
@@ -826,7 +830,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
           {/* Logo & Brand Identity */}
           <div
             className={`flex items-center ${
-              isSidebarCollapsed ? 'justify-center' : 'space-x-2.5'
+              isSidebarCollapsed ? 'justify-center' : 'space-x-3'
             } px-1 pt-1 cursor-pointer transition-all w-full max-w-full min-w-0`}
             onClick={() => setActiveNav('MAP')}
             title="PAVEMENT - Smart Road Intelligence"
@@ -838,14 +842,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             />
             {!isSidebarCollapsed && (
               <div className="overflow-hidden min-w-0 flex-1">
-                <h1 className="font-extrabold text-base tracking-wider text-white leading-tight truncate">PAVEMENT PINN</h1>
-                <p className="text-[10px] text-slate-400 font-medium leading-tight truncate">Smart Road Intelligence</p>
+                <h1 className="font-semibold text-base tracking-wider text-white leading-tight truncate">PAVEMENT PINN</h1>
+                <p className="text-xs text-slate-400 font-medium leading-tight truncate">Smart Road Intelligence</p>
               </div>
             )}
           </div>
 
           {/* Navigation Items Vertical Stack */}
-          <nav className="space-y-1.5 w-full max-w-full min-w-0">
+          <nav className="space-y-2 w-full max-w-full min-w-0">
             {/* EXECUTIVE POLICY MAKER SIDEBAR */}
             {isPolicyMaker ? (
               <>
@@ -858,14 +862,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Ringkasan Eksekutif"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'DASHBOARD' && policyNavTab === 'RINGKASAN_EKSEKUTIF'
-                      ? 'bg-[#fef8ee] text-[#b45309] font-extrabold shadow-sm'
+                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <Home className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'DASHBOARD' && policyNavTab === 'RINGKASAN_EKSEKUTIF' ? 'text-[#d97706]' : 'text-slate-400'}`} />
+                  <Home className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && policyNavTab === 'RINGKASAN_EKSEKUTIF' ? 'text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Ringkasan Eksekutif</span>}
                 </button>
 
@@ -878,14 +882,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Peta Strategis"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'DASHBOARD' && policyNavTab === 'PETA_STRATEGIS'
-                      ? 'bg-[#fef8ee] text-[#b45309] font-extrabold shadow-sm'
+                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <MapIcon className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'DASHBOARD' && policyNavTab === 'PETA_STRATEGIS' ? 'text-[#d97706]' : 'text-slate-400'}`} />
+                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && policyNavTab === 'PETA_STRATEGIS' ? 'text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Peta Strategis</span>}
                 </button>
 
@@ -898,14 +902,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Anggaran & Investasi"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'DASHBOARD' && (policyNavTab === 'ANGGARAN_INVESTASI' || policyNavTab === 'ANGGARAN_REALISASI')
-                      ? 'bg-[#fef8ee] text-[#b45309] font-extrabold shadow-sm'
+                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <CreditCard className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'DASHBOARD' && (policyNavTab === 'ANGGARAN_INVESTASI' || policyNavTab === 'ANGGARAN_REALISASI') ? 'text-[#d97706]' : 'text-slate-400'}`} />
+                  <CreditCard className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && (policyNavTab === 'ANGGARAN_INVESTASI' || policyNavTab === 'ANGGARAN_REALISASI') ? 'text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Anggaran & Investasi</span>}
                 </button>
 
@@ -918,14 +922,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Program Prioritas"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'DASHBOARD' && (policyNavTab === 'PROGRAM_PRIORITAS' || policyNavTab === 'PRIORITAS_NASIONAL')
-                      ? 'bg-[#fef8ee] text-[#b45309] font-extrabold shadow-sm'
+                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <Layers className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'DASHBOARD' && (policyNavTab === 'PROGRAM_PRIORITAS' || policyNavTab === 'PRIORITAS_NASIONAL') ? 'text-[#d97706]' : 'text-slate-400'}`} />
+                  <Layers className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && (policyNavTab === 'PROGRAM_PRIORITAS' || policyNavTab === 'PRIORITAS_NASIONAL') ? 'text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Program Prioritas</span>}
                 </button>
               </>
@@ -939,18 +943,18 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Dashboard"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-extrabold shadow-sm'
+                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <LayoutDashboard className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
+                  <LayoutDashboard className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && (
                     <div className="flex items-center justify-between w-full min-w-0">
                       <span className="truncate">Dashboard</span>
-                      <span className="text-[9px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded-full shrink-0 ml-1">
+                      <span className="text-xs font-mono bg-amber-500/20 text-amber-300 px-2 py-0.2 rounded-full shrink-0 ml-1">
                         Ops
                       </span>
                     </div>
@@ -965,18 +969,18 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Peta"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'MAP' || activeNav === 'PETA_POS_WIM'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-extrabold shadow-sm'
+                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <MapIcon className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'MAP' || activeNav === 'PETA_POS_WIM' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
+                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'MAP' || activeNav === 'PETA_POS_WIM' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && (
                     <div className="flex items-center justify-between w-full min-w-0">
                       <span className="truncate">Peta</span>
-                      <span className="text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.2 rounded-full shrink-0 ml-1">
+                      <span className="text-xs font-mono bg-blue-500/20 text-blue-300 px-2 py-0.2 rounded-full shrink-0 ml-1">
                         GIS
                       </span>
                     </div>
@@ -994,7 +998,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     }}
                     title="Monitoring"
                     className={`w-full max-w-full flex items-center ${
-                      isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-3.5 py-2.5'
+                      isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'
                     } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                       activeNav.startsWith('MONITORING_')
                         ? 'bg-white/5 text-amber-300 font-bold'
@@ -1002,17 +1006,17 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     }`}
                   >
                     <div className="flex items-center space-x-3 min-w-0">
-                      <Activity className={`w-4.5 h-4.5 shrink-0 ${activeNav.startsWith('MONITORING_') ? 'text-amber-400' : 'text-slate-400'}`} />
+                      <Activity className={`w-5 h-5 shrink-0 ${activeNav.startsWith('MONITORING_') ? 'text-amber-400' : 'text-slate-400'}`} />
                       {!isSidebarCollapsed && <span className="truncate">Monitoring</span>}
                     </div>
                     {!isSidebarCollapsed && (
-                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMonitoringSubmenuOpen ? 'rotate-180 text-amber-400' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isMonitoringSubmenuOpen ? 'rotate-180 text-amber-400' : ''}`} />
                     )}
                   </button>
 
                   {/* Sub-items for Monitoring */}
                   {(!isSidebarCollapsed && isMonitoringSubmenuOpen) && (
-                    <div className="pl-4 pr-1 space-y-1 border-l border-white/10 ml-4.5 my-1">
+                    <div className="pl-4 pr-1 space-y-1 border-l border-white/10 ml-5 my-1">
                       {/* Kondisi Jalan */}
                       <button
                         onClick={() => {
@@ -1020,13 +1024,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsMobileSidebarOpen(false);
                         }}
                         title="Kondisi Jalan"
-                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                           activeNav === 'MONITORING_KONDISI_JALAN'
                             ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
                             : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                         }`}
                       >
-                        <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${activeNav === 'MONITORING_KONDISI_JALAN' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
+                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_KONDISI_JALAN' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
                         <span className="truncate">Kondisi Jalan</span>
                       </button>
 
@@ -1037,13 +1041,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsMobileSidebarOpen(false);
                         }}
                         title="POS WIM"
-                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                           activeNav === 'MONITORING_POS_WIM'
                             ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
                             : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                         }`}
                       >
-                        <Scale className={`w-3.5 h-3.5 shrink-0 ${activeNav === 'MONITORING_POS_WIM' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
+                        <Scale className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_POS_WIM' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
                         <span className="truncate">POS WIM</span>
                       </button>
 
@@ -1054,13 +1058,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsMobileSidebarOpen(false);
                         }}
                         title="ODOL"
-                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                           activeNav === 'MONITORING_ODOL'
                             ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
                             : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                         }`}
                       >
-                        <Truck className={`w-3.5 h-3.5 shrink-0 ${activeNav === 'MONITORING_ODOL' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
+                        <Truck className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_ODOL' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
                         <span className="truncate">ODOL</span>
                       </button>
 
@@ -1071,13 +1075,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsMobileSidebarOpen(false);
                         }}
                         title="Cuaca & Banjir"
-                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                           activeNav === 'MONITORING_CUACA_BANJIR'
                             ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
                             : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                         }`}
                       >
-                        <CloudRain className={`w-3.5 h-3.5 shrink-0 ${activeNav === 'MONITORING_CUACA_BANJIR' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
+                        <CloudRain className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_CUACA_BANJIR' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
                         <span className="truncate">Cuaca & Banjir</span>
                       </button>
                     </div>
@@ -1095,7 +1099,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     }}
                     title="Tindakan Operasi"
                     className={`w-full max-w-full flex items-center ${
-                      isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-3.5 py-2.5'
+                      isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'
                     } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                       activeNav.startsWith('TINDAKAN_')
                         ? 'bg-white/5 text-amber-300 font-bold'
@@ -1103,17 +1107,17 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     }`}
                   >
                     <div className="flex items-center space-x-3 min-w-0">
-                      <Workflow className={`w-4.5 h-4.5 shrink-0 ${activeNav.startsWith('TINDAKAN_') ? 'text-amber-400' : 'text-slate-400'}`} />
+                      <Workflow className={`w-5 h-5 shrink-0 ${activeNav.startsWith('TINDAKAN_') ? 'text-amber-400' : 'text-slate-400'}`} />
                       {!isSidebarCollapsed && <span className="truncate">Tindakan Operasi</span>}
                     </div>
                     {!isSidebarCollapsed && (
-                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isTindakanSubmenuOpen ? 'rotate-180 text-amber-400' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isTindakanSubmenuOpen ? 'rotate-180 text-amber-400' : ''}`} />
                     )}
                   </button>
 
                   {/* Sub-items for Tindakan Operasi */}
                   {(!isSidebarCollapsed && isTindakanSubmenuOpen) && (
-                    <div className="pl-4 pr-1 space-y-1 border-l border-white/10 ml-4.5 my-1">
+                    <div className="pl-4 pr-1 space-y-1 border-l border-white/10 ml-5 my-1">
                       {/* Rekayasa Lalu Lintas */}
                       <button
                         onClick={() => {
@@ -1121,13 +1125,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsMobileSidebarOpen(false);
                         }}
                         title="Rekayasa Lalu Lintas"
-                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                           activeNav === 'TINDAKAN_REKAYASA'
                             ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
                             : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                         }`}
                       >
-                        <Navigation className={`w-3.5 h-3.5 shrink-0 ${activeNav === 'TINDAKAN_REKAYASA' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
+                        <Navigation className={`w-4 h-4 shrink-0 ${activeNav === 'TINDAKAN_REKAYASA' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
                         <span className="truncate">Rekayasa Lalu Lintas</span>
                       </button>
 
@@ -1138,13 +1142,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsMobileSidebarOpen(false);
                         }}
                         title="Peringatan"
-                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                           activeNav === 'TINDAKAN_PERINGATAN'
                             ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
                             : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                         }`}
                       >
-                        <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${activeNav === 'TINDAKAN_PERINGATAN' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
+                        <AlertTriangle className={`w-4 h-4 shrink-0 ${activeNav === 'TINDAKAN_PERINGATAN' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
                         <span className="truncate">Peringatan</span>
                       </button>
                     </div>
@@ -1159,18 +1163,18 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Tim & Tugas"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'SPK_ORDERS'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-extrabold shadow-sm'
+                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <Users className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'SPK_ORDERS' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
+                  <Users className={`w-5 h-5 shrink-0 ${activeNav === 'SPK_ORDERS' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && (
                     <div className="flex items-center justify-between w-full min-w-0">
                       <span className="truncate">Tim & Tugas</span>
-                      <span className="text-[11px] font-bold bg-[#dcfce7] text-[#15803d] dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 rounded-full shrink-0 ml-1">
+                      <span className="text-xs font-bold bg-[#dcfce7] text-[#15803d] dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-1 rounded-full shrink-0 ml-1">
                         7
                       </span>
                     </div>
@@ -1185,14 +1189,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Laporan"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'REPORTS'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-extrabold shadow-sm'
+                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
                   }`}
                 >
-                  <FileText className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'REPORTS' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
+                  <FileText className={`w-5 h-5 shrink-0 ${activeNav === 'REPORTS' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Laporan</span>}
                 </button>
               </>
@@ -1206,18 +1210,18 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Dashboard"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
                     activeNav === 'DASHBOARD'
                       ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
                   }`}
                 >
-                  <LayoutDashboard className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'DASHBOARD' ? 'text-amber-400' : 'text-slate-400'}`} />
+                  <LayoutDashboard className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' ? 'text-amber-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && (
                     <div className="flex items-center justify-between w-full min-w-0">
                       <span className="truncate">Dashboard</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-md shrink-0 ml-1 bg-slate-700/80 text-slate-300 border border-slate-600/60">
+                      <span className="text-xs font-mono px-2 py-0.2 rounded-md shrink-0 ml-1 bg-slate-700/80 text-slate-300 border border-slate-600/60">
                         Live
                       </span>
                     </div>
@@ -1232,14 +1236,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Maps & Ruas Jalan"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
                     activeNav === 'MAP'
                       ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
                   }`}
                 >
-                  <MapIcon className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'MAP' ? 'text-blue-400' : 'text-slate-400'}`} />
+                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'MAP' ? 'text-blue-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Maps & Ruas Jalan</span>}
                 </button>
 
@@ -1251,20 +1255,22 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Tugas & Inspeksi"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
                     activeNav === 'SPK_ORDERS'
                       ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
                   }`}
                 >
-                  <ClipboardList className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'SPK_ORDERS' ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <ClipboardList className={`w-5 h-5 shrink-0 ${activeNav === 'SPK_ORDERS' ? 'text-emerald-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && (
                     <div className="flex items-center justify-between w-full min-w-0">
                       <span className="truncate">Tugas & Inspeksi</span>
-                      <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded-md shrink-0 ml-1 border border-emerald-500/30">
-                        7
-                      </span>
+                      {fieldTasksDue > 0 && (
+                        <span title="Tugas yang menunggu tindakan Anda" className="text-xs font-semibold bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-md shrink-0 ml-1 border border-amber-500/30 tabular-nums">
+                          {fieldTasksDue}
+                        </span>
+                      )}
                     </div>
                   )}
                 </button>
@@ -1277,14 +1283,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Analisis PINN"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
                     activeNav === 'SIMULATION'
                       ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
                   }`}
                 >
-                  <Cpu className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'SIMULATION' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Cpu className={`w-5 h-5 shrink-0 ${activeNav === 'SIMULATION' ? 'text-indigo-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Analisis PINN</span>}
                 </button>
 
@@ -1296,14 +1302,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title="Riwayat Jalan"
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
                     activeNav === 'ROAD_HISTORY'
                       ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
                   }`}
                 >
-                  <History className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'ROAD_HISTORY' ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <History className={`w-5 h-5 shrink-0 ${activeNav === 'ROAD_HISTORY' ? 'text-cyan-400' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">Riwayat Jalan</span>}
                 </button>
               </>
@@ -1317,14 +1323,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title={t.navMap}
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'MAP'
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25 font-black'
+                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <MapIcon className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'MAP' ? 'text-slate-950' : 'text-slate-400'}`} />
+                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'MAP' ? 'text-slate-950' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">{t.navMap}</span>}
                 </button>
 
@@ -1336,14 +1342,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title={t.navReports}
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'REPORTS'
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25 font-black'
+                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <FileText className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'REPORTS' ? 'text-slate-950' : 'text-slate-400'}`} />
+                  <FileText className={`w-5 h-5 shrink-0 ${activeNav === 'REPORTS' ? 'text-slate-950' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">{t.navReports}</span>}
                 </button>
 
@@ -1355,14 +1361,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title={t.navAnalytics}
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'ANALYTICS'
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25 font-black'
+                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <BarChart2 className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'ANALYTICS' ? 'text-slate-950' : 'text-slate-400'}`} />
+                  <BarChart2 className={`w-5 h-5 shrink-0 ${activeNav === 'ANALYTICS' ? 'text-slate-950' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">{t.navAnalytics}</span>}
                 </button>
 
@@ -1374,14 +1380,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title={t.navSimulation}
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                     activeNav === 'SIMULATION'
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25 font-black'
+                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <Cpu className={`w-4.5 h-4.5 shrink-0 ${activeNav === 'SIMULATION' ? 'text-slate-950' : 'text-slate-400'}`} />
+                  <Cpu className={`w-5 h-5 shrink-0 ${activeNav === 'SIMULATION' ? 'text-slate-950' : 'text-slate-400'}`} />
                   {!isSidebarCollapsed && <span className="truncate">{t.navSimulation}</span>}
                 </button>
 
@@ -1393,10 +1399,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }}
                   title={t.navSettings}
                   className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
                   } rounded-2xl font-bold text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer`}
                 >
-                  <Settings className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                  <Settings className="w-5 h-5 text-slate-400 shrink-0" />
                   {!isSidebarCollapsed && <span className="truncate">{t.navSettings}</span>}
                 </button>
               </>
@@ -1406,7 +1412,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
         {/* Policy Maker and Operations Manager Bottom Assistance & Logout OR Sidebar Collapse Toggle Button */}
         {isPolicyMaker || isOperationsManager ? (
-          <div className="pt-3 border-t border-white/10 flex flex-col space-y-1.5 w-full max-w-full">
+          <div className="pt-3 border-t border-white/10 flex flex-col space-y-2 w-full max-w-full">
             {/* Pusat Bantuan 24/7 */}
             <button
               onClick={() => {
@@ -1417,16 +1423,16 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 );
               }}
               className={`w-full max-w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-2 py-2' : 'justify-between px-3.5 py-2'
+                isSidebarCollapsed ? 'justify-center px-2 py-2' : 'justify-between px-4 py-2'
               } rounded-2xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer`}
               title="Pusat Bantuan 24/7"
             >
-              <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="flex items-center space-x-3 min-w-0">
                 <Headphones className="w-4 h-4 text-slate-400 shrink-0" />
                 {!isSidebarCollapsed && <span className="truncate">Pusat Bantuan</span>}
               </div>
               {!isSidebarCollapsed && (
-                <span className="text-[10px] font-mono text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-mono text-slate-400 bg-white/5 border border-white/10 px-2 py-1 rounded">
                   24/7
                 </span>
               )}
@@ -1436,7 +1442,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <button
               onClick={isAnonymousIdentity ? onOpenLoginModal : onLogout}
               className={`w-full max-w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-2 py-2' : 'space-x-2.5 px-3.5 py-2'
+                isSidebarCollapsed ? 'justify-center px-2 py-2' : 'space-x-3 px-4 py-2'
               } rounded-2xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all cursor-pointer`}
               title={isAnonymousIdentity ? 'Masuk ke Sistem' : 'Keluar'}
             >
@@ -1448,7 +1454,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <div className="hidden md:flex pt-1 items-center justify-center">
               <button
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="w-full flex items-center justify-center py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-semibold cursor-pointer"
+                className="w-full flex items-center justify-center py-2 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-semibold cursor-pointer"
                 title={isSidebarCollapsed ? t.navExpand : t.navCollapse}
               >
                 {isSidebarCollapsed ? (
@@ -1456,7 +1462,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 ) : (
                   <>
                     <ChevronLeft className="w-4 h-4 text-slate-400" />
-                    <span className="text-[11px] text-slate-400 truncate ml-1">{t.navCollapse}</span>
+                    <span className="text-xs text-slate-400 truncate ml-1">{t.navCollapse}</span>
                   </>
                 )}
               </button>
@@ -1474,7 +1480,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               ) : (
                 <>
                   <ChevronLeft className="w-4 h-4 text-slate-400" />
-                  <span className="text-[11px] text-slate-400 truncate">{t.navCollapse}</span>
+                  <span className="text-xs text-slate-400 truncate">{t.navCollapse}</span>
                 </>
               )}
             </button>
@@ -1486,20 +1492,20 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       {isMobileSidebarOpen && (
         <div
           onClick={() => setIsMobileSidebarOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
         />
       )}
 
       {/* 2. MAIN CONTENT AREA */}
-      <div className={`flex-1 flex flex-col h-full min-w-0 relative overflow-hidden transition-colors duration-200 ${theme === 'dark' ? 'bg-[#0b0f19] text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+      <div className={`flex-1 flex flex-col h-full min-w-0 relative overflow-hidden transition-colors duration-200 ${theme === 'dark' ? 'bg-canvas text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
         {/* 1. DESKTOP HEADER BAR (For tablets md: and desktop lg:) */}
-        <header className={`hidden md:flex h-16 backdrop-blur-xl border-b px-4 sm:px-6 items-center justify-between z-40 relative shrink-0 transition-colors duration-200 ${
+        <header className={`hidden md:flex h-16  border-b px-4 sm:px-6 items-center justify-between z-40 relative shrink-0 transition-colors duration-200 ${
           theme === 'dark'
-            ? 'bg-[#0e1320]/90 border-white/10 text-slate-100'
+            ? 'bg-surface/90 border-white/10 text-slate-100'
             : 'bg-white/95 border-slate-200 text-slate-900 shadow-sm'
         }`}>
           {/* Left: Mobile Toggle & Search Input */}
-          <div className="flex items-center space-x-3 flex-1 max-w-xl">
+          <div className="flex items-center gap-3 flex-1 min-w-0 max-w-xl">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
               className={`md:hidden p-2 rounded-xl border ${
@@ -1521,11 +1527,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 placeholder={t.searchPlaceholder}
                 className={`w-full border rounded-2xl pl-10 pr-10 py-2 text-xs sm:text-sm focus:outline-none transition-all ${
                   theme === 'dark'
-                    ? 'bg-[#161c2d] border-white/10 text-slate-100 placeholder:text-slate-500 focus:border-amber-400/80'
+                    ? 'bg-elevated border-white/10 text-slate-100 placeholder:text-slate-500 focus:border-amber-400/80'
                     : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-indigo-500'
                 }`}
               />
-              <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1.5 py-0.5 rounded border hidden sm:block ${
+              <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono px-2 py-1 rounded border hidden sm:block ${
                 theme === 'dark' ? 'text-slate-500 bg-white/5 border-white/10' : 'text-slate-400 bg-slate-200 border-slate-300'
               }`}>
                 /
@@ -1534,14 +1540,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
           </div>
 
           {/* Right: Language Toggle, Theme Toggle, Notification Dropdown, and User Account Pill */}
-          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Language Switcher (English / Indonesia) */}
             <div className="relative">
               <button
                 onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
-                className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl border text-xs font-black transition-all cursor-pointer shadow-sm ${
+                className={`flex items-center space-x-2 px-3 py-2 rounded-2xl border text-xs font-semibold transition-all cursor-pointer shadow-sm ${
                   theme === 'dark'
-                    ? 'bg-[#161c2d] hover:bg-[#1d253b] border-white/10 text-slate-200 hover:text-white'
+                    ? 'bg-elevated hover:bg-elevated border-white/10 text-slate-200 hover:text-white'
                     : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 hover:text-slate-950'
                 }`}
                 title="Ganti Bahasa / Switch Language"
@@ -1554,9 +1560,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             {/* Dark / Light Toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className={`p-2.5 rounded-2xl border transition-all cursor-pointer shadow-sm ${
+              className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-sm ${
                 theme === 'dark'
-                  ? 'bg-[#161c2d] hover:bg-[#1d253b] border-white/10 text-amber-400'
+                  ? 'bg-elevated hover:bg-elevated border-white/10 text-amber-400'
                   : 'bg-white hover:bg-slate-50 border-slate-200 text-indigo-600'
               }`}
               title={theme === 'dark' ? t.lightMode : t.darkMode}
@@ -1582,10 +1588,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   }, selectedSegment);
                   generateOfficialReportPdf(sim, currentAccount.role);
                 }}
-                className="hidden md:flex items-center space-x-1.5 px-3 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all shadow-sm shadow-amber-400/20 cursor-pointer"
+                className="hidden md:flex items-center space-x-2 px-3 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all shadow-sm cursor-pointer"
                 title="Unduh Laporan Eksekutif PDF"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-4 h-4" />
                 <span>Unduh Laporan</span>
               </button>
             )}
@@ -1597,16 +1603,16 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   setIsNotificationsOpen(!isNotificationsOpen);
                   setIsUserMenuOpen(false);
                 }}
-                className={`relative p-2.5 rounded-2xl border transition-all cursor-pointer shadow-sm ${
+                className={`relative p-3 rounded-2xl border transition-all cursor-pointer shadow-sm ${
                   theme === 'dark'
-                    ? 'bg-[#161c2d] hover:bg-[#1d253b] border-white/10 text-slate-300 hover:text-white'
+                    ? 'bg-elevated hover:bg-elevated border-white/10 text-slate-300 hover:text-white'
                     : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900'
                 }`}
                 title={t.navAlerts}
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] flex items-center justify-center shadow-md shadow-amber-400/40">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-semibold text-xs flex items-center justify-center shadow-md ">
                     {unreadNotificationsCount}
                   </span>
                 )}
@@ -1614,17 +1620,17 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
               {/* Notification Dropdown Menu (Mirroring Account Menu Design) */}
               {isNotificationsOpen && (
-                <div className={`absolute right-0 mt-2 w-80 sm:w-96 border rounded-3xl p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 ${
+                <div className={`absolute right-0 mt-2 w-80 sm:w-96 border rounded-2xl p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 ${
                   theme === 'dark'
-                    ? 'bg-[#141a29] border-white/15 text-slate-200'
+                    ? 'bg-surface border-white/15 text-slate-200'
                     : 'bg-white border-slate-200 text-slate-800'
                 }`}>
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
                     <div className="flex items-center space-x-2">
                       <Bell className="w-4 h-4 text-amber-400" />
-                      <h4 className="font-extrabold text-sm">{t.notificationsTitle}</h4>
+                      <h4 className="font-semibold text-sm">{t.notificationsTitle}</h4>
                       {unreadNotificationsCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400 font-bold text-[10px]">
+                        <span className="px-2 py-1 rounded-full bg-amber-400/20 text-amber-400 font-bold text-xs">
                           {unreadNotificationsCount} Baru
                         </span>
                       )}
@@ -1632,7 +1638,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     {unreadNotificationsCount > 0 && (
                       <button
                         onClick={handleMarkAllNotificationsAsRead}
-                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                        className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
                       >
                         {t.markAllRead}
                       </button>
@@ -1655,7 +1661,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                         }`}
                       >
                         <div className="flex items-start space-x-3">
-                          <div className="p-2 rounded-xl bg-amber-400/20 text-amber-400 shrink-0 mt-0.5">
+                          <div className="p-2 rounded-xl bg-amber-400/20 text-amber-400 shrink-0 mt-1">
                             {notif.type === 'VERIFIED' && <Check className="w-4 h-4 text-emerald-400" />}
                             {notif.type === 'UPVOTE' && <TrendingUp className="w-4 h-4 text-cyan-400" />}
                             {notif.type === 'ALERT' && <AlertTriangle className="w-4 h-4 text-rose-400" />}
@@ -1666,14 +1672,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                               <h5 className={`text-xs font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                                 {language === 'id' ? notif.titleId : notif.titleEn}
                               </h5>
-                              <span className="text-[9.5px] font-mono text-slate-400 shrink-0">{notif.time}</span>
+                              <span className="text-xs font-mono text-slate-400 shrink-0">{notif.time}</span>
                             </div>
-                            <p className={`text-[11px] mt-0.5 leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                            <p className={`text-xs mt-1 leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
                               {language === 'id' ? notif.descId : notif.descEn}
                             </p>
                           </div>
                           {notif.isUnread && (
-                            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 mt-1.5 shadow-sm shadow-amber-400/80" />
+                            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 mt-2 shadow-sm " />
                           )}
                         </div>
                       </div>
@@ -1690,9 +1696,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   setIsUserMenuOpen(!isUserMenuOpen);
                   setIsNotificationsOpen(false);
                 }}
-                className={`flex items-center space-x-2.5 border rounded-full py-1.5 pl-1.5 pr-3 transition-all cursor-pointer shadow-sm ${
+                className={`flex items-center space-x-3 border rounded-full py-2 pl-2 pr-3 transition-all cursor-pointer shadow-sm ${
                   theme === 'dark'
-                    ? 'bg-[#161c2d] hover:bg-[#1d253b] border-white/10'
+                    ? 'bg-elevated hover:bg-elevated border-white/10'
                     : 'bg-white hover:bg-slate-50 border-slate-200'
                 }`}
               >
@@ -1701,11 +1707,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   alt={currentAccount.name}
                   className="w-8 h-8 rounded-full object-cover border border-amber-400/60"
                 />
-                <div className="text-left hidden sm:block">
-                  <p className={`text-xs font-extrabold leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                <div className="text-left hidden lg:block">
+                  <p className={`text-xs font-semibold leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                     Hi, {currentAccount.name.split(' ')[0]}
                   </p>
-                  <p className="text-[10px] text-amber-500 font-semibold leading-tight">
+                  <p className="text-xs text-amber-500 font-semibold leading-tight">
                     {currentAccount.role === 'PUBLIC_REPORTER'
                       ? 'Pelapor Aktif'
                       : currentAccount.role === 'PUBLIC_VIEWER'
@@ -1717,7 +1723,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       : 'Policy Maker'}
                   </p>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-slate-400" />
               </button>
 
               {/* Account menu: who is signed in, profile/settings and logout. No account switching. */}
@@ -1726,17 +1732,17 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   role="menu"
                   aria-label="Menu akun"
                   className={`absolute right-0 mt-2 w-72 border rounded-2xl p-3 shadow-lg z-[100] ${
-                    theme === 'dark' ? 'bg-[#141a29] border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                    theme === 'dark' ? 'bg-surface border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
                   }`}
                 >
-                  <div className={`px-1 pb-2.5 mb-2 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                  <div className={`px-1 pb-3 mb-2 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
                     <p className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{currentAccount.name}</p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-xs text-slate-400">
                       {ROLE_LABELS[currentAccount.role]} · {currentAccount.title}
                     </p>
-                    {currentAccount.agency && <p className="text-[11px] text-slate-400">{currentAccount.agency}</p>}
+                    {currentAccount.agency && <p className="text-xs text-slate-400">{currentAccount.agency}</p>}
                     {!isAnonymousIdentity && (
-                      <span className="inline-block mt-1.5 text-[10px] font-semibold text-sky-300 border border-sky-400/40 rounded px-1.5 py-0.5">
+                      <span className="inline-block mt-2 text-xs font-semibold text-sky-300 border border-sky-400/40 rounded px-2 py-1">
                         Akun demo · identitas fiktif
                       </span>
                     )}
@@ -1749,7 +1755,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                         setIsUserMenuOpen(false);
                         onOpenLoginModal();
                       }}
-                      className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
                     >
                       Masuk ke Sistem
                     </button>
@@ -1762,7 +1768,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsUserMenuOpen(false);
                           onOpenSettings();
                         }}
-                        className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
                       >
                         Profil & pengaturan
                       </button>
@@ -1773,7 +1779,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                           setIsUserMenuOpen(false);
                           onLogout();
                         }}
-                        className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
                       >
                         Keluar
                       </button>
@@ -1865,8 +1871,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
           {/* RECENTER TOAST NOTIFICATION */}
           {showRecenterToast && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 backdrop-blur-xl border border-amber-400/50 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none">
-              <Navigation className="w-3.5 h-3.5 text-amber-400" />
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 border border-amber-400/50 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none">
+              <Navigation className="w-4 h-4 text-amber-400" />
               <span>{recenterToastText}</span>
             </div>
           )}
@@ -1877,7 +1883,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               {/* Left: Floating User & Location Pill Card */}
               <div
                 onClick={() => setIsProfileModalOpen(true)}
-                className="pointer-events-auto flex items-center gap-2.5 bg-white/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-white/70 dark:border-white/10 rounded-full py-1.5 pl-1.5 pr-3.5 shadow-xl cursor-pointer active:scale-95 transition-all"
+                className="pointer-events-auto flex items-center gap-3 bg-white/95 dark:bg-surface/95 border border-white/70 dark:border-white/10 rounded-full py-2 pl-2 pr-4 shadow-xl cursor-pointer active:scale-95 transition-all"
               >
                 <img
                   src={currentAccount.avatarUrl}
@@ -1885,10 +1891,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   className="w-8 h-8 rounded-full object-cover border-2 border-amber-400 shadow-sm shrink-0"
                 />
                 <div className="text-left flex flex-col justify-center">
-                  <p className="text-[11.5px] font-black leading-none text-slate-900 dark:text-white truncate max-w-[110px]">
+                  <p className="text-xs font-semibold leading-none text-slate-900 dark:text-white truncate max-w-[110px]">
                     {selectedSegment ? selectedSegment.province : 'Indonesia'}
                   </p>
-                  <p className="text-[10px] text-amber-500 font-bold leading-none mt-1 flex items-center gap-1">
+                  <p className="text-xs text-amber-500 font-bold leading-none mt-1 flex items-center gap-1">
                     {DEMO_DATA_LABEL[language]}
                   </p>
                 </div>
@@ -1898,7 +1904,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               <div className="flex items-center gap-2 pointer-events-auto">
                 <button
                   onClick={() => setIsQuickSearchModalOpen(true)}
-                  className="w-10 h-10 rounded-full bg-white/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-white/70 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                  className="w-10 h-10 rounded-full bg-white/95 dark:bg-surface/95 border border-white/70 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all"
                   title="Search location or damage report"
                 >
                   <Search className="w-4 h-4" />
@@ -1906,12 +1912,12 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
                 <button
                   onClick={() => setIsAlertsModalOpen(true)}
-                  className="w-10 h-10 rounded-full bg-white/95 dark:bg-[#121622]/95 backdrop-blur-xl border border-white/70 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-xl flex items-center justify-center relative cursor-pointer active:scale-95 transition-all"
+                  className="w-10 h-10 rounded-full bg-white/95 dark:bg-surface/95 border border-white/70 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-xl flex items-center justify-center relative cursor-pointer active:scale-95 transition-all"
                   title={t.navAlerts}
                 >
                   <Bell className="w-4 h-4" />
                   {unreadNotificationsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] flex items-center justify-center shadow-md shadow-amber-400/40">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-semibold text-xs flex items-center justify-center shadow-md ">
                       {unreadNotificationsCount}
                     </span>
                   )}
@@ -1922,15 +1928,15 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
           {/* OVERLAY 1: MAP FILTER PILLS (Floating horizontally below header) */}
           {!isFieldEngineer && (
-            <div className="absolute top-[60px] sm:top-[68px] md:top-4 left-3 sm:left-4 z-20 flex flex-col space-y-1.5 max-w-[calc(100vw-1.5rem)] sm:max-w-max pointer-events-auto transition-all">
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1">
+            <div className="absolute top-[60px] sm:top-[68px] md:top-4 left-3 sm:left-4 z-20 flex flex-col space-y-2 max-w-[calc(100vw-1.5rem)] sm:max-w-max pointer-events-auto transition-all">
+              <div className="flex items-center gap-2 sm:gap-2 overflow-x-auto no-scrollbar pb-1">
                 {/* All Issues */}
                 <button
                   onClick={() => setActiveFilter('ALL')}
-                  className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-1.5 cursor-pointer shrink-0 border ${
+                  className={`px-4 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
                     activeFilter === 'ALL'
                       ? 'bg-slate-800 text-white border-slate-700'
-                      : 'bg-slate-900/90 backdrop-blur-md text-slate-300 hover:text-white border-slate-800'
+                      : 'bg-slate-900/90  text-slate-300 hover:text-white border-slate-800'
                   }`}
                 >
                   <span>{t.filterAll}</span>
@@ -1939,39 +1945,39 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 {/* Critical */}
                 <button
                   onClick={() => setActiveFilter('CRITICAL')}
-                  className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-1.5 cursor-pointer shrink-0 border ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
                     activeFilter === 'CRITICAL'
                       ? 'bg-rose-950/80 text-rose-300 border-rose-800'
-                      : 'bg-slate-900/90 backdrop-blur-md text-slate-300 hover:text-rose-300 border-slate-800'
+                      : 'bg-slate-900/90  text-slate-300 hover:text-rose-300 border-slate-800'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-rose-500 mr-0.5 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse" />
                   <span>{t.filterCritical}</span>
                 </button>
 
                 {/* Moderate */}
                 <button
                   onClick={() => setActiveFilter('MODERATE')}
-                  className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-1.5 cursor-pointer shrink-0 border ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
                     activeFilter === 'MODERATE'
                       ? 'bg-amber-950/80 text-amber-300 border-amber-800'
-                      : 'bg-slate-900/90 backdrop-blur-md text-slate-300 hover:text-amber-300 border-slate-800'
+                      : 'bg-slate-900/90  text-slate-300 hover:text-amber-300 border-slate-800'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-amber-400 mr-0.5" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400 mr-1" />
                   <span>{t.filterModerate}</span>
                 </button>
 
                 {/* Minor */}
                 <button
                   onClick={() => setActiveFilter('MINOR')}
-                  className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-1.5 cursor-pointer shrink-0 border ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
                     activeFilter === 'MINOR'
                       ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
-                      : 'bg-slate-900/90 backdrop-blur-md text-slate-300 hover:text-emerald-300 border-slate-800'
+                      : 'bg-slate-900/90  text-slate-300 hover:text-emerald-300 border-slate-800'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 mr-0.5" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 mr-1" />
                   <span>{t.filterMinor}</span>
                 </button>
               </div>
@@ -1994,7 +2000,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 aria-controls={MAP_LAYER_PANEL_ID}
                 aria-label={language === 'en' ? 'Map layers' : 'Lapisan peta'}
                 onClick={() => setIsLayersMenuOpen(!isLayersMenuOpen)}
-                className={`w-10 h-10 rounded-xl backdrop-blur-md border shadow-lg flex items-center justify-center transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-xl  border shadow-lg flex items-center justify-center transition-all cursor-pointer ${
                   isLayersMenuOpen || showDensity
                     ? 'bg-slate-800 text-amber-400 border-slate-700'
                     : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
@@ -2020,14 +2026,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
             <button
               onClick={handleLocate}
-              className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 shadow-lg flex items-center justify-center transition-all cursor-pointer group active:scale-95"
+              className="w-10 h-10 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 shadow-lg flex items-center justify-center transition-all cursor-pointer group active:scale-95"
               title={language === 'en' ? 'My location' : 'Lokasi saya'}
             >
               <Navigation className="w-4 h-4 text-amber-400 group-hover:rotate-12 transition-transform" />
             </button>
             <button
               onClick={() => onOpenSettings()}
-              className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 shadow-lg flex items-center justify-center transition-all cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 shadow-lg flex items-center justify-center transition-all cursor-pointer"
               title="Map Diagnostics"
             >
               <Sliders className="w-4 h-4 text-emerald-400" />
@@ -2039,7 +2045,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <div
               ref={nearbySheet.sheetRef as React.RefObject<HTMLDivElement>}
               {...nearbySheet.sheetProps}
-              className={`absolute bottom-[78px] sm:bottom-[86px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-2xl px-3.5 pb-3.5 pt-2 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto flex flex-col box-border overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+              className={`absolute bottom-[78px] sm:bottom-[86px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95  border border-slate-800 rounded-2xl px-4 pb-4 pt-2 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto flex flex-col box-border overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
                 nearbyCardSize === 'FULL' ? 'h-[78vh]' : 'h-[48vh]'
               } sm:h-auto sm:max-h-[55vh]`}
             >
@@ -2047,19 +2053,19 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               <div
                 data-sheet-grab
                 onClick={() => setNearbyCardSize(nearbyCardSize === 'FULL' ? 'HALF' : 'FULL')}
-                className="sm:hidden -mx-3.5 pb-1.5 flex justify-center cursor-grab active:cursor-grabbing touch-none shrink-0"
+                className="sm:hidden -mx-4 pb-2 flex justify-center cursor-grab active:cursor-grabbing touch-none shrink-0"
               >
                 <span className="w-10 h-1 rounded-full bg-white/25" />
               </div>
               {/* Card Header & Toggle */}
-              <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2 shrink-0">
-                <div className="flex items-center space-x-2.5 min-w-0">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+              <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-800 pb-3 mb-2 shrink-0">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-xs sm:text-sm text-white truncate">
                       {reportsInView.length} {inViewLabel}
                     </h3>
-                    <p className="text-[10px] text-slate-400 font-medium truncate">
+                    <p className="text-xs text-slate-400 font-medium truncate">
                       {inViewCounts.critical} Critical &bull; {inViewCounts.moderate} Moderate &bull; {inViewCounts.minor} Minor
                     </p>
                   </div>
@@ -2068,7 +2074,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 <div className="flex items-center space-x-1 shrink-0">
                   <button
                     onClick={() => setIsNearbyCardExpanded(false)}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer transition-colors"
+                    className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer transition-colors"
                     title="Collapse card"
                   >
                     <ChevronDown className="w-4 h-4" />
@@ -2077,10 +2083,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               </div>
 
               {/* Sub-filter chips */}
-              <div className="flex items-center gap-1.5 pb-2 shrink-0 overflow-x-auto no-scrollbar text-[10px]">
+              <div className="flex items-center gap-2 pb-2 shrink-0 overflow-x-auto no-scrollbar text-xs">
                 <button
                   onClick={() => setReportsCardFilter('ALL')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
+                  className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
                     reportsCardFilter === 'ALL'
                       ? 'bg-slate-800 text-white border-slate-700'
                       : 'bg-slate-950/60 text-slate-400 hover:text-white border-slate-800'
@@ -2090,7 +2096,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 </button>
                 <button
                   onClick={() => setReportsCardFilter('CRITICAL')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
+                  className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
                     reportsCardFilter === 'CRITICAL'
                       ? 'bg-rose-950/80 text-rose-300 border-rose-800'
                       : 'bg-slate-950/60 text-slate-400 hover:text-rose-300 border-slate-800'
@@ -2100,7 +2106,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 </button>
                 <button
                   onClick={() => setReportsCardFilter('MODERATE')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
+                  className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
                     reportsCardFilter === 'MODERATE'
                       ? 'bg-amber-950/80 text-amber-300 border-amber-800'
                       : 'bg-slate-950/60 text-slate-400 hover:text-amber-300 border-slate-800'
@@ -2110,7 +2116,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 </button>
                 <button
                   onClick={() => setReportsCardFilter('MINOR')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
+                  className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
                     reportsCardFilter === 'MINOR'
                       ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
                       : 'bg-slate-950/60 text-slate-400 hover:text-emerald-300 border-slate-800'
@@ -2162,7 +2168,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                         <div className="flex items-center justify-between gap-1">
                           <h4 className="text-xs font-semibold text-white truncate">{rep.damageTypeLabel}</h4>
                           <span
-                            className={`text-[8.5px] font-semibold px-1.5 py-0.2 rounded-md uppercase shrink-0 border ${
+                            className={`text-xs font-semibold px-2 py-0.2 rounded-md uppercase shrink-0 border ${
                               rep.severity === 'CRITICAL'
                                 ? 'bg-rose-950/80 text-rose-300 border-rose-800'
                                 : rep.severity === 'SEVERE' || rep.severity === 'MODERATE'
@@ -2173,8 +2179,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                             {rep.severity}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 truncate">{rep.segmentName}</p>
-                        <div className="flex items-center justify-between mt-0.5 text-[9.5px] text-slate-400 font-mono">
+                        <p className="text-xs text-slate-400 truncate">{rep.segmentName}</p>
+                        <div className="flex items-center justify-between mt-1 text-xs text-slate-400 font-mono">
                           <span className="truncate">{rep.timestamp || 'Just now'}</span>
                           <span className="text-amber-400 font-sans font-medium shrink-0 ml-1">Details →</span>
                         </div>
@@ -2187,9 +2193,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               <div className="pt-2 mt-2 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs">
                 <button
                   onClick={() => setIsCreateReportModalOpen(true)}
-                  className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center space-x-1.5 shadow-sm transition-all cursor-pointer active:scale-98"
+                  className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer active:scale-98"
                 >
-                  <Camera className="w-3.5 h-3.5" />
+                  <Camera className="w-4 h-4" />
                   <span>+ Buat Laporan Kerusakan</span>
                 </button>
               </div>
@@ -2201,7 +2207,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <div className="absolute bottom-[78px] sm:bottom-[86px] md:bottom-6 left-3 right-3 sm:left-4 sm:right-4 sm:max-w-xs sm:mx-auto z-20 flex justify-center pointer-events-auto">
               <button
                 onClick={() => setIsNearbyCardExpanded(true)}
-                className="flex items-center gap-2 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-xl py-2 px-4 shadow-lg text-white font-semibold text-xs active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-slate-900/95 border border-slate-800 rounded-xl py-2 px-4 shadow-lg text-white font-semibold text-xs active:scale-95 transition-all cursor-pointer"
               >
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
                 <span>
@@ -2209,7 +2215,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     ? `${densityInView.length} ${language === 'en' ? 'user reports in view' : 'laporan pengguna di area ini'}`
                     : `${reportsInView.length} ${inViewLabel}`}
                 </span>
-                <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+                <ChevronUp className="w-4 h-4 text-amber-400" />
               </button>
             </div>
           )}
@@ -2300,7 +2306,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
           {/* OVERLAY 5: FLOATING BOTTOM NAVIGATION BAR (Mobile Phones only; Tablets & Desktop use Pinned Sidebar & Top Header) */}
           {!isFieldEngineer && (
             <div className="fixed bottom-safe left-3 right-3 sm:left-0 sm:right-0 z-30 pointer-events-none flex justify-center pb-2 md:hidden">
-              <div className="pointer-events-auto bg-white/95 dark:bg-[#0e1320]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-white/15 rounded-full px-5 sm:px-8 py-2 shadow-2xl flex items-center justify-between w-full max-w-sm sm:max-w-md text-slate-400">
+              <div className="pointer-events-auto bg-white/95 dark:bg-surface/95 border border-slate-200/90 dark:border-white/15 rounded-full px-5 sm:px-8 py-2 shadow-2xl flex items-center justify-between w-full max-w-sm sm:max-w-md text-slate-400">
                 {/* 1. Map Tab */}
                 <button
                   onClick={() => {
@@ -2308,15 +2314,15 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     setIsRecentReportsCardOpen(false);
                     setRecenterKey((prev) => prev + 1);
                   }}
-                  className={`flex flex-col items-center space-y-0.5 cursor-pointer transition-all ${
+                  className={`flex flex-col items-center space-y-1 cursor-pointer transition-all ${
                     activeNav === 'MAP' && !isRecentReportsCardOpen && !isActivityModalOpen && !isProfileModalOpen
-                      ? 'text-amber-500 font-black scale-105'
+                      ? 'text-amber-500 font-semibold scale-105'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Peta Utama"
                 >
                   <MapIcon className="w-5 h-5" />
-                  <span className="text-[10px] font-bold tracking-tight">Map</span>
+                  <span className="text-xs font-bold tracking-tight">Map</span>
                 </button>
 
                 {/* 2. Reports Tab */}
@@ -2324,9 +2330,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   onClick={() => {
                     setIsNearbyCardExpanded((prev) => !prev);
                   }}
-                  className={`flex flex-col items-center space-y-0.5 cursor-pointer transition-all ${
+                  className={`flex flex-col items-center space-y-1 cursor-pointer transition-all ${
                     isNearbyCardExpanded
-                      ? 'text-amber-500 font-black scale-105'
+                      ? 'text-amber-500 font-semibold scale-105'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Daftar Laporan Warga"
@@ -2335,14 +2341,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     <FileText className="w-5 h-5" />
                     <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse ring-2 ring-white dark:ring-[#0e1320]" />
                   </div>
-                  <span className="text-[10px] font-bold tracking-tight">Reports</span>
+                  <span className="text-xs font-bold tracking-tight">Reports</span>
                 </button>
 
                 {/* 3. Camera / Report Action Button (Prominent Center Yellow Elevated Button) */}
                 <div className="relative flex flex-col items-center">
                   <button
                     onClick={() => setIsCreateReportModalOpen(true)}
-                    className="-mt-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 text-slate-950 flex items-center justify-center shadow-2xl shadow-amber-400/50 ring-4 ring-white dark:ring-[#0e1320] border-2 border-amber-200/80 transition-all transform hover:scale-110 active:scale-95 cursor-pointer group"
+                    className="-mt-7 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-2xl  ring-4 ring-white dark:ring-[#0e1320] border-2 border-amber-200/80 transition-all transform hover:scale-110 active:scale-95 cursor-pointer group"
                     title="Ambil Foto & Lapor Kerusakan Jalan"
                   >
                     <Camera className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5] text-slate-950 group-hover:rotate-6 transition-transform" />
@@ -2354,15 +2360,15 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   onClick={() => {
                     setIsActivityModalOpen(true);
                   }}
-                  className={`flex flex-col items-center space-y-0.5 cursor-pointer transition-all ${
+                  className={`flex flex-col items-center space-y-1 cursor-pointer transition-all ${
                     isActivityModalOpen
-                      ? 'text-amber-500 font-black scale-105'
+                      ? 'text-amber-500 font-semibold scale-105'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Aktivitas & Audit Penanganan"
                 >
                   <Sparkles className="w-5 h-5" />
-                  <span className="text-[10px] font-bold tracking-tight">Activity</span>
+                  <span className="text-xs font-bold tracking-tight">Activity</span>
                 </button>
 
                 {/* 5. Profile Tab */}
@@ -2370,15 +2376,15 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   onClick={() => {
                     setIsProfileModalOpen(true);
                   }}
-                  className={`flex flex-col items-center space-y-0.5 cursor-pointer transition-all ${
+                  className={`flex flex-col items-center space-y-1 cursor-pointer transition-all ${
                     isProfileModalOpen
-                      ? 'text-amber-500 font-black scale-105'
+                      ? 'text-amber-500 font-semibold scale-105'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Profil"
                 >
                   <Users className="w-5 h-5" />
-                  <span className="text-[10px] font-bold tracking-tight">Profile</span>
+                  <span className="text-xs font-bold tracking-tight">Profile</span>
                 </button>
               </div>
             </div>
@@ -2392,21 +2398,21 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
       {/* MODAL: EDIT REPORT FORM (For User 1: Budi Santoso) */}
       {isEditReportModalOpen && editFormData && (
-        <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#121622] border border-white/20 rounded-2xl sm:rounded-3xl w-[86vw] sm:w-full max-w-[350px] sm:max-w-lg p-3.5 sm:p-6 shadow-2xl space-y-3 sm:space-y-4 text-slate-100 max-h-[54vh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 z-[1500] bg-slate-950/80 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-surface border border-white/20 rounded-2xl sm:rounded-2xl w-[86vw] sm:w-full max-w-[350px] sm:max-w-lg p-4 sm:p-6 shadow-2xl space-y-3 sm:space-y-4 text-slate-100 max-h-[54vh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-white/10 pb-2 sm:pb-3">
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-cyan-500 text-slate-950 font-black">
+                <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-cyan-500 text-slate-950 font-semibold">
                   <span>✏️</span>
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-base font-extrabold text-white">Edit Laporan Kerusakan</h3>
-                  <p className="text-[10px] sm:text-xs text-cyan-300">Pengguna: {currentAccount.name}</p>
+                  <h3 className="text-xs sm:text-base font-semibold text-white">Edit Laporan Kerusakan</h3>
+                  <p className="text-xs sm:text-xs text-cyan-300">Pengguna: {currentAccount.name}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsEditReportModalOpen(false)}
-                className="p-1.5 sm:p-2 rounded-xl sm:rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                className="p-2 sm:p-2 rounded-xl sm:rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -2415,11 +2421,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <form onSubmit={handleSaveReportEdit} className="space-y-3 sm:space-y-4 text-xs">
               {/* Damage Type */}
               <div className="space-y-1">
-                <label className="font-bold text-slate-300 text-[11px] sm:text-xs">Jenis Kerusakan:</label>
+                <label className="font-bold text-slate-300 text-xs sm:text-xs">Jenis Kerusakan:</label>
                 <select
                   value={editFormData.damageType}
                   onChange={(e) => setEditFormData({ ...editFormData, damageType: e.target.value as DamageType })}
-                  className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-2.5 py-2 text-[11px] sm:text-xs focus:outline-none focus:border-amber-400 font-semibold"
+                  className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 text-xs sm:text-xs focus:outline-none focus:border-amber-400 font-semibold"
                 >
                   <option value="POTHOLE">Pothole (Lubang Dalam)</option>
                   <option value="ALLIGATOR_CRACK">Alligator Cracking (Retak Buaya)</option>
@@ -2429,13 +2435,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               </div>
 
               {/* Severity & Dimensions */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:gap-2">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-300 text-[10px] sm:text-xs truncate block">Keparahan:</label>
+                  <label className="font-bold text-slate-300 text-xs sm:text-xs truncate block">Keparahan:</label>
                   <select
                     value={editFormData.severity}
                     onChange={(e) => setEditFormData({ ...editFormData, severity: e.target.value as ReportSeverity })}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-1.5 py-2 text-[10px] sm:text-xs focus:outline-none focus:border-amber-400 font-semibold"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-2 py-2 text-xs sm:text-xs focus:outline-none focus:border-amber-400 font-semibold"
                   >
                     <option value="CRITICAL">Critical</option>
                     <option value="MODERATE">Moderate</option>
@@ -2443,33 +2449,33 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-300 text-[10px] sm:text-xs truncate block">Kedalaman (cm):</label>
+                  <label className="font-bold text-slate-300 text-xs sm:text-xs truncate block">Kedalaman (cm):</label>
                   <input
                     type="number"
                     value={editFormData.depth}
                     onChange={(e) => setEditFormData({ ...editFormData, depth: Number(e.target.value) })}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-2 py-2 text-[11px] sm:text-xs focus:outline-none focus:border-amber-400 font-mono"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-2 py-2 text-xs sm:text-xs focus:outline-none focus:border-amber-400 font-mono"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-300 text-[10px] sm:text-xs truncate block">Luas (m²):</label>
+                  <label className="font-bold text-slate-300 text-xs sm:text-xs truncate block">Luas (m²):</label>
                   <input
                     type="number"
                     value={editFormData.area}
                     onChange={(e) => setEditFormData({ ...editFormData, area: Number(e.target.value) })}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-2 py-2 text-[11px] sm:text-xs focus:outline-none focus:border-amber-400 font-mono"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-2 py-2 text-xs sm:text-xs focus:outline-none focus:border-amber-400 font-mono"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="font-bold text-slate-300 text-[11px] sm:text-xs">Deskripsi Kerusakan:</label>
+                <label className="font-bold text-slate-300 text-xs sm:text-xs">Deskripsi Kerusakan:</label>
                 <textarea
                   rows={2}
                   value={editFormData.description}
                   onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                  className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl p-2.5 text-[11px] sm:text-xs focus:outline-none focus:border-amber-400 font-sans"
+                  className="w-full bg-elevated border border-white/15 text-white rounded-xl p-3 text-xs sm:text-xs focus:outline-none focus:border-amber-400 font-sans"
                 />
               </div>
 
@@ -2483,9 +2489,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 sm:px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center space-x-1 shadow-lg shadow-amber-400/30"
+                  className="px-4 sm:px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs flex items-center space-x-1 shadow-lg "
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  <Check className="w-4 h-4" />
                   <span>Simpan Perubahan</span>
                 </button>
               </div>
@@ -2565,56 +2571,56 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
       {/* MODAL: NOTIFICATIONS / ALERTS */}
       {isAlertsModalOpen && (
-        <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#121622] border border-white/20 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100">
+        <div className="fixed inset-0 z-[1500] bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-surface border border-white/20 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-2xl bg-amber-400 text-slate-950 font-black">
+                <div className="p-3 rounded-2xl bg-amber-400 text-slate-950 font-semibold">
                   <Bell className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Live System Alerts</h3>
+                  <h3 className="text-base font-semibold text-white">Live System Alerts</h3>
                   <p className="text-xs text-slate-400">Recent road damage alerts & ODOL notifications</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAlertsModalOpen(false)}
-                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-3 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
               <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-xs text-rose-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-rose-300 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-400" />
                     Critical Pothole Reported
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">2 min ago</span>
+                  <span className="text-xs font-mono text-slate-400">2 min ago</span>
                 </div>
                 <p className="text-xs text-slate-300">Jl. Sudirman No. 62 &bull; Severe depth ~14 cm affecting left lane.</p>
               </div>
 
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-amber-300 flex items-center gap-2">
                     <Truck className="w-4 h-4 text-amber-400" />
                     Overload Truck Violation (+85%)
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">15 min ago</span>
+                  <span className="text-xs font-mono text-slate-400">15 min ago</span>
                 </div>
                 <p className="text-xs text-slate-300">Stasiun WIM Bintaro Sektor 7 &bull; Truk B 9182 NFD (18.5 Ton).</p>
               </div>
 
               <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-xs text-emerald-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-emerald-300 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     Road Patching Completed
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">1 hr ago</span>
+                  <span className="text-xs font-mono text-slate-400">1 hr ago</span>
                 </div>
                 <p className="text-xs text-slate-300">Pantura KM 62+500 &bull; Overlay AC-WC 8.5 cm successfully applied.</p>
               </div>
@@ -2625,18 +2631,18 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
       {/* MODAL: MOBILE QUICK SEARCH */}
       {isQuickSearchModalOpen && (
-        <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-start justify-center p-4 pt-12 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100">
+        <div className="fixed inset-0 z-[1500] bg-slate-950/80 flex items-start justify-center p-4 pt-12 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-surface border border-slate-200 dark:border-white/20 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-2xl bg-amber-400 text-slate-950">
                   <Search className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-black text-slate-900 dark:text-white">Cari Lokasi / Kerusakan</h3>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Cari Lokasi / Kerusakan</h3>
               </div>
               <button
                 onClick={() => setIsQuickSearchModalOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2649,14 +2655,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari jalan, koridor, atau tipe kerusakan..."
-                className="w-full border rounded-2xl pl-10 pr-4 py-2.5 text-xs bg-slate-50 dark:bg-[#181f33] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:outline-none focus:border-amber-400"
+                className="w-full border rounded-2xl pl-10 pr-4 py-3 text-xs bg-slate-50 dark:bg-elevated border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:outline-none focus:border-amber-400"
                 autoFocus
               />
             </div>
 
             {/* Quick Suggestions */}
-            <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar text-xs">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Pilihan Koridor</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar text-xs">
+              <p className="text-xs font-bold text-slate-400 px-1">Pilihan Koridor</p>
               {roadSegments.map((seg) => (
                 <div
                   key={seg.id}
@@ -2664,13 +2670,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     onSelectSegment(seg);
                     setIsQuickSearchModalOpen(false);
                   }}
-                  className="p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 flex items-center justify-between cursor-pointer transition-all"
+                  className="p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 flex items-center justify-between cursor-pointer transition-all"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-slate-900 dark:text-white truncate">{seg.name}</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{seg.province} &bull; {seg.conditionCategory}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{seg.province} &bull; {seg.conditionCategory}</p>
                   </div>
-                  <span className="text-amber-500 font-bold text-[10px] shrink-0 ml-2">Pilih →</span>
+                  <span className="text-amber-500 font-bold text-xs shrink-0 ml-2">Pilih →</span>
                 </div>
               ))}
             </div>
@@ -2680,22 +2686,22 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
       {/* MODAL: ACTIVITY / AUDIT FEED (Mobile Tab 4) */}
       {isActivityModalOpen && (
-        <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div ref={activitySheet.sheetRef as React.RefObject<HTMLDivElement>} {...activitySheet.sheetProps} className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-[1500] bg-slate-950/80 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div ref={activitySheet.sheetRef as React.RefObject<HTMLDivElement>} {...activitySheet.sheetProps} className="bg-white dark:bg-surface border border-slate-200 dark:border-white/20 rounded-t-2xl sm:rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[85vh] flex flex-col">
             <div data-sheet-grab className="sm:hidden -mt-2 pb-1 flex justify-center touch-none" aria-hidden="true"><span className="w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20" /></div>
             <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-300 text-slate-950 font-black shadow-md shadow-amber-400/20">
+                <div className="p-3 rounded-2xl bg-amber-400 text-slate-950 font-semibold shadow-md ">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">Aktivitas & Audit Penanganan</h3>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white">Aktivitas & Audit Penanganan</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Pembaruan realtime laporan dan verifikasi jalan</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsActivityModalOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2703,37 +2709,37 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
             <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1">
               {/* Activity item 1 */}
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-black text-xs text-amber-600 dark:text-amber-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-amber-600 dark:text-amber-300 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-amber-500" />
                     Verifikasi AI OpenVINO Selesai
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">10 mnt lalu</span>
+                  <span className="text-xs font-mono text-slate-400">10 mnt lalu</span>
                 </div>
                 <p className="text-xs text-slate-700 dark:text-slate-300">Laporan Lubang Dalam di Tol Jakarta-Cikampek KM 47 telah divalidasi dengan confidence 96.8%.</p>
               </div>
 
               {/* Activity item 2 */}
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1.5">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-black text-xs text-emerald-600 dark:text-emerald-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-emerald-600 dark:text-emerald-300 flex items-center gap-2">
                     <Wrench className="w-4 h-4 text-emerald-500" />
                     Penambalan AC-WC Diterapkan
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">1 jam lalu</span>
+                  <span className="text-xs font-mono text-slate-400">1 jam lalu</span>
                 </div>
                 <p className="text-xs text-slate-700 dark:text-slate-300">Contoh (DEMO): tim pemeliharaan menyelesaikan patching di Jl. Tuparev Karawang Barat.</p>
               </div>
 
               {/* Activity item 3 */}
-              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-1.5">
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-black text-xs text-rose-600 dark:text-rose-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-rose-600 dark:text-rose-300 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-500" />
                     Laporan Kritis Baru
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">3 jam lalu</span>
+                  <span className="text-xs font-mono text-slate-400">3 jam lalu</span>
                 </div>
                 <p className="text-xs text-slate-700 dark:text-slate-300">Budi Santoso melaporkan Ambles Parah (Depth ~14cm) di Kawasan Industri KIIC.</p>
               </div>
@@ -2745,7 +2751,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   setIsActivityModalOpen(false);
                   setActiveNav('MAP');
                 }}
-                className="w-full py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-400/20 cursor-pointer"
+                className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs transition-all shadow-md cursor-pointer"
               >
                 Kembali ke Peta Interaktif
               </button>
@@ -2756,8 +2762,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
       {/* MODAL: PROFILE & USER DRAWER (Mobile Tab 5) */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 z-[1500] bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div ref={profileSheet.sheetRef as React.RefObject<HTMLDivElement>} {...profileSheet.sheetProps} data-sheet-scroll className="bg-white dark:bg-[#121622] border border-slate-200 dark:border-white/20 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[90vh] flex flex-col overflow-y-auto">
+        <div className="fixed inset-0 z-[1500] bg-slate-950/80 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div ref={profileSheet.sheetRef as React.RefObject<HTMLDivElement>} {...profileSheet.sheetProps} data-sheet-scroll className="bg-white dark:bg-surface border border-slate-200 dark:border-white/20 rounded-t-2xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100 max-h-[90vh] flex flex-col overflow-y-auto">
             <div data-sheet-grab className="sm:hidden -mt-2 pb-1 flex justify-center touch-none" aria-hidden="true"><span className="w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20" /></div>
             {/* Header */}
             <div data-sheet-grab className="touch-none sm:touch-auto flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
@@ -2768,19 +2774,19 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   className="w-11 h-11 rounded-full object-cover border-2 border-amber-400 shadow-md shrink-0"
                 />
                 <div className="min-w-0">
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white truncate">{currentAccount.name}</h3>
-                  <p className="text-[11px] text-amber-500 font-bold truncate">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate">{currentAccount.name}</h3>
+                  <p className="text-xs text-amber-500 font-bold truncate">
                     {ROLE_LABELS[currentAccount.role]} · {currentAccount.title}
                   </p>
-                  <p className="text-[10px] text-slate-400 truncate">{currentAccount.agency}</p>
+                  <p className="text-xs text-slate-400 truncate">{currentAccount.agency}</p>
                   {!isAnonymousIdentity && (
-                    <p className="text-[10px] font-semibold text-sky-500">Akun demo · identitas fiktif</p>
+                    <p className="text-xs font-semibold text-sky-500">Akun demo · identitas fiktif</p>
                   )}
                 </div>
               </div>
               <button
                 onClick={() => setIsProfileModalOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2790,13 +2796,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <div className="grid grid-cols-2 gap-2 shrink-0">
               <button
                 onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
-                className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-[#181f33] border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white cursor-pointer active:scale-98 transition-all"
+                className="flex items-center justify-center space-x-2 py-3 px-3 rounded-2xl bg-slate-100 dark:bg-elevated border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white cursor-pointer active:scale-98 transition-all"
               >
                 <span>{language === 'id' ? '🇮🇩 Bahasa' : '🇺🇸 English'}</span>
               </button>
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-[#181f33] border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white cursor-pointer active:scale-98 transition-all"
+                className="flex items-center justify-center space-x-2 py-3 px-3 rounded-2xl bg-slate-100 dark:bg-elevated border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white cursor-pointer active:scale-98 transition-all"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
                 <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
@@ -2811,13 +2817,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   if (isAnonymousIdentity) onOpenLoginModal();
                   else onLogout();
                 }}
-                className="flex-1 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-400/20 cursor-pointer"
+                className="flex-1 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs transition-all shadow-md cursor-pointer"
               >
                 {isAnonymousIdentity ? 'Masuk ke Sistem' : 'Keluar'}
               </button>
               <button
                 onClick={() => setIsProfileModalOpen(false)}
-                className="py-2.5 px-4 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer"
+                className="py-3 px-4 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer"
               >
                 Tutup
               </button>

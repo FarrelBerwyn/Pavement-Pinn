@@ -9,8 +9,8 @@ import React, { useState } from 'react';
 import type { AssessmentInputs } from '../../domain/intelligence/assessment';
 import type { EngineAssessRequest, EngineAssessResult, MonteCarloCondition } from '../../types';
 
-const card = 'rounded-2xl border border-white/10 bg-[#121622] p-4 space-y-3';
-const tag = 'inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide';
+const card = 'rounded-2xl border border-white/10 bg-surface p-4 space-y-3';
+const tag = 'inline-block rounded border px-2 py-1 text-xs font-bold tracking-wide';
 const fmt = (v: number, digits = 2) => v.toLocaleString('id-ID', { maximumFractionDigits: digits });
 /** Life in years: two significant digits below 1 year so short lives never print as 0. */
 const fmtLife = (v: number) => (v < 1 ? v.toLocaleString('id-ID', { maximumSignificantDigits: 2 }) : fmt(v, 1));
@@ -96,7 +96,7 @@ const LifeRow: React.FC<{ label: string; mc: MonteCarloCondition; scaleMax: numb
       <td className="py-1 w-1/3" aria-hidden="true">
         <div className="relative h-2 rounded bg-white/5">
           <div className="absolute h-2 rounded bg-sky-400/50" style={{ left: pct(p10), width: `calc(${pct(p90)} - ${pct(p10)})` }} />
-          <div className="absolute h-2 w-0.5 bg-white" style={{ left: pct(p50) }} />
+          <div className="absolute h-2 w-1 bg-white" style={{ left: pct(p50) }} />
         </div>
       </td>
     </tr>
@@ -112,7 +112,7 @@ const Tornado: React.FC<{ rho: Record<string, number> }> = ({ rho }) => {
   return (
     <ul className="space-y-1" aria-label="Sensitivitas (korelasi Spearman dengan umur)">
       {rows.map(([k, v]) => (
-        <li key={k} className="grid grid-cols-[7.5rem_1fr_3rem] items-center gap-2 text-[11px]">
+        <li key={k} className="grid grid-cols-[7.5rem_1fr_3rem] items-center gap-2 text-xs">
           <span className="text-slate-300">{SENSITIVITY_LABEL[k] ?? k}</span>
           <span className="relative h-2 rounded bg-white/5" aria-hidden="true">
             <span
@@ -161,13 +161,13 @@ export const StructuralAssessmentPanel: React.FC<{
         <h3 className="text-sm font-bold text-white">Penilaian struktural (MLET + PI-surrogate)</h3>
         <span className={`${tag} border-sky-400/60 text-sky-200 bg-sky-400/10`}>COMPUTED · indikatif, bukan desain</span>
       </div>
-      <p className="text-[11px] text-slate-400">
+      <p className="text-xs text-slate-400">
         Regangan kritis dari teori elastis berlapis (PyMastic). Indeks Umur dari Monte Carlo 2.000 sampel pada PI-surrogate (OpenVINO),
         kering vs basah. Dipakai untuk membandingkan ruas dan opsi, bukan meramal tanggal kerusakan.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         {FIELDS.map((f) => (
-          <label key={f.key} className="block text-[11px] text-slate-300">
+          <label key={f.key} className="block text-xs text-slate-300">
             <span className="flex justify-between gap-1">
               <span>{f.label}{f.unit && ` (${f.unit})`}</span>
               <span className={FROM_SEGMENT.has(f.key) ? 'text-slate-500' : 'text-amber-300/80'}>{FROM_SEGMENT.has(f.key) ? 'data ruas' : 'ASSUMED'}</span>
@@ -180,16 +180,16 @@ export const StructuralAssessmentPanel: React.FC<{
               step={f.step}
               value={values[f.key]}
               onChange={(e) => setValues({ ...values, [f.key]: Number(e.target.value) })}
-              className="mt-1 w-full rounded-lg border border-white/15 bg-[#181f33] px-2 py-1 font-mono text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-elevated px-2 py-1 font-mono text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
             />
           </label>
         ))}
-        <label className="block text-[11px] text-slate-300">
+        <label className="block text-xs text-slate-300">
           Kriteria fungsi transfer
           <select
             value={criterion}
             onChange={(e) => setCriterion(e.target.value as 'AI' | 'AUS')}
-            className="mt-1 w-full rounded-lg border border-white/15 bg-[#181f33] px-2 py-1 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+            className="mt-1 w-full rounded-lg border border-white/15 bg-elevated px-2 py-1 text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
           >
             <option value="AI">Asphalt Institute (1982)</option>
             <option value="AUS">Austroads (bentuk 2004)</option>
@@ -210,7 +210,7 @@ export const StructuralAssessmentPanel: React.FC<{
           Kembalikan input awal
         </button>
       </div>
-      {error && <p role="alert" className="text-[11px] text-rose-200">Penilaian gagal: {error}</p>}
+      {error && <p role="alert" className="text-xs text-rose-200">Penilaian gagal: {error}</p>}
       {result && (
         <div className="space-y-3" role="status">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -220,20 +220,20 @@ export const StructuralAssessmentPanel: React.FC<{
               ['Nf / Nd', `${sci(result.allowable.nf)} / ${sci(result.allowable.nd)}`],
               ['Penentu', result.allowable.governing === 'fatigue' ? 'Retak lelah' : 'Alur (rutting)']
             ].map(([k, v]) => (
-              <div key={k} className="rounded-xl border border-white/10 bg-[#181f33] p-2">
-                <p className="text-[10px] font-mono uppercase text-slate-400">{k}</p>
-                <p className="text-sm font-extrabold text-white">{v}</p>
+              <div key={k} className="rounded-xl border border-white/10 bg-elevated p-2">
+                <p className="text-xs text-slate-400">{k}</p>
+                <p className="text-sm font-semibold text-white">{v}</p>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             {result.mlet.method}, {fmt(result.mlet.elapsed_ms, 1)} ms · E tanah dasar {fmt(result.subgrade_E_mpa, 0)} MPa · kriteria {result.allowable.criterion}
           </p>
 
           {mc ? (
             <>
-              <table className="w-full text-[11px]">
-                <caption className="pb-1 text-left text-[11px] font-semibold text-slate-200">Indeks Umur Struktural (tahun)</caption>
+              <table className="w-full text-xs">
+                <caption className="pb-1 text-left text-xs font-semibold text-slate-200">Indeks Umur Struktural (tahun)</caption>
                 <thead>
                   <tr className="text-slate-400">
                     <th scope="col" className="text-left font-medium">Kondisi</th>
@@ -250,11 +250,11 @@ export const StructuralAssessmentPanel: React.FC<{
               </table>
               {mc.dry.sensitivity_spearman && (
                 <div className="space-y-1">
-                  <p className="text-[11px] font-semibold text-slate-200">Yang paling memengaruhi umur (kering)</p>
+                  <p className="text-xs font-semibold text-slate-200">Yang paling memengaruhi umur (kering)</p>
                   <Tornado rho={mc.dry.sensitivity_spearman} />
                 </div>
               )}
-              <p className="text-[10px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 {result.surrogate ? `${result.surrogate.version} ${result.surrogate.precision.toUpperCase()} di OpenVINO ${result.surrogate.openvino_version.split('-')[0]} (${result.surrogate.device})` : 'Surrogate tidak dipakai'}
                 {mc.dry.crosscheck && ` · uji silang PyMastic ${mc.dry.crosscheck.n} sampel, galat maks ${fmt(mc.dry.crosscheck.max_err_pct)}%`}
                 {` · ${fmt(mc.elapsed_ms, 0)} ms total`}
@@ -262,14 +262,14 @@ export const StructuralAssessmentPanel: React.FC<{
             </>
           ) : (
             result.monte_carlo && 'message' in result.monte_carlo && (
-              <p className="text-[11px] text-amber-200">Monte Carlo tidak dijalankan: {result.monte_carlo.message}</p>
+              <p className="text-xs text-amber-200">Monte Carlo tidak dijalankan: {result.monte_carlo.message}</p>
             )
           )}
 
           {result.assumptions.length > 0 && (
-            <details className="text-[11px] text-slate-400">
+            <details className="text-xs text-slate-400">
               <summary className="cursor-pointer text-slate-300">Asumsi ({result.assumptions.length})</summary>
-              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              <ul className="mt-1 list-disc space-y-1 pl-4">
                 {result.assumptions.map((a) => <li key={a}>{a}</li>)}
               </ul>
             </details>

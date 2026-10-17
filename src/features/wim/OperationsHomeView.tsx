@@ -262,7 +262,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'cikampek',
       name: 'Tol Jakarta - Cikampek KM 62',
       status: 'KRITIS',
-      color: '#ef4444',
+      color: '#d9655d',
       coords: [
         [-6.2383, 106.9756],
         [-6.2750, 107.0500],
@@ -276,7 +276,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'jagorawi',
       name: 'Tol Jagorawi KM 48',
       status: 'SIAGA',
-      color: '#f97316',
+      color: '#e2823d',
       coords: [
         [-6.2600, 106.8700],
         [-6.3800, 106.8600],
@@ -289,7 +289,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'jorr',
       name: 'Tol JORR Outer Ring KM 12',
       status: 'WASPADA',
-      color: '#eab308',
+      color: '#e8b23a',
       coords: [
         [-6.1800, 106.7400],
         [-6.2950, 106.8120],
@@ -302,7 +302,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'tangerang',
       name: 'Tol Tangerang - Merak',
       status: 'NORMAL',
-      color: '#22c55e',
+      color: '#57ae78',
       coords: [
         [-6.1783, 106.6319],
         [-6.1950, 106.5000],
@@ -315,7 +315,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'dalam_kota',
       name: 'Tol Dalam Kota (Inner Ring)',
       status: 'NORMAL',
-      color: '#10b981',
+      color: '#57ae78',
       coords: [
         [-6.1800, 106.8200],
         [-6.2000, 106.8000],
@@ -330,7 +330,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'desari',
       name: 'Tol Desari (Depok - Antasari)',
       status: 'WASPADA',
-      color: '#eab308',
+      color: '#e8b23a',
       coords: [
         [-6.2800, 106.8000],
         [-6.3400, 106.7900],
@@ -342,7 +342,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       id: 'priok',
       name: 'Arteri Pelabuhan Tanjung Priok',
       status: 'KRITIS',
-      color: '#ef4444',
+      color: '#d9655d',
       coords: [
         [-6.1100, 106.8800],
         [-6.1250, 106.9100],
@@ -387,8 +387,8 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
       line.bindTooltip(
         `<div class="p-1 text-xs font-bold text-slate-900">
-          <div class="font-extrabold">${corr.name}</div>
-          <div class="text-[11px] text-slate-600">${corr.info}</div>
+          <div class="font-semibold">${corr.name}</div>
+          <div class="text-xs text-slate-600">${corr.info}</div>
         </div>`,
         { sticky: true, className: 'leaflet-custom-tooltip' }
       );
@@ -407,7 +407,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
         iconHtml = `
           <div class="relative flex items-center justify-center cursor-pointer transition-transform hover:scale-125">
             <span class="absolute w-9 h-9 rounded-full bg-rose-500/40 animate-ping"></span>
-            <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-black">
+            <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-semibold">
               !
             </div>
           </div>
@@ -432,7 +432,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       } else {
         iconHtml = `
           <div class="flex items-center justify-center cursor-pointer transition-transform hover:scale-125">
-            <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-black">
+            <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-semibold">
               ✓
             </div>
           </div>
@@ -453,9 +453,9 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
       marker.bindTooltip(
         `<div class="p-1 text-xs font-sans">
-          <div class="font-extrabold text-slate-900">${alert.title}</div>
-          <div class="text-[11px] text-slate-700">${alert.location}</div>
-          <div class="text-[10px] text-slate-500 font-mono mt-0.5">${alert.meta}</div>
+          <div class="font-semibold text-slate-900">${alert.title}</div>
+          <div class="text-xs text-slate-700">${alert.location}</div>
+          <div class="text-xs text-slate-500 font-mono mt-1">${alert.meta}</div>
         </div>`,
         { direction: 'top', offset: [0, -10] }
       );
@@ -478,7 +478,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       }
 
       const wimHtml = `
-        <div class="flex items-center space-x-1 bg-slate-900/90 text-white text-[10px] font-bold px-2 py-1 rounded-full border border-slate-700 shadow-md backdrop-blur-sm hover:scale-110 transition-transform cursor-pointer">
+        <div class="flex items-center space-x-1 bg-slate-900/90 text-white text-xs font-bold px-2 py-1 rounded-full border border-slate-700 shadow-md  hover:scale-110 transition-transform cursor-pointer">
           <span class="w-2 h-2 rounded-full ${wim.status === 'KRITIS' ? 'bg-rose-500 animate-ping' : wim.status === 'SIAGA' ? 'bg-orange-500' : 'bg-emerald-400'}"></span>
           <span>${wim.name.split(' ')[2] || 'WIM'}</span>
         </div>
@@ -576,7 +576,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
     <div id="operations-home-root" className="w-full space-y-6 select-none font-sans text-slate-100 pb-12">
       {/* Toast Alert Success */}
       {actionSuccessMessage && (
-        <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-emerald-600/40 flex items-center space-x-3 border border-emerald-400 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border border-emerald-400 animate-in fade-in slide-in-from-top-4 duration-300">
           <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
           <span className="text-xs sm:text-sm font-semibold">{actionSuccessMessage}</span>
           <button onClick={() => setActionSuccessMessage(null)} className="p-1 hover:bg-emerald-700 rounded-lg text-emerald-200 cursor-pointer">
@@ -589,8 +589,8 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* 1. HEADER SECTION (Operations Manager + Realtime Update - Clean Dark Theme) */}
       {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-sm">
-        <div className="flex items-center space-x-3.5">
-          <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20 shrink-0">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20 shrink-0">
             <Activity className="w-5 h-5" />
           </div>
           <div>
@@ -598,11 +598,11 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                 Pusat Kendali Operasi (Operations Manager)
               </h1>
-              <span className="text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded">
+              <span className="text-xs font-mono font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-1 rounded">
                 WIM & Pengawasan Jalan
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-1">
               Pemantauan real-time kondisi jalan nasional, stasiun WIM, dan sinyal keputusan cepat
             </p>
           </div>
@@ -610,12 +610,12 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
         <div className="flex items-center space-x-3 self-start sm:self-auto">
           {/* Intel OpenVINO Telemetry Chip */}
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs">
+          <div className="hidden md:flex items-center space-x-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span className="font-mono text-slate-300">OpenVINO Edge: <strong className="text-white">6.2 ms</strong></span>
           </div>
 
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs">
+          <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs">
             <span className="text-slate-400">Update:</span>
             <strong className="text-slate-200">{lastUpdateTime}</strong>
           </div>
@@ -624,7 +624,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
             title="Perbarui Data Realtime"
             className="w-8 h-8 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`} />
           </button>
         </div>
       </div>
@@ -634,18 +634,18 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* LEFT COLUMN: INTERACTIVE LEAFLET MAP (8 cols on large screens) */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl shadow-xl overflow-hidden flex flex-col relative h-[460px] sm:h-[500px]">
+        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col relative h-[460px] sm:h-[500px]">
           {/* Top Bar inside Map Card */}
           <div className="absolute top-3.5 left-3.5 right-3.5 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
             {/* Status Filter Chips */}
-            <div className="flex items-center space-x-1.5 bg-slate-900/90 backdrop-blur-md px-2 py-1.5 rounded-2xl border border-slate-700/80 shadow-lg pointer-events-auto">
+            <div className="flex items-center space-x-2 bg-slate-900/90 px-2 py-2 rounded-2xl border border-slate-700/80 shadow-lg pointer-events-auto">
               {/* Semua Status Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl transition-all cursor-pointer border border-slate-700"
+                  className="flex items-center space-x-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl transition-all cursor-pointer border border-slate-700"
                 >
-                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <Layers className="w-4 h-4 text-amber-400" />
                   <span>
                     {selectedStatusFilter === 'ALL'
                       ? 'Semua Status'
@@ -661,68 +661,68 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 </button>
 
                 {isFilterDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1.5 w-44 bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 py-1.5 z-40 animate-in fade-in duration-150">
+                  <div className="absolute top-full left-0 mt-2 w-44 bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 py-2 z-40 animate-in fade-in duration-150">
                     <button
                       onClick={() => {
                         setSelectedStatusFilter('ALL');
                         setIsFilterDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span>Semua Status</span>
-                      {selectedStatusFilter === 'ALL' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                      {selectedStatusFilter === 'ALL' && <Check className="w-4 h-4 text-amber-400" />}
                     </button>
                     <button
                       onClick={() => {
                         setSelectedStatusFilter('NORMAL');
                         setIsFilterDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                         <span>Normal</span>
                       </span>
-                      {selectedStatusFilter === 'NORMAL' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      {selectedStatusFilter === 'NORMAL' && <Check className="w-4 h-4 text-emerald-400" />}
                     </button>
                     <button
                       onClick={() => {
                         setSelectedStatusFilter('WASPADA');
                         setIsFilterDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                         <span>Waspada</span>
                       </span>
-                      {selectedStatusFilter === 'WASPADA' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                      {selectedStatusFilter === 'WASPADA' && <Check className="w-4 h-4 text-amber-400" />}
                     </button>
                     <button
                       onClick={() => {
                         setSelectedStatusFilter('SIAGA');
                         setIsFilterDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                        <span className="w-2 h-2 rounded-full bg-orange-500"></span>
                         <span>Siaga</span>
                       </span>
-                      {selectedStatusFilter === 'SIAGA' && <Check className="w-3.5 h-3.5 text-orange-400" />}
+                      {selectedStatusFilter === 'SIAGA' && <Check className="w-4 h-4 text-orange-400" />}
                     </button>
                     <button
                       onClick={() => {
                         setSelectedStatusFilter('KRITIS');
                         setIsFilterDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                         <span>Kritis</span>
                       </span>
-                      {selectedStatusFilter === 'KRITIS' && <Check className="w-3.5 h-3.5 text-rose-400" />}
+                      {selectedStatusFilter === 'KRITIS' && <Check className="w-4 h-4 text-rose-400" />}
                     </button>
                   </div>
                 )}
@@ -731,9 +731,9 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               {/* Status Pills */}
               <button
                 onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'NORMAL' ? 'ALL' : 'NORMAL')}
-                className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`hidden sm:flex items-center space-x-2 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   selectedStatusFilter === 'NORMAL'
-                    ? 'bg-emerald-500/30 text-emerald-300 font-extrabold border border-emerald-500/50'
+                    ? 'bg-emerald-500/30 text-emerald-300 font-semibold border border-emerald-500/50'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -743,9 +743,9 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
               <button
                 onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'WASPADA' ? 'ALL' : 'WASPADA')}
-                className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`hidden sm:flex items-center space-x-2 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   selectedStatusFilter === 'WASPADA'
-                    ? 'bg-amber-500/30 text-amber-300 font-extrabold border border-amber-500/50'
+                    ? 'bg-amber-500/30 text-amber-300 font-semibold border border-amber-500/50'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -755,9 +755,9 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
               <button
                 onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'SIAGA' ? 'ALL' : 'SIAGA')}
-                className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`hidden sm:flex items-center space-x-2 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   selectedStatusFilter === 'SIAGA'
-                    ? 'bg-orange-500/30 text-orange-300 font-extrabold border border-orange-500/50'
+                    ? 'bg-orange-500/30 text-orange-300 font-semibold border border-orange-500/50'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -767,9 +767,9 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
               <button
                 onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'KRITIS' ? 'ALL' : 'KRITIS')}
-                className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`hidden sm:flex items-center space-x-2 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   selectedStatusFilter === 'KRITIS'
-                    ? 'bg-rose-500/30 text-rose-300 font-extrabold border border-rose-500/50'
+                    ? 'bg-rose-500/30 text-rose-300 font-semibold border border-rose-500/50'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -784,22 +784,22 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-700 shadow-md transition-all cursor-pointer"
+                  className="flex items-center space-x-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-700 shadow-md transition-all cursor-pointer"
                   title="Ganti Mode Warna Peta"
                 >
                   {mapTheme === 'DARK_MODE' ? (
                     <>
-                      <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                      <Moon className="w-4 h-4 text-indigo-400" />
                       <span className="hidden sm:inline">Dark Mode</span>
                     </>
                   ) : mapTheme === 'SATELLITE' ? (
                     <>
-                      <Satellite className="w-3.5 h-3.5 text-emerald-400" />
+                      <Satellite className="w-4 h-4 text-emerald-400" />
                       <span className="hidden sm:inline">Satelit</span>
                     </>
                   ) : (
                     <>
-                      <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      <Sun className="w-4 h-4 text-amber-400" />
                       <span className="hidden sm:inline">Real Terang</span>
                     </>
                   )}
@@ -807,45 +807,45 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 </button>
 
                 {isThemeMenuOpen && (
-                  <div className="absolute top-full right-0 mt-1.5 w-40 bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 py-1.5 z-40 animate-in fade-in duration-150">
+                  <div className="absolute top-full right-0 mt-2 w-40 bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 py-2 z-40 animate-in fade-in duration-150">
                     <button
                       onClick={() => {
                         setMapTheme('DARK_MODE');
                         setIsThemeMenuOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                        <Moon className="w-4 h-4 text-indigo-400" />
                         <span>Dark Mode</span>
                       </span>
-                      {mapTheme === 'DARK_MODE' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                      {mapTheme === 'DARK_MODE' && <Check className="w-4 h-4 text-indigo-400" />}
                     </button>
                     <button
                       onClick={() => {
                         setMapTheme('SATELLITE');
                         setIsThemeMenuOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <Satellite className="w-3.5 h-3.5 text-emerald-400" />
+                        <Satellite className="w-4 h-4 text-emerald-400" />
                         <span>Satelit</span>
                       </span>
-                      {mapTheme === 'SATELLITE' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      {mapTheme === 'SATELLITE' && <Check className="w-4 h-4 text-emerald-400" />}
                     </button>
                     <button
                       onClick={() => {
                         setMapTheme('REAL_LIGHT');
                         setIsThemeMenuOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center space-x-2">
-                        <Sun className="w-3.5 h-3.5 text-amber-400" />
+                        <Sun className="w-4 h-4 text-amber-400" />
                         <span>Real Terang</span>
                       </span>
-                      {mapTheme === 'REAL_LIGHT' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                      {mapTheme === 'REAL_LIGHT' && <Check className="w-4 h-4 text-amber-400" />}
                     </button>
                   </div>
                 )}
@@ -855,7 +855,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               <button
                 onClick={handleRecenter}
                 title="Pusatkan Peta Jabodetabek"
-                className="p-1.5 bg-slate-900/90 backdrop-blur-md hover:bg-slate-800 text-slate-200 rounded-xl border border-slate-700 shadow-md transition-all cursor-pointer"
+                className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 rounded-xl border border-slate-700 shadow-md transition-all cursor-pointer"
               >
                 <Crosshair className="w-4 h-4 text-cyan-400" />
               </button>
@@ -868,22 +868,22 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
           {/* Map Controls: Bottom Overlay Bar inside Leaflet Map */}
           <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
             {/* Condition Legend */}
-            <div className="bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-700/80 shadow-xl pointer-events-auto flex items-center space-x-4">
-              <span className="text-[11px] font-bold text-slate-400">Kondisi Jalan:</span>
+            <div className="bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-700/80 shadow-xl pointer-events-auto flex items-center space-x-4">
+              <span className="text-xs font-bold text-slate-400">Kondisi Jalan:</span>
               <div className="flex items-center space-x-3 text-xs font-bold">
-                <span className="flex items-center space-x-1.5 text-emerald-400">
+                <span className="flex items-center space-x-2 text-emerald-400">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   <span>Normal</span>
                 </span>
-                <span className="flex items-center space-x-1.5 text-amber-400">
+                <span className="flex items-center space-x-2 text-amber-400">
                   <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                   <span>Waspada</span>
                 </span>
-                <span className="flex items-center space-x-1.5 text-orange-400">
+                <span className="flex items-center space-x-2 text-orange-400">
                   <span className="w-2 h-2 rounded-full bg-orange-500"></span>
                   <span>Siaga</span>
                 </span>
-                <span className="flex items-center space-x-1.5 text-rose-400">
+                <span className="flex items-center space-x-2 text-rose-400">
                   <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                   <span>Kritis</span>
                 </span>
@@ -892,7 +892,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
             {/* Action Buttons: Zoom & "+ Buat Peringatan" (Yellow Button) */}
             <div className="flex items-center space-x-2 pointer-events-auto">
-              <div className="flex items-center space-x-1 bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl border border-slate-700 shadow-xl">
+              <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-700 shadow-xl">
                 <button
                   onClick={handleZoomIn}
                   className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer"
@@ -910,7 +910,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               {/* Yellow "+ Buat Peringatan" Button */}
               <button
                 onClick={() => setIsCreateAlertModalOpen(true)}
-                className="bg-[#f59e0b] hover:bg-[#d97706] text-slate-950 font-extrabold text-xs px-3.5 py-2 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center space-x-1.5 transition-all cursor-pointer active:scale-95 border border-amber-300"
+                className="bg-[#e8b23a] hover:bg-[#d97706] text-slate-950 font-semibold text-xs px-4 py-2 rounded-2xl shadow-lg flex items-center space-x-2 transition-all cursor-pointer active:scale-95 border border-amber-300"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>Buat Peringatan</span>
@@ -920,12 +920,12 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
         </div>
 
         {/* RIGHT COLUMN: PERINGATAN AKTIF (4 cols on large screens - Dark Card Theme) */}
-        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl shadow-xl p-5 flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 flex flex-col justify-between">
           <div>
             {/* Header: Peringatan Aktif */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2">
-                <h3 className="font-extrabold text-base text-white tracking-tight">
+                <h3 className="font-semibold text-base text-white tracking-tight">
                   Peringatan Aktif
                 </h3>
                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
@@ -939,7 +939,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
             </div>
 
             {/* List of 4 Active Alerts */}
-            <div className="mt-3.5 space-y-2.5">
+            <div className="mt-4 space-y-3">
               {activeAlerts.map((alert) => (
                 <div
                   key={alert.id}
@@ -955,8 +955,8 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start space-x-2.5 min-w-0">
-                      <div className="p-1.5 rounded-xl bg-slate-800/80 shrink-0 mt-0.5">
+                    <div className="flex items-start space-x-3 min-w-0">
+                      <div className="p-2 rounded-xl bg-slate-800/80 shrink-0 mt-1">
                         {alert.level === 'KRITIS' && <AlertCircle className="w-4 h-4 text-rose-400" />}
                         {alert.level === 'SIAGA' && <CloudRain className="w-4 h-4 text-orange-400" />}
                         {alert.level === 'WASPADA' && <AlertTriangle className="w-4 h-4 text-amber-400" />}
@@ -965,7 +965,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center space-x-2">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                            className={`text-xs font-bold px-2 py-1 rounded-full font-mono ${
                               alert.level === 'KRITIS'
                                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                                 : alert.level === 'SIAGA'
@@ -979,13 +979,13 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                           </span>
                           <h4 className="text-xs font-bold text-white truncate">{alert.title}</h4>
                         </div>
-                        <p className="text-[11px] text-slate-300 font-medium mt-1 truncate">
+                        <p className="text-xs text-slate-300 font-medium mt-1 truncate">
                           {alert.location}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 truncate">{alert.meta}</p>
+                        <p className="text-xs text-slate-400 mt-1 truncate">{alert.meta}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500 shrink-0">{alert.timeAgo}</span>
+                    <span className="text-xs font-mono text-slate-500 shrink-0">{alert.timeAgo}</span>
                   </div>
                 </div>
               ))}
@@ -1000,7 +1000,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               className="text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1 cursor-pointer"
             >
               <span>Buka Data ODOL</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1013,94 +1013,94 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
         {/* Card 1: Kritis (3) */}
         <div
           onClick={() => setSelectedStatusFilter('KRITIS')}
-          className="bg-slate-900 border border-slate-800 hover:border-rose-500/50 p-4 rounded-3xl shadow-xl transition-all cursor-pointer group"
+          className="bg-slate-900 border border-slate-800 hover:border-rose-500/50 p-4 rounded-2xl shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400">Kritis</span>
-            <div className="p-1.5 rounded-xl bg-rose-500/20 text-rose-400 group-hover:scale-110 transition-transform">
+            <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 group-hover:scale-110 transition-transform">
               <AlertCircle className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-white mt-2">3</p>
-          <p className="text-[10px] font-medium text-rose-400 mt-1">Perlu penanganan segera</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-white mt-2">3</p>
+          <p className="text-xs font-medium text-rose-400 mt-1">Perlu penanganan segera</p>
         </div>
 
         {/* Card 2: Siaga (6) */}
         <div
           onClick={() => setSelectedStatusFilter('SIAGA')}
-          className="bg-slate-900 border border-slate-800 hover:border-orange-500/50 p-4 rounded-3xl shadow-xl transition-all cursor-pointer group"
+          className="bg-slate-900 border border-slate-800 hover:border-orange-500/50 p-4 rounded-2xl shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400">Siaga</span>
-            <div className="p-1.5 rounded-xl bg-orange-500/20 text-orange-400 group-hover:scale-110 transition-transform">
+            <div className="p-2 rounded-xl bg-orange-500/20 text-orange-400 group-hover:scale-110 transition-transform">
               <CloudRain className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-white mt-2">6</p>
-          <p className="text-[10px] font-medium text-orange-400 mt-1">Pantau berkala</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-white mt-2">6</p>
+          <p className="text-xs font-medium text-orange-400 mt-1">Pantau berkala</p>
         </div>
 
         {/* Card 3: Waspada (12) */}
         <div
           onClick={() => setSelectedStatusFilter('WASPADA')}
-          className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-4 rounded-3xl shadow-xl transition-all cursor-pointer group"
+          className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-4 rounded-2xl shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400">Waspada</span>
-            <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-white mt-2">12</p>
-          <p className="text-[10px] font-medium text-amber-400 mt-1">Pengawasan</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-white mt-2">12</p>
+          <p className="text-xs font-medium text-amber-400 mt-1">Pengawasan</p>
         </div>
 
         {/* Card 4: Normal (32) */}
         <div
           onClick={() => setSelectedStatusFilter('NORMAL')}
-          className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-3xl shadow-xl transition-all cursor-pointer group"
+          className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-2xl shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400">Normal</span>
-            <div className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 group-hover:scale-110 transition-transform">
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 group-hover:scale-110 transition-transform">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-white mt-2">32</p>
-          <p className="text-[10px] font-medium text-emerald-400 mt-1">Kondisi baik</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-white mt-2">32</p>
+          <p className="text-xs font-medium text-emerald-400 mt-1">Kondisi baik</p>
         </div>
 
         {/* Card 5: WIM Aktif (24) */}
         <div
           onClick={goToWim}
-          className="bg-slate-900 border border-slate-800 hover:border-cyan-500/50 p-4 rounded-3xl shadow-xl transition-all cursor-pointer group"
+          className="bg-slate-900 border border-slate-800 hover:border-cyan-500/50 p-4 rounded-2xl shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400">WIM Aktif</span>
-            <div className="p-1.5 rounded-xl bg-cyan-500/20 text-cyan-400 group-hover:scale-110 transition-transform">
+            <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 group-hover:scale-110 transition-transform">
               <Scale className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-white mt-2">24</p>
-          <p className="text-[10px] font-medium text-cyan-400 mt-1">Stasiun online</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-white mt-2">24</p>
+          <p className="text-xs font-medium text-cyan-400 mt-1">Stasiun online</p>
         </div>
 
         {/* Card 6: Respon Rata-rata (12.4 m) */}
         <div
           onClick={goToSPK}
-          className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-4 rounded-3xl shadow-xl transition-all cursor-pointer group"
+          className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-4 rounded-2xl shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400">Respon Rata-rata</span>
-            <div className="p-1.5 rounded-xl bg-indigo-500/20 text-indigo-400 group-hover:scale-110 transition-transform">
+            <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 group-hover:scale-110 transition-transform">
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline space-x-1 mt-2">
-            <p className="text-2xl sm:text-3xl font-extrabold text-white">12.4</p>
+            <p className="text-2xl sm:text-3xl font-semibold text-white">12.4</p>
             <span className="text-xs font-bold text-slate-400">menit</span>
           </div>
-          <p className="text-[10px] font-medium text-indigo-400 mt-1">Baik</p>
+          <p className="text-xs font-medium text-indigo-400 mt-1">Baik</p>
         </div>
       </div>
 
@@ -1109,16 +1109,16 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* CARD 1: ODOL MONITORING (WIM) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl p-5 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2">
                 <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
                   <Truck className="w-4 h-4" />
                 </div>
-                <h3 className="font-extrabold text-base text-white">ODOL Monitoring (WIM)</h3>
+                <h3 className="font-semibold text-base text-white">ODOL Monitoring (WIM)</h3>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">
+              <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-1 rounded-full border border-rose-500/30">
                 Live Sensor
               </span>
             </div>
@@ -1148,8 +1148,8 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-black text-white">18%</span>
-                  <span className="text-[10px] font-bold text-slate-400">Over Limit</span>
+                  <span className="text-2xl font-semibold text-white">18%</span>
+                  <span className="text-xs font-bold text-slate-400">Over Limit</span>
                 </div>
               </div>
             </div>
@@ -1157,14 +1157,14 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
             {/* Metrics Breakdown */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/80">
-                <span className="text-slate-400 text-[11px]">Total Pelanggaran</span>
-                <p className="text-base font-extrabold text-white mt-0.5">128</p>
-                <span className="text-[10px] text-rose-400 font-bold">Hari ini</span>
+                <span className="text-slate-400 text-xs">Total Pelanggaran</span>
+                <p className="text-base font-semibold text-white mt-1">128</p>
+                <span className="text-xs text-rose-400 font-bold">Hari ini</span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/80">
-                <span className="text-slate-400 text-[11px]">Beban Berlebih</span>
-                <p className="text-base font-extrabold text-white mt-0.5">5.842 Ton</p>
-                <span className="text-[10px] text-amber-400 font-bold">Terdeteksi</span>
+                <span className="text-slate-400 text-xs">Beban Berlebih</span>
+                <p className="text-base font-semibold text-white mt-1">5.842 Ton</p>
+                <span className="text-xs text-amber-400 font-bold">Terdeteksi</span>
               </div>
             </div>
 
@@ -1176,46 +1176,46 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
           <button
             onClick={goToWim}
-            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 rounded-2xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer border border-slate-700"
+            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-3 rounded-2xl transition-all flex items-center justify-center space-x-2 cursor-pointer border border-slate-700"
           >
             <span>Lihat Detail Telemetri WIM</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* CARD 2: LALU LINTAS & CUACA */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl p-5 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2">
                 <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
                   <CloudRain className="w-4 h-4" />
                 </div>
-                <h3 className="font-extrabold text-base text-white">Lalu Lintas & Cuaca</h3>
+                <h3 className="font-semibold text-base text-white">Lalu Lintas & Cuaca</h3>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">
+              <span className="text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-full border border-cyan-500/30">
                 AWS Telemetry
               </span>
             </div>
 
             {/* Traffic Status */}
             <div className="mt-4 space-y-4">
-              <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/80">
-                <div className="flex items-center justify-between text-xs mb-1.5">
+              <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80">
+                <div className="flex items-center justify-between text-xs mb-2">
                   <span className="font-bold text-slate-300">Arus Lalu Lintas</span>
                   <span className="font-bold text-emerald-400">Lancar (48 km/jam)</span>
                 </div>
-                <div className="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
                   <div className="bg-emerald-500 h-full rounded-full" style={{ width: '42%' }}></div>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 font-mono">
+                <div className="flex items-center justify-between text-xs text-slate-400 mt-2 font-mono">
                   <span>V/C Ratio: 0.42</span>
                   <span>Kepadatan: 42%</span>
                 </div>
               </div>
 
               {/* Weather Status */}
-              <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/80">
+              <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/80">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 rounded-xl bg-orange-500/20 text-orange-400">
@@ -1223,20 +1223,20 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-white">Cuaca Terkini</h4>
-                      <p className="text-[11px] text-slate-300">Hujan Sedang (28°C) · simulasi</p>
+                      <p className="text-xs text-slate-300">Hujan Sedang (28°C) · simulasi</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-extrabold text-orange-400 font-mono">78 mm/jam</span>
-                    <p className="text-[10px] text-slate-400">Intensitas</p>
+                    <span className="text-xs font-semibold text-orange-400 font-mono">78 mm/jam</span>
+                    <p className="text-xs text-slate-400">Intensitas</p>
                   </div>
                 </div>
               </div>
 
               {/* Road Skid Warning */}
               <div className="p-3 rounded-2xl bg-amber-950/20 border border-amber-500/30 flex items-start space-x-2 text-xs">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-amber-200/90 text-[11px] leading-relaxed">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-1" />
+                <p className="text-amber-200/90 text-xs leading-relaxed">
                   Peringatan jalan licin aktif di Tol Jagorawi KM 40-52. Batas kecepatan aman diturunkan ke 60 km/jam.
                 </p>
               </div>
@@ -1248,24 +1248,24 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               setActionSuccessMessage('Data sensor cuaca AWS telah disinkronkan');
               setTimeout(() => setActionSuccessMessage(null), 3000);
             }}
-            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 rounded-2xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer border border-slate-700"
+            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-3 rounded-2xl transition-all flex items-center justify-center space-x-2 cursor-pointer border border-slate-700"
           >
             <span>Periksa Peta Radar Cuaca</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* CARD 3: TINDAKAN CEPAT */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl p-5 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
                   <ShieldAlert className="w-4 h-4" />
                 </div>
-                <h3 className="font-extrabold text-base text-white">Tindakan Cepat</h3>
+                <h3 className="font-semibold text-base text-white">Tindakan Cepat</h3>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span className="text-xs font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-1 rounded-full border border-amber-500/30">
                 Operator Action
               </span>
             </div>
@@ -1278,7 +1278,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 className="w-full p-3 rounded-2xl bg-rose-950/20 hover:bg-rose-950/40 border border-rose-500/30 hover:border-rose-400 text-left transition-all cursor-pointer group"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
+                  <div className="flex items-center space-x-3">
                     <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 group-hover:scale-110 transition-transform">
                       <Ban className="w-4 h-4" />
                     </div>
@@ -1286,7 +1286,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                       <h4 className="text-xs font-bold text-white group-hover:text-rose-300 transition-colors">
                         Batasi Kendaraan Berat
                       </h4>
-                      <p className="text-[10px] text-slate-400">Tol Cikampek KM 62 (+68.5% ODOL)</p>
+                      <p className="text-xs text-slate-400">Tol Cikampek KM 62 (+68.5% ODOL)</p>
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-rose-400 group-hover:translate-x-1 transition-transform" />
@@ -1299,7 +1299,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 className="w-full p-3 rounded-2xl bg-amber-950/20 hover:bg-amber-950/40 border border-amber-500/30 hover:border-amber-400 text-left transition-all cursor-pointer group"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
+                  <div className="flex items-center space-x-3">
                     <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform">
                       <Navigation className="w-4 h-4" />
                     </div>
@@ -1307,7 +1307,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                       <h4 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                         Alihkan Arus Lalu Lintas
                       </h4>
-                      <p className="text-[10px] text-slate-400">Aktifkan rambu VMS alternatif</p>
+                      <p className="text-xs text-slate-400">Aktifkan rambu VMS alternatif</p>
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
@@ -1320,7 +1320,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 className="w-full p-3 rounded-2xl bg-indigo-950/20 hover:bg-indigo-950/40 border border-indigo-500/30 hover:border-indigo-400 text-left transition-all cursor-pointer group"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
+                  <div className="flex items-center space-x-3">
                     <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 group-hover:scale-110 transition-transform">
                       <Wrench className="w-4 h-4" />
                     </div>
@@ -1328,7 +1328,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                       <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
                         Kirim Tim Pemeliharaan
                       </h4>
-                      <p className="text-[10px] text-slate-400">Kerahkan SPK Perbaikan Cepat</p>
+                      <p className="text-xs text-slate-400">Kerahkan SPK Perbaikan Cepat</p>
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
@@ -1339,10 +1339,10 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
           <button
             onClick={() => setIsAllActionsModalOpen(true)}
-            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 rounded-2xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer border border-slate-700"
+            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-3 rounded-2xl transition-all flex items-center justify-center space-x-2 cursor-pointer border border-slate-700"
           >
             <span>Semua Protokol Penanganan</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -1351,22 +1351,22 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* MODAL 1: BUAT PERINGATAN BARU (YELLOW BUTTON MODAL - DARK THEME) */}
       {/* ========================================================================= */}
       {isCreateAlertModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
                   <Plus className="w-5 h-5 stroke-[3]" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-white">Buat Peringatan Baru</h3>
+                  <h3 className="font-semibold text-base text-white">Buat Peringatan Baru</h3>
                   <p className="text-xs text-slate-400">Publikasikan sinyal peringatan ke VMS & Petugas Lapangan</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsCreateAlertModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1382,7 +1382,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     onClick={() => setNewAlertForm({ ...newAlertForm, level: 'KRITIS' })}
                     className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
                       newAlertForm.level === 'KRITIS'
-                        ? 'bg-rose-500/20 border-rose-500 text-rose-300 font-extrabold'
+                        ? 'bg-rose-500/20 border-rose-500 text-rose-300 font-semibold'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
@@ -1393,7 +1393,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     onClick={() => setNewAlertForm({ ...newAlertForm, level: 'SIAGA' })}
                     className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
                       newAlertForm.level === 'SIAGA'
-                        ? 'bg-orange-500/20 border-orange-500 text-orange-300 font-extrabold'
+                        ? 'bg-orange-500/20 border-orange-500 text-orange-300 font-semibold'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
@@ -1404,7 +1404,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     onClick={() => setNewAlertForm({ ...newAlertForm, level: 'WASPADA' })}
                     className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
                       newAlertForm.level === 'WASPADA'
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-extrabold'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-semibold'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
@@ -1418,7 +1418,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 <select
                   value={newAlertForm.category}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, category: e.target.value as any })}
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 >
                   <option value="ODOL">ODOL (Over Dimension Over Loading)</option>
                   <option value="WEATHER">Cuaca Ekstrem / Hujan Badai</option>
@@ -1435,7 +1435,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   value={newAlertForm.title}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, title: e.target.value })}
                   required
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1447,7 +1447,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   value={newAlertForm.location}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, location: e.target.value })}
                   required
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1458,7 +1458,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   placeholder="Contoh: Beban berlebih: 65 ton | Intensitas: 80 mm/jam"
                   value={newAlertForm.meta}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, meta: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1469,7 +1469,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   placeholder="Jelaskan kondisi perkerasan dan instruksi operasional bagi petugas gerbang / patroli..."
                   value={newAlertForm.details}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, details: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1484,7 +1484,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-lg shadow-amber-500/25 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow-lg transition-all cursor-pointer active:scale-95"
                 >
                   Terbitkan Peringatan
                 </button>
@@ -1498,18 +1498,18 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* MODAL 2: DETAIL PERINGATAN AKTIF (DARK THEME) */}
       {/* ========================================================================= */}
       {selectedAlertDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-slate-800 text-amber-400">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      className={`text-xs font-bold px-2 py-1 rounded-full font-mono ${
                         selectedAlertDetail.level === 'KRITIS'
                           ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                           : selectedAlertDetail.level === 'SIAGA'
@@ -1523,12 +1523,12 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     </span>
                     <span className="text-xs text-slate-400 font-mono">{selectedAlertDetail.timeAgo}</span>
                   </div>
-                  <h3 className="font-extrabold text-base text-white mt-0.5">{selectedAlertDetail.title}</h3>
+                  <h3 className="font-semibold text-base text-white mt-1">{selectedAlertDetail.title}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedAlertDetail(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1536,9 +1536,9 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
 
             {/* Content */}
             <div className="p-5 space-y-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80">
-                <span className="text-slate-400 text-[11px]">Lokasi Ruas:</span>
-                <p className="text-sm font-bold text-white mt-0.5">{selectedAlertDetail.location}</p>
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80">
+                <span className="text-slate-400 text-xs">Lokasi Ruas:</span>
+                <p className="text-sm font-bold text-white mt-1">{selectedAlertDetail.location}</p>
                 <p className="text-xs text-amber-400 font-semibold mt-1">{selectedAlertDetail.meta}</p>
               </div>
 
@@ -1550,7 +1550,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
               </div>
 
               {selectedAlertDetail.recommendedAction && (
-                <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30">
+                <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30">
                   <div className="flex items-center space-x-2 text-amber-400 font-bold mb-1">
                     <ShieldAlert className="w-4 h-4" />
                     <span>Rekomendasi Tindakan Operasional:</span>
@@ -1588,18 +1588,18 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* MODAL 3: KONFIRMASI TINDAKAN OPERASIONAL (DARK THEME) */}
       {/* ========================================================================= */}
       {isActionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
-                <h3 className="font-extrabold text-base text-white">Konfirmasi Eksekusi Protokol</h3>
+                <h3 className="font-semibold text-base text-white">Konfirmasi Eksekusi Protokol</h3>
               </div>
               <button
                 onClick={() => setIsActionModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1615,7 +1615,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                   'Apakah Anda ingin menerbitkan SPK darurat dan mengerahkan Tim Pemeliharaan Cepat Bina Marga ke titik genangan KM 12 JORR?'}
               </p>
 
-              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/70 text-[11px] text-slate-400">
+              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/70 text-xs text-slate-400">
                 <p>Operator: <strong className="text-white">{currentAccount.name}</strong></p>
                 <p>Hak Akses: <strong className="text-amber-400">RBAC Level 2 (Operations Dispatcher)</strong></p>
               </div>
@@ -1629,7 +1629,7 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                 </button>
                 <button
                   onClick={handleConfirmAction}
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-lg shadow-amber-500/25 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow-lg transition-all cursor-pointer active:scale-95"
                 >
                   Ya, Eksekusi Sekarang
                 </button>
@@ -1643,21 +1643,21 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
       {/* MODAL 4: SEMUA PERINGATAN (DARK THEME) */}
       {/* ========================================================================= */}
       {isAllAlertsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-white">Semua Peringatan Aktif & Riwayat</h3>
+                  <h3 className="font-semibold text-base text-white">Semua Peringatan Aktif & Riwayat</h3>
                   <p className="text-xs text-slate-400">Daftar lengkap anomali telemetri dan kondisi darurat</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAllAlertsModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1671,11 +1671,11 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     setIsAllAlertsModalOpen(false);
                     setSelectedAlertDetail(alert);
                   }}
-                  className="p-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all cursor-pointer"
+                  className="p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition-all cursor-pointer"
                 >
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-2">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      className={`text-xs font-bold px-2 py-1 rounded-full font-mono ${
                         alert.level === 'KRITIS'
                           ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                           : alert.level === 'SIAGA'
@@ -1687,11 +1687,11 @@ export const OperationsHomeView: React.FC<OperationsHomeViewProps> = ({
                     >
                       {alert.level}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">{alert.timeAgo}</span>
+                    <span className="text-xs font-mono text-slate-400">{alert.timeAgo}</span>
                   </div>
                   <h4 className="text-xs font-bold text-white">{alert.title}</h4>
-                  <p className="text-xs text-slate-300 mt-0.5">{alert.location}</p>
-                  <p className="text-[11px] text-slate-400 mt-1">{alert.details}</p>
+                  <p className="text-xs text-slate-300 mt-1">{alert.location}</p>
+                  <p className="text-xs text-slate-400 mt-1">{alert.details}</p>
                 </div>
               ))}
             </div>

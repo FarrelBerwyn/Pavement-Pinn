@@ -10,17 +10,17 @@ import type { DamageReport, RoadConditionCategory, RoadSegment } from '../../typ
 export type LngLat = [number, number];
 
 export const CONDITION_COLOR: Record<RoadConditionCategory, string> = {
-  GOOD: '#10b981',
-  MODERATE: '#f59e0b',
-  LIGHT_DAMAGE: '#f97316',
-  HEAVY_DAMAGE: '#ef4444'
+  GOOD: '#57ae78',
+  MODERATE: '#e8b23a',
+  LIGHT_DAMAGE: '#e2823d',
+  HEAVY_DAMAGE: '#d9655d'
 };
 
 export const SEVERITY_COLOR: Record<DamageReport['severity'], string> = {
-  CRITICAL: '#ef4444',
-  SEVERE: '#f97316',
-  MODERATE: '#f59e0b',
-  LIGHT: '#10b981'
+  CRITICAL: '#d9655d',
+  SEVERE: '#e2823d',
+  MODERATE: '#e8b23a',
+  LIGHT: '#57ae78'
 };
 
 export function toLngLat([lat, lng]: [number, number]): LngLat {

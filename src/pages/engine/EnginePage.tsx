@@ -57,21 +57,21 @@ export const EnginePage: React.FC = () => {
           const allowed = canOpenRoute(tool.routeId, currentAccount);
           const path = buildPath(tool.routeId);
           return (
-            <div key={tool.routeId} className="bg-[#121622] border border-white/10 rounded-3xl p-5 space-y-3">
+            <div key={tool.routeId} className="bg-surface border border-white/10 rounded-2xl p-5 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-cyan-300 border border-indigo-500/30 shrink-0">{tool.icon}</div>
+                  <div className="p-3 rounded-2xl bg-indigo-500/20 text-cyan-300 border border-indigo-500/30 shrink-0">{tool.icon}</div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-extrabold text-white">{route.title}</h3>
-                    <p className="text-[11px] font-mono text-slate-400">{path}</p>
+                    <h3 className="text-sm font-semibold text-white">{route.title}</h3>
+                    <p className="text-xs font-mono text-slate-400">{path}</p>
                   </div>
                 </div>
                 <StatusBadge status={tool.status} />
               </div>
               <p className="text-xs text-slate-300">{tool.summary}</p>
-              <p className="text-[11px] text-slate-400">{tool.statusNote}</p>
+              <p className="text-xs text-slate-400">{tool.statusNote}</p>
               {allowed ? (
-                <Link to={path} className="inline-block px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs">
+                <Link to={path} className="inline-block px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs">
                   Buka
                 </Link>
               ) : (
@@ -79,7 +79,7 @@ export const EnginePage: React.FC = () => {
                   to={loginPathFor(path)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-slate-300 font-bold text-xs"
                 >
-                  <Lock className="w-3.5 h-3.5" />
+                  <Lock className="w-4 h-4" />
                   <span>Khusus {allowedRolesFor(route).join(' / ')}</span>
                 </Link>
               )}

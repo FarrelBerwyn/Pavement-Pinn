@@ -82,7 +82,7 @@ export const MapSheet: React.FC<MapSheetProps> = ({
         data-state={state}
         ref={sheetRef as React.RefObject<HTMLElement>}
         {...sheetProps}
-        className={`fixed z-40 flex flex-col bg-[#0f1420] text-slate-100 border border-white/10 shadow-lg overflow-hidden transition-[height,transform] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${mobileShape} md:absolute md:inset-x-auto md:right-4 md:top-20 md:bottom-6 md:h-auto md:max-h-none md:min-h-0 md:w-[380px] md:rounded-2xl`}
+        className={`fixed z-40 flex flex-col bg-surface text-slate-100 border border-white/10 shadow-lg overflow-hidden transition-[height,transform] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${mobileShape} md:absolute md:inset-x-auto md:right-4 md:top-20 md:bottom-6 md:h-auto md:max-h-none md:min-h-0 md:w-[380px] md:rounded-2xl`}
       >
         <div
           data-sheet-grab
@@ -98,7 +98,7 @@ export const MapSheet: React.FC<MapSheetProps> = ({
               <h2 className="text-sm font-bold leading-snug text-white truncate">{title}</h2>
               {badge}
             </div>
-            {subtitle && <p className="mt-0.5 text-[11px] text-slate-400 truncate">{subtitle}</p>}
+            {subtitle && <p className="mt-1 text-xs text-slate-400 truncate">{subtitle}</p>}
           </div>
           <button
             type="button"

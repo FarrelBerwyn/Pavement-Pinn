@@ -16,7 +16,7 @@ export const InspectionHistoryPage: React.FC = () => {
       <SimulationNotice />
 
       <div className={cardClass}>
-        <h3 className="text-sm font-extrabold text-white">
+        <h3 className="text-sm font-semibold text-white">
           {analysed.length} dari {communityReports.length} laporan memiliki hasil analisis
         </h3>
         {analysed.length === 0 ? (

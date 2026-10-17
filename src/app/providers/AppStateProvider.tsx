@@ -203,6 +203,22 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [gateway, currentAccount, refresh, logout]);
 
+  // Other accounts change the same cases (R.E submits, M.O assigns, F.E inspects, D.M reads):
+  // reload from the server periodically and when the window regains focus, so each role
+  // sees the hand-off without a manual reload. The offline demo has no other writers.
+  useEffect(() => {
+    if (gateway.mode !== 'SERVER') return;
+    const tick = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const timer = window.setInterval(tick, 15000);
+    window.addEventListener('focus', tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', tick);
+    };
+  }, [gateway, refresh]);
+
   // Initial Simulation Result
   const [currentResult, setCurrentResult] = useState<SimulationResult | null>(null);
 

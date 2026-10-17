@@ -53,3 +53,22 @@ export const TONE_CLASS: Record<ReturnType<typeof stateTone>, string> = {
   done: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/40',
   closed: 'bg-slate-700/40 text-slate-300 border-slate-500/40'
 };
+
+/** Same tones for light surfaces (task list, light pages). */
+export const TONE_CLASS_LIGHT: Record<ReturnType<typeof stateTone>, string> = {
+  neutral: 'bg-slate-100 text-slate-700 border-slate-300',
+  review: 'bg-amber-50 text-amber-800 border-amber-300',
+  active: 'bg-sky-50 text-sky-700 border-sky-200',
+  done: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  closed: 'bg-slate-100 text-slate-600 border-slate-300'
+};
+
+/** Short role names used in the report flow R.E → M.O → F.E → D.M. */
+export const ROLE_SHORT: Record<string, string> = {
+  PUBLIC_REPORTER: 'R.E',
+  PUBLIC_VIEWER: 'R.E',
+  OPERATIONS_MANAGER: 'M.O',
+  FIELD_ENGINEER: 'F.E',
+  POLICY_MAKER: 'D.M',
+  SYSTEM: 'Sistem'
+};

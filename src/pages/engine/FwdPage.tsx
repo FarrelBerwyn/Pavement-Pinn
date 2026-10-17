@@ -13,15 +13,15 @@ export const FwdPage: React.FC = () => {
   const { currentAccount, currentResult, roadSegments, selectedSegment, onSelectSegment, communityReports, onEditReport, setActiveNav } = usePageContext();
 
   return (
-    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-[#0b0f19] p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-canvas p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-amber-400 text-slate-950 rounded-2xl font-black">
+            <div className="p-3 bg-amber-400 text-slate-950 rounded-2xl font-semibold">
               <HardHat className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">
+              <h2 className="text-xl font-semibold text-white">
                 Modul Rekayasa Sipil & Otorisasi SPK Lapangan
               </h2>
               <p className="text-xs text-slate-400">
@@ -31,7 +31,7 @@ export const FwdPage: React.FC = () => {
           </div>
           <button
             onClick={() => setActiveNav('MAP')}
-            className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center space-x-2 shadow-lg shadow-amber-400/20 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs flex items-center space-x-2 shadow-lg cursor-pointer"
           >
             <MapIcon className="w-4 h-4" />
             <span>Kembali ke Peta</span>

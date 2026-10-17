@@ -103,25 +103,25 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
 
         {/* Floating Feature Panel Overlay (When DASHBOARD or SIMULATOR tab is active) */}
         {activeTab !== 'MAP' && (
-          <div className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-md p-3 md:p-6 overflow-y-auto flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-full max-w-7xl bg-slate-900/95 border border-white/20 backdrop-blur-2xl rounded-3xl p-4 md:p-6 shadow-2xl relative my-auto">
+          <div className="absolute inset-0 z-30 bg-slate-950/70 p-3 md:p-6 overflow-y-auto flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-full max-w-7xl bg-slate-900/95 border border-white/20 rounded-2xl p-4 md:p-6 shadow-2xl relative my-auto">
               {/* Floating Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-cyan-300 border border-indigo-500/30">
+                  <div className="p-3 rounded-2xl bg-indigo-500/20 text-cyan-300 border border-indigo-500/30">
                     {activeTab === 'DASHBOARD' && <LayoutDashboard className="w-5 h-5 text-cyan-400" />}
                     {activeTab === 'SIMULATOR' && <Activity className="w-5 h-5 text-amber-400" />}
                   </div>
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                      <span className="text-xs font-bold text-slate-400">
                         Tab Melayang Aktif:
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+                      <span className="text-xs font-bold px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
                         {activeTab}
                       </span>
                     </div>
-                    <h2 className="text-sm md:text-base font-extrabold text-white tracking-tight">
+                    <h2 className="text-sm md:text-base font-semibold text-white tracking-tight">
                       {activeTab === 'DASHBOARD' && `Dashboard Analisis Lensa Role: ${(activeRole || 'FIELD_ENGINEER').replace('_', ' ')}`}
                       {activeTab === 'SIMULATOR' && 'Panel Simulasi Fizik PINN & OpenVINO Inference'}
                     </h2>
@@ -130,7 +130,7 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
 
                 <button
                   onClick={() => setActiveTab('MAP')}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl border border-white/20 shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition-all"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl border border-white/20 shadow-lg flex items-center space-x-2 transition-all"
                 >
                   <Map className="w-4 h-4 text-cyan-200" />
                   <span className="hidden sm:inline">Sembunyikan ke Peta Full-Screen</span>

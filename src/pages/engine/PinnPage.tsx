@@ -66,8 +66,8 @@ export const PinnPage: React.FC = () => {
       subtitle="What the engine computes today, and what is simulated or planned"
       onBack={closePage}
     >
-      <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 space-y-3">
-        <h3 className="text-sm font-extrabold text-white">Governing formulas</h3>
+      <div className="bg-surface border border-white/10 rounded-2xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-white">Governing formulas</h3>
         <p className="text-xs text-slate-400">
           P = axle load [t], h = asphalt thickness [cm], T = surface temperature [°C]. Empirical coefficients are fixed constants
           in the source; they have not been calibrated against a ground-truth FWD dataset in this repository.
@@ -86,8 +86,8 @@ export const PinnPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 space-y-3">
-        <h3 className="text-sm font-extrabold text-white">Capability status</h3>
+      <div className="bg-surface border border-white/10 rounded-2xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-white">Capability status</h3>
         <div className="space-y-3">
           {CAPABILITIES.map((item) => (
             <div key={item.capability} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 border-t border-white/5 pt-3">
@@ -104,7 +104,7 @@ export const PinnPage: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Link to={buildPath('engineSimulation')} className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs">
+        <Link to={buildPath('engineSimulation')} className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs">
           Buka Simulasi PINN
         </Link>
         <button onClick={onOpenOpenvinoModal} className={buttonClass}>

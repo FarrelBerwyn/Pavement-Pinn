@@ -16,7 +16,7 @@ interface PageOverlayProps {
  */
 export const PageOverlay: React.FC<PageOverlayProps> = ({ icon, title, subtitle, backLabel = 'Back to Map', onBack, children }) => {
   return (
-    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-[#0b0f19] p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200 text-slate-100 select-text">
+    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-canvas p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200 text-slate-100 select-text">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -51,7 +51,7 @@ const STATUS_STYLE: Record<ImplementationStatus, string> = {
 
 /** Honest capability label: what is really implemented vs simulated vs not built yet. */
 export const StatusBadge: React.FC<{ status: ImplementationStatus }> = ({ status }) => (
-  <span className={`inline-block text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[status]}`}>
+  <span className={`inline-block text-xs font-mono font-bold px-2 py-1 rounded-full border ${STATUS_STYLE[status]}`}>
     {status}
   </span>
 );

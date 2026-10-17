@@ -147,26 +147,23 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Title Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 backdrop-blur-xl p-5 rounded-3xl border border-white/10 shadow-2xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 p-5 rounded-2xl border border-white/10 shadow-2xl">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="px-3 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              PINN PDE SOLVER ENGINE
-            </span>
-            <span className="px-3 py-0.5 rounded-full text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              Intel® OpenVINO™ NNCF
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2 py-1 rounded-md text-xs font-medium text-slate-300 border border-line" title="Rumus deterministik lama; mesin MLET + PI-surrogate ada di panel Penilaian struktural (halaman ruas).">
+              Mesin aturan (RULE_BASED)
             </span>
           </div>
-          <h1 className="text-xl font-extrabold text-white mt-1">
+          <h1 className="text-xl font-semibold text-white mt-1">
             Simulasi Mekanika Perkerasan & Predictor Degradasi Jalan
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-1">
             Integrasi Hukum Fisika Teori Elastisitas Berlapis Burmister + Data Observasi FWD
           </p>
         </div>
 
         {/* Segment Selector Dropdown */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <span className="text-xs font-semibold text-slate-400 shrink-0">Pilih Ruas:</span>
           <select
             value={selectedSegment.id}
@@ -174,7 +171,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               const seg = roadSegments.find((r) => r.id === e.target.value);
               if (seg) onSelectSegment(seg);
             }}
-            className="bg-slate-900/60 border border-white/10 text-slate-100 text-xs font-semibold rounded-2xl px-3.5 py-2 focus:outline-none focus:border-indigo-400 max-w-xs shadow-inner backdrop-blur-md"
+            className="bg-slate-900/60 border border-white/10 text-slate-100 text-xs font-semibold rounded-2xl px-4 py-2 focus:outline-none focus:border-amber-400 min-w-0 w-full sm:w-auto max-w-xs"
           >
             {roadSegments.map((seg) => (
               <option key={seg.id} value={seg.id}>
@@ -187,12 +184,12 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Parameter Input Sliders (5 cols) */}
-        <div className="lg:col-span-5 space-y-5 bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl">
+        <div className="lg:col-span-5 space-y-5 bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl">
           {/* Role Focus Lens Badge */}
           <div className="bg-slate-900/80 border border-white/10 p-3 rounded-2xl flex items-center space-x-2 text-xs font-mono">
             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
             <span className="text-slate-400">Lensa Input Parameter:</span>
-            <span className={`font-bold px-2 py-0.5 rounded-full border ${
+            <span className={`font-bold px-2 py-1 rounded-full border ${
               activeRole === 'FIELD_ENGINEER'
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                 : activeRole === 'OPERATIONS_MANAGER'
@@ -208,19 +205,19 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               <Sliders className="w-4 h-4 text-cyan-400 mr-2" />
               Parameter Input Fisika & Lingkungan
             </h3>
-            <span className="text-[11px] font-mono text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
+            <span className="text-xs font-mono text-slate-400 bg-white/5 px-3 py-1 rounded-full border border-white/10">
               {selectedSegment.province}
             </span>
           </div>
 
           {/* Slider 1: Axle Load (ODOL) */}
-          <div className="space-y-1.5 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+          <div className="space-y-2 bg-white/5 p-4 rounded-2xl border border-white/10">
             <div className="flex justify-between items-center text-xs">
               <label className="font-bold text-slate-200 flex items-center">
-                <Truck className="w-3.5 h-3.5 text-rose-400 mr-1.5" />
+                <Truck className="w-4 h-4 text-rose-400 mr-2" />
                 Beban Sumbu Kendaraan (Axle Load)
               </label>
-              <span className="font-mono font-bold text-rose-300 bg-rose-500/20 px-2.5 py-0.5 rounded-full border border-rose-500/30">
+              <span className="font-mono font-bold text-rose-300 bg-rose-500/20 px-3 py-1 rounded-full border border-rose-500/30">
                 {axleLoadTon} Ton
               </span>
             </div>
@@ -233,12 +230,12 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               onChange={(e) => setAxleLoadTon(parseFloat(e.target.value))}
               className="w-full accent-rose-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+            <div className="flex justify-between text-xs text-slate-400 font-mono">
               <span>8 Ton (Light)</span>
               <span className="text-amber-400 font-bold">10 Ton (Limit)</span>
               <span className="text-rose-400 font-bold">25 Ton (Severe ODOL)</span>
             </div>
-            <p className="text-[11px] text-slate-400 pt-1 flex items-center">
+            <p className="text-xs text-slate-400 pt-1 flex items-center">
               <ShieldAlert className="w-3 h-3 text-amber-400 mr-1 shrink-0" />
               Hukum Pangkat 4: Kerusakan ={' '}
               <strong className="text-rose-400 font-mono ml-1">{odolMultiplier}x Lipat</strong>
@@ -246,19 +243,19 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
           </div>
 
           {/* Slider 2: Rain Intensity & Flood Duration */}
-          <div className="space-y-2.5 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+          <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10">
             <div className="flex justify-between items-center text-xs">
               <label className="font-bold text-slate-200 flex items-center">
-                <CloudRain className="w-3.5 h-3.5 text-cyan-400 mr-1.5" />
+                <CloudRain className="w-4 h-4 text-cyan-400 mr-2" />
                 Curah Hujan & Genangan Air
               </label>
-              <span className="font-mono font-bold text-cyan-300 bg-cyan-500/20 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+              <span className="font-mono font-bold text-cyan-300 bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30">
                 {rainIntensityMmHr} mm/jam | {floodDurationHours} jam
               </span>
             </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-400">Intensitas Hujan (mm/jam):</span>
+              <span className="text-xs text-slate-400">Intensitas Hujan (mm/jam):</span>
               <input
                 type="range"
                 min="0"
@@ -271,7 +268,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
             </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-400">Durasi Genangan (Jam):</span>
+              <span className="text-xs text-slate-400">Durasi Genangan (Jam):</span>
               <input
                 type="range"
                 min="0"
@@ -286,7 +283,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
 
           {/* Slider 3: Subgrade CBR % & Asphalt Thickness */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-1.5">
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-2">
               <div className="flex justify-between text-xs">
                 <label className="font-bold text-slate-300">CBR Tanah</label>
                 <span className="font-mono font-bold text-amber-400">{subgradeCbrPercent}%</span>
@@ -300,10 +297,10 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 onChange={(e) => setSubgradeCbrPercent(parseFloat(e.target.value))}
                 className="w-full accent-amber-500 cursor-pointer"
               />
-              <p className="text-[10px] text-slate-400">Es: {subgradeCbrPercent * 10} MPa</p>
+              <p className="text-xs text-slate-400">Es: {subgradeCbrPercent * 10} MPa</p>
             </div>
 
-            <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-1.5">
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-2">
               <div className="flex justify-between text-xs">
                 <label className="font-bold text-slate-300">Tebal Aspal</label>
                 <span className="font-mono font-bold text-emerald-400">{asphaltThicknessCm} cm</span>
@@ -317,15 +314,15 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 onChange={(e) => setAsphaltThicknessCm(parseFloat(e.target.value))}
                 className="w-full accent-emerald-500 cursor-pointer"
               />
-              <p className="text-[10px] text-slate-400">AC-WC / AC-BC</p>
+              <p className="text-xs text-slate-400">AC-WC / AC-BC</p>
             </div>
           </div>
 
           {/* Intel Hardware Execution Selector */}
-          <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 space-y-2.5">
+          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-cyan-300 flex items-center">
-                <Cpu className="w-3.5 h-3.5 mr-1 text-cyan-400" />
+                <Cpu className="w-4 h-4 mr-1 text-cyan-400" />
                 Target Intel AI Edge PC Device
               </span>
               <div className="flex items-center space-x-2">
@@ -336,7 +333,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                     setTargetDevice(profile.recommendedTarget);
                     setPrecisionMode(profile.recommendedPrecision);
                   }}
-                  className="text-[10px] bg-cyan-500/20 text-cyan-300 font-mono font-bold px-2 py-0.5 rounded-lg border border-cyan-500/30 hover:bg-cyan-500/30 flex items-center gap-1 transition-all"
+                  className="text-xs bg-cyan-500/20 text-cyan-300 font-mono font-bold px-2 py-1 rounded-lg border border-cyan-500/30 hover:bg-cyan-500/30 flex items-center gap-1 transition-all"
                   title="Deteksi otomatis kemampuan hardware perangkat ini"
                 >
                   <Gauge className="w-3 h-3 text-cyan-400" />
@@ -345,20 +342,20 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 <button
                   type="button"
                   onClick={onOpenOpenvinoModal}
-                  className="text-[10px] text-slate-400 underline hover:text-white"
+                  className="text-xs text-slate-400 underline hover:text-white"
                 >
                   Detail Arsitektur
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-1.5 text-center">
+            <div className="grid grid-cols-5 gap-2 text-center">
               <button
                 type="button"
                 onClick={() => setTargetDevice('AUTO')}
-                className={`py-2 px-1 rounded-xl text-[11px] font-mono font-bold transition-all ${
+                className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all ${
                   targetDevice === 'AUTO'
-                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 border border-white/20'
+                    ? 'bg-indigo-500 text-white shadow-lg  border border-white/20'
                     : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
                 }`}
               >
@@ -368,9 +365,9 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setTargetDevice('NPU')}
-                className={`py-2 px-1 rounded-xl text-[11px] font-mono font-bold transition-all ${
+                className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all ${
                   targetDevice === 'NPU'
-                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 border border-white/20'
+                    ? 'bg-indigo-500 text-white shadow-lg  border border-white/20'
                     : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
                 }`}
               >
@@ -380,9 +377,9 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setTargetDevice('iGPU')}
-                className={`py-2 px-1 rounded-xl text-[11px] font-mono font-bold transition-all ${
+                className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all ${
                   targetDevice === 'iGPU'
-                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 border border-white/20'
+                    ? 'bg-indigo-500 text-white shadow-lg  border border-white/20'
                     : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
                 }`}
               >
@@ -392,9 +389,9 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setTargetDevice('CPU')}
-                className={`py-2 px-1 rounded-xl text-[11px] font-mono font-bold transition-all ${
+                className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all ${
                   targetDevice === 'CPU'
-                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 border border-white/20'
+                    ? 'bg-indigo-500 text-white shadow-lg  border border-white/20'
                     : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
                 }`}
               >
@@ -404,9 +401,9 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setTargetDevice('MULTI')}
-                className={`py-2 px-1 rounded-xl text-[11px] font-mono font-bold transition-all ${
+                className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all ${
                   targetDevice === 'MULTI'
-                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 border border-white/20'
+                    ? 'bg-indigo-500 text-white shadow-lg  border border-white/20'
                     : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
                 }`}
               >
@@ -414,7 +411,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+            <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
               <span>Presisi Model:</span>
               <div className="flex space-x-1 font-mono">
                 {(['INT8_NNCF', 'FP16', 'FP32'] as PrecisionMode[]).map((mode) => (
@@ -422,7 +419,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                     key={mode}
                     type="button"
                     onClick={() => setPrecisionMode(mode)}
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] ${
+                    className={`px-3 py-1 rounded-full text-xs ${
                       precisionMode === mode
                         ? 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 font-bold'
                         : 'text-slate-400 hover:text-slate-200'
@@ -439,7 +436,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
           <button
             onClick={handleExecuteSimulation}
             disabled={isSimulating}
-            className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-extrabold text-sm py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-500/25 border border-white/20 flex items-center justify-center space-x-2 transition-all active:scale-98 disabled:opacity-50"
+            className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm py-4 px-4 rounded-2xl shadow-lg border border-white/20 flex items-center justify-center space-x-2 transition-all active:scale-98 disabled:opacity-50"
           >
             {isSimulating ? (
               <>
@@ -458,7 +455,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
         {/* Right Column: Simulation Output & Visual Cross-section (7 cols) */}
         <div className="lg:col-span-7 space-y-5">
           {/* 2D Multilayer Cross-Section Diagram */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl space-y-3">
+          <div className="bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center">
                 <Layers className="w-4 h-4 text-indigo-400 mr-2" />
@@ -470,35 +467,35 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
             </div>
 
             {/* Visual Layers Stack */}
-            <div className="space-y-1.5 rounded-2xl overflow-hidden border border-white/10 p-2.5 bg-slate-950/80">
+            <div className="space-y-2 rounded-2xl overflow-hidden border border-white/10 p-3 bg-slate-950/80">
               {/* Layer 1: Asphalt Wearing Course */}
               <div
                 style={{ height: `${Math.max(32, asphaltThicknessCm * 3)}px` }}
-                className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-xl p-2.5 flex items-center justify-between text-xs text-slate-100 font-mono border-b border-amber-500/40 relative overflow-hidden"
+                className=" bg-slate-800 rounded-xl p-3 flex items-center justify-between text-xs text-slate-100 font-mono border-b border-amber-500/40 relative overflow-hidden"
               >
                 <div className="flex items-center space-x-2 z-10">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
                   <span className="font-bold">Lapisan Aspal (AC-WC / AC-BC)</span>
                 </div>
                 <span className="font-bold text-amber-300 z-10">
                   {asphaltThicknessCm} cm | E₁ = {asphaltModulusMpa} MPa
                 </span>
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-[2px] bg-rose-500 shadow-sm shadow-rose-500" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-[2px] bg-rose-500 shadow-sm " />
               </div>
 
               {/* Layer 2: Granular Base Course */}
-              <div className="h-12 bg-gradient-to-r from-stone-800 via-stone-700 to-stone-800 rounded-xl p-2.5 flex items-center justify-between text-xs text-stone-300 font-mono border-b border-stone-600/40">
+              <div className="h-12 bg-stone-800 rounded-xl p-3 flex items-center justify-between text-xs text-stone-300 font-mono border-b border-stone-600/40">
                 <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-stone-400" />
+                  <span className="w-2 h-2 rounded-full bg-stone-400" />
                   <span>Lapisan Pondasi Atas (Katalog Kelas A)</span>
                 </div>
                 <span className="font-bold text-stone-400">15 cm | E₂ = 300 MPa</span>
               </div>
 
               {/* Layer 3: Subgrade Soil */}
-              <div className="h-16 bg-gradient-to-r from-amber-950/80 via-amber-900/60 to-amber-950/80 rounded-xl p-2.5 flex items-center justify-between text-xs text-amber-200 font-mono relative">
+              <div className="h-16 bg-amber-950/80 rounded-xl p-3 flex items-center justify-between text-xs text-amber-200 font-mono relative">
                 <div className="flex items-center space-x-2 z-10">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-600" />
+                  <span className="w-2 h-2 rounded-full bg-amber-600" />
                   <span>Tanah Dasar (Subgrade Soil)</span>
                 </div>
                 <span className="font-bold text-amber-300 z-10">
@@ -511,7 +508,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-400 flex items-center justify-between font-mono pt-1">
+            <p className="text-xs text-slate-400 flex items-center justify-between font-mono pt-1">
               <span>Garis Merah: Titik Kritis Regangan Tarik dasar aspal (εt)</span>
               <span className="text-cyan-400">Model Elastis Berlapis Burmister</span>
             </p>
@@ -525,9 +522,9 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 <div className="flex items-center space-x-2">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                   <span className="text-slate-300 font-bold">Ringkasan Output Spesifik Role:</span>
-                  <span className="text-cyan-300 font-bold uppercase">{(activeRole || 'FIELD_ENGINEER').replace('_', ' ')}</span>
+                  <span className="text-cyan-300 font-bold">{(activeRole || 'FIELD_ENGINEER').replace('_', ' ')}</span>
                 </div>
-                <span className="text-[10px] text-slate-400">Model PINN + Rule Engine</span>
+                <span className="text-xs text-slate-400">Model PINN + Rule Engine</span>
               </div>
 
               {/* Primary Key Metrics Cards Customized by Active Role */}
@@ -535,17 +532,17 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 {/* FIELD ENGINEER METRICS */}
                 {activeRole === 'FIELD_ENGINEER' && (
                   <>
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Prediksi PCI
                       </p>
-                      <p className="text-xl font-extrabold text-white mt-1 font-mono">
+                      <p className="text-xl font-semibold text-white mt-1 font-mono">
                         {currentResult.predictedPci}{' '}
                         <span className="text-xs font-normal text-rose-400">
                           (-{currentResult.pciDropPoints})
                         </span>
                       </p>
-                      <span className="text-[10px] font-bold text-amber-400">
+                      <span className="text-xs font-bold text-amber-400">
                         {currentResult.predictedPci > 70
                           ? 'Mantap'
                           : currentResult.predictedPci > 50
@@ -554,12 +551,12 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                       </span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Regangan Tarik (εt)
                       </p>
                       <p
-                        className={`text-xl font-extrabold mt-1 font-mono ${
+                        className={`text-xl font-semibold mt-1 font-mono ${
                           currentResult.tensors.tensileStrainEt > 200
                             ? 'text-rose-400'
                             : 'text-amber-400'
@@ -567,31 +564,31 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                       >
                         {currentResult.tensors.tensileStrainEt} <span className="text-xs">µε</span>
                       </p>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-xs text-slate-400">
                         {currentResult.tensors.tensileStrainEt > 200 ? 'Melebihi Ijin' : 'Aman'}
                       </span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Pothole Horizon
                       </p>
-                      <p className="text-xl font-extrabold text-cyan-400 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-cyan-400 mt-1 font-mono">
                         {currentResult.roleOutputs.fieldEngineer.potholeHorizonDays}{' '}
                         <span className="text-xs font-normal text-slate-300">Hari</span>
                       </p>
-                      <span className="text-[10px] text-slate-400">Estimasi Lubang</span>
+                      <span className="text-xs text-slate-400">Estimasi Lubang</span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Rekomendasi Overlay
                       </p>
-                      <p className="text-xl font-extrabold text-emerald-400 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-emerald-400 mt-1 font-mono">
                         {currentResult.roleOutputs.fieldEngineer.recommendedOverlayThicknessCm}{' '}
                         <span className="text-xs font-normal text-slate-300">cm</span>
                       </p>
-                      <span className="text-[10px] text-slate-400 truncate block">AC-WC Overlay</span>
+                      <span className="text-xs text-slate-400 truncate block">AC-WC Overlay</span>
                     </div>
                   </>
                 )}
@@ -599,48 +596,48 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 {/* OPERATIONS MANAGER METRICS */}
                 {activeRole === 'OPERATIONS_MANAGER' && (
                   <>
-                    <div className="bg-rose-950/30 border border-rose-500/40 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-rose-300 uppercase font-bold">
+                    <div className="bg-rose-950/30 border border-rose-500/40 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-rose-300 font-bold">
                         Status Sinyal WIM
                       </p>
-                      <p className="text-lg font-extrabold text-rose-400 mt-1 font-mono flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                      <p className="text-lg font-semibold text-rose-400 mt-1 font-mono flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                         {currentResult.roleOutputs.operationsManager.alertStatus}
                       </p>
-                      <span className="text-[10px] text-rose-200 font-bold">Truk ODOL &gt; 20 Ton</span>
+                      <span className="text-xs text-rose-200 font-bold">Truk ODOL &gt; 20 Ton</span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Beban Sumbu Truk
                       </p>
-                      <p className="text-xl font-extrabold text-rose-400 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-rose-400 mt-1 font-mono">
                         {axleLoadTon}{' '}
                         <span className="text-xs font-normal text-slate-300">Ton</span>
                       </p>
-                      <span className="text-[10px] text-rose-300 font-bold">
+                      <span className="text-xs text-rose-300 font-bold">
                         +{ Math.max(0, axleLoadTon - 10).toFixed(1) } Ton Kelebihan
                       </span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Kerusakan (Pangkat 4)
                       </p>
-                      <p className="text-xl font-extrabold text-amber-400 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-amber-400 mt-1 font-mono">
                         {odolMultiplier}x
                       </p>
-                      <span className="text-[10px] text-slate-400">Accelerated Wear</span>
+                      <span className="text-xs text-slate-400">Accelerated Wear</span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Aksi Penindakan
                       </p>
-                      <p className="text-xs font-extrabold text-cyan-300 mt-1 truncate">
+                      <p className="text-xs font-semibold text-cyan-300 mt-1 truncate">
                         {currentResult.roleOutputs.operationsManager.wimActionRequired}
                       </p>
-                      <span className="text-[10px] text-emerald-400 font-bold">Tilang ANPR Active</span>
+                      <span className="text-xs text-emerald-400 font-bold">Tilang ANPR Active</span>
                     </div>
                   </>
                 )}
@@ -648,51 +645,51 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 {/* POLICY MAKER METRICS */}
                 {activeRole === 'POLICY_MAKER' && (
                   <>
-                    <div className="bg-indigo-950/30 border border-indigo-500/40 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-indigo-300 uppercase font-bold">
+                    <div className="bg-indigo-950/30 border border-indigo-500/40 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-indigo-300 font-bold">
                         Proyeksi PCI 5-Thn
                       </p>
-                      <p className="text-xl font-extrabold text-indigo-300 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-indigo-300 mt-1 font-mono">
                         {currentResult.roleOutputs.policyMaker.pci5YearProjection?.[5]?.pciPreventiveAction ?? currentResult.predictedPci} / 100
                       </p>
-                      <span className="text-[10px] text-slate-300">Analisis Long-Term</span>
+                      <span className="text-xs text-slate-300">Analisis Long-Term</span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Dampak Biaya 5-Thn
                       </p>
-                      <p className="text-lg font-extrabold text-emerald-400 mt-1 font-mono">
+                      <p className="text-lg font-semibold text-emerald-400 mt-1 font-mono">
                         Belum dihitung
                       </p>
-                      <span className="text-[10px] text-emerald-300 font-bold">Preventive Cost</span>
+                      <span className="text-xs text-emerald-300 font-bold">Preventive Cost</span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Rasio Cost-Benefit
                       </p>
-                      <p className="text-xl font-extrabold text-cyan-400 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-cyan-400 mt-1 font-mono">
                         3.8x <span className="text-xs font-normal text-slate-300">ROI</span>
                       </p>
-                      <span className="text-[10px] text-slate-400">Zero ODOL Impact</span>
+                      <span className="text-xs text-slate-400">Zero ODOL Impact</span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-3xl shadow-xl">
-                      <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl shadow-xl">
+                      <p className="text-xs text-slate-400 font-bold">
                         Target Zero ODOL
                       </p>
-                      <p className="text-xl font-extrabold text-amber-300 mt-1 font-mono">
+                      <p className="text-xl font-semibold text-amber-300 mt-1 font-mono">
                         2027
                       </p>
-                      <span className="text-[10px] text-emerald-400 font-bold">Priority High</span>
+                      <span className="text-xs text-emerald-400 font-bold">Priority High</span>
                     </div>
                   </>
                 )}
               </div>
 
               {/* AI Multi-Stakeholder Narrative Box */}
-              <div className="bg-white/5 border border-white/10 p-5 rounded-3xl shadow-2xl space-y-3">
+              <div className="bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl space-y-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center space-x-2">
                     <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
@@ -700,12 +697,12 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                       Analisis Kecerdasan Buatan (Lensa: {(activeRole || 'FIELD_ENGINEER').replace('_', ' ')})
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/30">
+                  <span className="text-xs font-mono text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-full border border-indigo-500/30">
                     Gemini 2.5 + PINN Rule Engine
                   </span>
                 </div>
 
-                <div className="text-xs text-slate-200 leading-relaxed font-sans min-h-[60px] whitespace-pre-line bg-slate-950/80 p-3.5 rounded-2xl border border-white/10">
+                <div className="text-xs text-slate-200 leading-relaxed font-sans min-h-[60px] whitespace-pre-line bg-slate-950/80 p-4 rounded-2xl border border-white/10">
                   {isGeneratingNarrative ? (
                     <div className="flex items-center space-x-2 text-indigo-400 animate-pulse">
                       <RefreshCw className="w-4 h-4 animate-spin" />
@@ -720,16 +717,16 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
                 <div className="flex justify-end pt-1">
                   <button
                     onClick={() => generateOfficialReportPdf(currentResult, activeRole)}
-                    className="bg-indigo-500 hover:bg-indigo-400 text-white border border-white/20 text-xs font-semibold px-4 py-2 rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center space-x-1.5 transition-all"
+                    className="bg-indigo-500 hover:bg-indigo-400 text-white border border-white/20 text-xs font-semibold px-4 py-2 rounded-2xl shadow-lg flex items-center space-x-2 transition-all"
                   >
-                    <FileDown className="w-3.5 h-3.5 text-cyan-200" />
+                    <FileDown className="w-4 h-4 text-cyan-200" />
                     <span>Cetak Laporan PDF Resmi</span>
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-white/5 border border-white/10 p-8 rounded-3xl text-center text-slate-400 space-y-2 shadow-2xl">
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl text-center text-slate-400 space-y-2 shadow-2xl">
               <Zap className="w-8 h-8 text-cyan-400 mx-auto animate-bounce" />
               <p className="text-sm font-bold text-slate-200">
                 Klik tombol "Jalankan Simulasi PINN" untuk memulai komputasi

@@ -23,7 +23,7 @@ export function getRhiStatusAndColor(rhi: number): {
   if (rhi >= 70) {
     return {
       status: 'Baik',
-      color: '#16a34a', // Vivid Green
+      color: '#57ae78', // Vivid Green
       badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       lineWeight: 3.5
     };
@@ -31,7 +31,7 @@ export function getRhiStatusAndColor(rhi: number): {
   if (rhi >= 50) {
     return {
       status: 'Sedang',
-      color: '#eab308', // Vivid Amber/Yellow
+      color: '#e8b23a', // Vivid Amber/Yellow
       badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
       lineWeight: 3.5
     };
@@ -39,14 +39,14 @@ export function getRhiStatusAndColor(rhi: number): {
   if (rhi >= 30) {
     return {
       status: 'Buruk',
-      color: '#f97316', // Vivid Orange
+      color: '#e2823d', // Vivid Orange
       badgeClass: 'bg-orange-50 text-orange-700 border-orange-200',
       lineWeight: 4
     };
   }
   return {
     status: 'Sangat Buruk',
-    color: '#ef4444', // Vivid Red
+    color: '#d9655d', // Vivid Red
     badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
     lineWeight: 4.5
   };

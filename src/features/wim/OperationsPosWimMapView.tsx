@@ -357,7 +357,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'cikampek',
       name: 'Tol Jakarta - Cikampek KM 62',
       status: 'KRITIS',
-      color: '#ef4444',
+      color: '#d9655d',
       coords: [
         [-6.2383, 106.9756],
         [-6.2750, 107.0500],
@@ -371,7 +371,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'jagorawi',
       name: 'Tol Jagorawi KM 48',
       status: 'SIAGA',
-      color: '#f97316',
+      color: '#e2823d',
       coords: [
         [-6.2600, 106.8700],
         [-6.3800, 106.8600],
@@ -384,7 +384,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'jorr',
       name: 'Tol JORR Outer Ring KM 12',
       status: 'WASPADA',
-      color: '#eab308',
+      color: '#e8b23a',
       coords: [
         [-6.1800, 106.7400],
         [-6.2950, 106.8120],
@@ -397,7 +397,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'tangerang',
       name: 'Tol Tangerang - Merak',
       status: 'NORMAL',
-      color: '#22c55e',
+      color: '#57ae78',
       coords: [
         [-6.1783, 106.6319],
         [-6.1950, 106.5000],
@@ -410,7 +410,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'dalam_kota',
       name: 'Tol Dalam Kota (Inner Ring)',
       status: 'NORMAL',
-      color: '#10b981',
+      color: '#57ae78',
       coords: [
         [-6.1800, 106.8200],
         [-6.2000, 106.8000],
@@ -425,7 +425,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'desari',
       name: 'Tol Desari (Depok - Antasari)',
       status: 'WASPADA',
-      color: '#eab308',
+      color: '#e8b23a',
       coords: [
         [-6.2800, 106.8000],
         [-6.3400, 106.7900],
@@ -437,7 +437,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       id: 'priok',
       name: 'Arteri Pelabuhan Tanjung Priok',
       status: 'KRITIS',
-      color: '#ef4444',
+      color: '#d9655d',
       coords: [
         [-6.1100, 106.8800],
         [-6.1250, 106.9100],
@@ -485,8 +485,8 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
 
       line.bindTooltip(
         `<div class="p-1 text-xs font-bold text-slate-900">
-          <div class="font-extrabold">${corr.name}</div>
-          <div class="text-[11px] text-slate-600">${corr.info}</div>
+          <div class="font-semibold">${corr.name}</div>
+          <div class="text-xs text-slate-600">${corr.info}</div>
         </div>`,
         { sticky: true }
       );
@@ -507,14 +507,14 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       const isSiaga = stn.status === 'SIAGA';
 
       const wimHtml = `
-        <div class="relative flex items-center space-x-1.5 bg-slate-900/95 text-white text-[11px] font-bold px-3 py-1.5 rounded-2xl border ${
-          isCritical ? 'border-rose-500 shadow-rose-500/50' : isSiaga ? 'border-orange-500 shadow-orange-500/50' : 'border-emerald-500/80 shadow-emerald-500/30'
-        } shadow-lg backdrop-blur-md hover:scale-110 transition-transform cursor-pointer">
-          <span class="w-2.5 h-2.5 rounded-full ${
+        <div class="relative flex items-center space-x-2 bg-slate-900/95 text-white text-xs font-bold px-3 py-2 rounded-2xl border ${
+          isCritical ? 'border-rose-500 ' : isSiaga ? 'border-orange-500 ' : 'border-emerald-500/80 '
+        } shadow-lg  hover:scale-110 transition-transform cursor-pointer">
+          <span class="w-2 h-2 rounded-full ${
             isCritical ? 'bg-rose-500 animate-ping' : isSiaga ? 'bg-orange-500 animate-pulse' : 'bg-emerald-400'
           }"></span>
           <span class="truncate max-w-[120px]">${stn.name}</span>
-          <span class="text-[9px] px-1.5 py-0.2 rounded font-mono ${
+          <span class="text-xs px-2 py-0.2 rounded font-mono ${
             isCritical ? 'bg-rose-500/30 text-rose-300' : isSiaga ? 'bg-orange-500/30 text-orange-300' : 'bg-emerald-500/30 text-emerald-300'
           }">${stn.lastGvw.split(' ')[0]}</span>
         </div>
@@ -534,9 +534,9 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
 
       marker.bindTooltip(
         `<div class="p-1 text-xs">
-          <div class="font-extrabold text-slate-900">${stn.name}</div>
+          <div class="font-semibold text-slate-900">${stn.name}</div>
           <div class="text-slate-700">${stn.corridor}</div>
-          <div class="text-slate-500 font-mono text-[10px] mt-0.5">Beban Terakhir: ${stn.lastGvw}</div>
+          <div class="text-slate-500 font-mono text-xs mt-1">Beban Terakhir: ${stn.lastGvw}</div>
         </div>`,
         { direction: 'top', offset: [0, -14] }
       );
@@ -558,7 +558,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
         iconHtml = `
           <div class="relative flex items-center justify-center cursor-pointer hover:scale-125 transition-transform">
             <span class="absolute w-10 h-10 rounded-full bg-rose-500/40 animate-ping"></span>
-            <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-black">
+            <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-semibold">
               !
             </div>
           </div>
@@ -583,7 +583,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       } else {
         iconHtml = `
           <div class="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform">
-            <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-black">
+            <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-semibold">
               ✓
             </div>
           </div>
@@ -682,10 +682,10 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
   };
 
   return (
-    <div id="operations-pos-wim-root" className="w-full h-full flex flex-col relative select-none font-sans text-slate-100 bg-[#07090e]">
+    <div id="operations-pos-wim-root" className="w-full h-full flex flex-col relative select-none font-sans text-slate-100 bg-canvas">
       {/* Toast Alert Success */}
       {actionSuccessMessage && (
-        <div className="fixed top-16 right-6 z-50 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-emerald-600/40 flex items-center space-x-3 border border-emerald-400 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-16 right-6 z-50 bg-emerald-600 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border border-emerald-400 animate-in fade-in slide-in-from-top-4 duration-300">
           <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
           <span className="text-xs sm:text-sm font-semibold">{actionSuccessMessage}</span>
           <button onClick={() => setActionSuccessMessage(null)} className="p-1 hover:bg-emerald-700 rounded-lg text-emerald-200 cursor-pointer">
@@ -699,22 +699,22 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       {/* ========================================================================= */}
       <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
         {/* Left Side: Brand Title & Quick Search */}
-        <div className="flex flex-wrap items-center gap-2.5 pointer-events-auto">
+        <div className="flex flex-wrap items-center gap-3 pointer-events-auto">
           {/* Main Title Badge */}
-          <div className="flex items-center space-x-3 bg-slate-900/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-slate-800 shadow-2xl">
+          <div className="flex items-center space-x-3 bg-slate-900/90 px-4 py-3 rounded-2xl border border-slate-800 shadow-2xl">
             <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30 shrink-0">
               <Scale className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight">
+                <h1 className="text-sm sm:text-base font-semibold text-white tracking-tight">
                   Peta & POS WIM
                 </h1>
-                <span className="text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">
+                <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-1 rounded-full border border-rose-500/30">
                   LIVE TELEMETRI
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">Monitoring Sensor Beban Truk & Kondisi Koridor</p>
+              <p className="text-xs text-slate-400">Monitoring Sensor Beban Truk & Kondisi Koridor</p>
             </div>
           </div>
 
@@ -726,14 +726,14 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               placeholder="Cari Koridor / Pos WIM..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 text-xs bg-slate-900/90 backdrop-blur-xl border border-slate-800 text-white placeholder-slate-500 rounded-2xl w-56 focus:w-64 focus:ring-2 focus:ring-rose-500 outline-none transition-all shadow-xl"
+              className="pl-9 pr-3 py-2 text-xs bg-slate-900/90 border border-slate-800 text-white placeholder-slate-500 rounded-2xl w-56 focus:w-64 focus:ring-2 focus:ring-rose-500 outline-none transition-all shadow-xl"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -745,9 +745,9 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           <div className="relative">
             <button
               onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-              className="flex items-center space-x-1.5 px-3 py-2 bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
+              className="flex items-center space-x-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
             >
-              <Layers className="w-3.5 h-3.5 text-amber-400" />
+              <Layers className="w-4 h-4 text-amber-400" />
               <span>
                 {selectedStatusFilter === 'ALL'
                   ? 'Semua Status'
@@ -763,68 +763,68 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
             </button>
 
             {isFilterDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-44 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 py-1.5 z-40 animate-in fade-in duration-150">
+              <div className="absolute top-full right-0 mt-2 w-44 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 py-2 z-40 animate-in fade-in duration-150">
                 <button
                   onClick={() => {
                     setSelectedStatusFilter('ALL');
                     setIsFilterDropdownOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span>Semua Status</span>
-                  {selectedStatusFilter === 'ALL' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                  {selectedStatusFilter === 'ALL' && <Check className="w-4 h-4 text-amber-400" />}
                 </button>
                 <button
                   onClick={() => {
                     setSelectedStatusFilter('KRITIS');
                     setIsFilterDropdownOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                     <span>Kritis (ODOL {'>'}50%)</span>
                   </span>
-                  {selectedStatusFilter === 'KRITIS' && <Check className="w-3.5 h-3.5 text-rose-400" />}
+                  {selectedStatusFilter === 'KRITIS' && <Check className="w-4 h-4 text-rose-400" />}
                 </button>
                 <button
                   onClick={() => {
                     setSelectedStatusFilter('SIAGA');
                     setIsFilterDropdownOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-orange-500"></span>
                     <span>Siaga (Hujan/Cuaca)</span>
                   </span>
-                  {selectedStatusFilter === 'SIAGA' && <Check className="w-3.5 h-3.5 text-orange-400" />}
+                  {selectedStatusFilter === 'SIAGA' && <Check className="w-4 h-4 text-orange-400" />}
                 </button>
                 <button
                   onClick={() => {
                     setSelectedStatusFilter('WASPADA');
                     setIsFilterDropdownOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                     <span>Waspada (Genangan)</span>
                   </span>
-                  {selectedStatusFilter === 'WASPADA' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                  {selectedStatusFilter === 'WASPADA' && <Check className="w-4 h-4 text-amber-400" />}
                 </button>
                 <button
                   onClick={() => {
                     setSelectedStatusFilter('NORMAL');
                     setIsFilterDropdownOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                     <span>Normal</span>
                   </span>
-                  {selectedStatusFilter === 'NORMAL' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                  {selectedStatusFilter === 'NORMAL' && <Check className="w-4 h-4 text-emerald-400" />}
                 </button>
               </div>
             )}
@@ -834,21 +834,21 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           <div className="relative">
             <button
               onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-              className="flex items-center space-x-1.5 px-3 py-2 bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
+              className="flex items-center space-x-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
             >
               {mapTheme === 'DARK_MODE' ? (
                 <>
-                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                  <Moon className="w-4 h-4 text-indigo-400" />
                   <span className="hidden sm:inline">Dark Mode</span>
                 </>
               ) : mapTheme === 'SATELLITE' ? (
                 <>
-                  <Satellite className="w-3.5 h-3.5 text-emerald-400" />
+                  <Satellite className="w-4 h-4 text-emerald-400" />
                   <span className="hidden sm:inline">Satelit</span>
                 </>
               ) : (
                 <>
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <Sun className="w-4 h-4 text-amber-400" />
                   <span className="hidden sm:inline">Real Terang</span>
                 </>
               )}
@@ -856,45 +856,45 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
             </button>
 
             {isThemeMenuOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-40 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 py-1.5 z-40 animate-in fade-in duration-150">
+              <div className="absolute top-full right-0 mt-2 w-40 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 py-2 z-40 animate-in fade-in duration-150">
                 <button
                   onClick={() => {
                     setMapTheme('DARK_MODE');
                     setIsThemeMenuOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                    <Moon className="w-4 h-4 text-indigo-400" />
                     <span>Dark Mode</span>
                   </span>
-                  {mapTheme === 'DARK_MODE' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                  {mapTheme === 'DARK_MODE' && <Check className="w-4 h-4 text-indigo-400" />}
                 </button>
                 <button
                   onClick={() => {
                     setMapTheme('SATELLITE');
                     setIsThemeMenuOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <Satellite className="w-3.5 h-3.5 text-emerald-400" />
+                    <Satellite className="w-4 h-4 text-emerald-400" />
                     <span>Satelit</span>
                   </span>
-                  {mapTheme === 'SATELLITE' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                  {mapTheme === 'SATELLITE' && <Check className="w-4 h-4 text-emerald-400" />}
                 </button>
                 <button
                   onClick={() => {
                     setMapTheme('REAL_LIGHT');
                     setIsThemeMenuOpen(false);
                   }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
                 >
                   <span className="flex items-center space-x-2">
-                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <Sun className="w-4 h-4 text-amber-400" />
                     <span>Real Terang</span>
                   </span>
-                  {mapTheme === 'REAL_LIGHT' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                  {mapTheme === 'REAL_LIGHT' && <Check className="w-4 h-4 text-amber-400" />}
                 </button>
               </div>
             )}
@@ -904,7 +904,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           <button
             onClick={handleRecenter}
             title="Pusatkan Peta"
-            className="p-2.5 bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-cyan-400 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
+            className="p-3 bg-slate-900/90 hover:bg-slate-800 text-cyan-400 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
           >
             <Crosshair className="w-4 h-4" />
           </button>
@@ -912,7 +912,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           {/* "+ Buat Peringatan" Yellow Button */}
           <button
             onClick={() => setIsCreateAlertModalOpen(true)}
-            className="bg-[#f59e0b] hover:bg-[#d97706] text-slate-950 font-extrabold text-xs px-4 py-2.5 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center space-x-1.5 transition-all cursor-pointer active:scale-95 border border-amber-300"
+            className="bg-[#e8b23a] hover:bg-[#d97706] text-slate-950 font-semibold text-xs px-4 py-3 rounded-2xl shadow-lg flex items-center space-x-2 transition-all cursor-pointer active:scale-95 border border-amber-300"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span className="hidden sm:inline">Buat Peringatan</span>
@@ -924,23 +924,23 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       {/* TOP FLOATING KPI STATS RIBBON (Dark Mode) */}
       {/* ========================================================================= */}
       <div className="absolute top-20 left-4 z-20 hidden md:flex items-center space-x-2 pointer-events-none">
-        <div className="flex items-center space-x-3 bg-slate-900/90 backdrop-blur-xl px-3.5 py-2 rounded-2xl border border-slate-800 shadow-2xl pointer-events-auto">
-          <div className="flex items-center space-x-1.5 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+        <div className="flex items-center space-x-3 bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-800 shadow-2xl pointer-events-auto">
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
             <span className="text-slate-400 font-medium">ODOL Kritis:</span>
-            <strong className="text-rose-400 font-extrabold font-mono">3 Lokasi</strong>
+            <strong className="text-rose-400 font-semibold font-mono">3 Lokasi</strong>
           </div>
           <div className="w-px h-4 bg-slate-700"></div>
-          <div className="flex items-center space-x-1.5 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span className="text-slate-400 font-medium">Stasiun WIM Aktif:</span>
-            <strong className="text-emerald-400 font-extrabold font-mono">24/24 Online</strong>
+            <strong className="text-emerald-400 font-semibold font-mono">24/24 Online</strong>
           </div>
           <div className="w-px h-4 bg-slate-700"></div>
-          <div className="flex items-center space-x-1.5 text-xs">
-            <Scale className="w-3.5 h-3.5 text-amber-400" />
+          <div className="flex items-center space-x-2 text-xs">
+            <Scale className="w-4 h-4 text-amber-400" />
             <span className="text-slate-400 font-medium">Overload Rate:</span>
-            <strong className="text-amber-400 font-extrabold font-mono">18.4%</strong>
+            <strong className="text-amber-400 font-semibold font-mono">18.4%</strong>
           </div>
         </div>
       </div>
@@ -952,7 +952,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
         <div ref={mapContainerRef} className="w-full h-full z-0 bg-slate-950" />
 
         {/* Zoom Controls floating bottom right */}
-        <div className="absolute right-4 bottom-48 sm:bottom-40 z-20 flex flex-col space-y-1 bg-slate-900/90 backdrop-blur-xl p-1 rounded-2xl border border-slate-800 shadow-2xl">
+        <div className="absolute right-4 bottom-48 sm:bottom-40 z-20 flex flex-col space-y-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-800 shadow-2xl">
           <button
             onClick={handleZoomIn}
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-all cursor-pointer"
@@ -974,21 +974,21 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col space-y-2 pointer-events-none">
         {/* Carousel Header Bar */}
         <div className="flex items-center justify-between px-1 pointer-events-auto">
-          <div className="flex items-center space-x-2 bg-slate-900/90 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-slate-800 shadow-lg text-xs">
-            <span className="font-extrabold text-white">Anomali Terdeteksi & Pos WIM Prioritas</span>
-            <span className="text-[10px] text-slate-400 font-mono">({activeAlerts.length} Insiden Aktif)</span>
+          <div className="flex items-center space-x-2 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-800 shadow-lg text-xs">
+            <span className="font-semibold text-white">Anomali Terdeteksi & Pos WIM Prioritas</span>
+            <span className="text-xs text-slate-400 font-mono">({activeAlerts.length} Insiden Aktif)</span>
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-2">
             <button
               onClick={scrollCarouselLeft}
-              className="p-1.5 rounded-xl bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-slate-200 border border-slate-800 shadow-lg cursor-pointer"
+              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 shadow-lg cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={scrollCarouselRight}
-              className="p-1.5 rounded-xl bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-slate-200 border border-slate-800 shadow-lg cursor-pointer"
+              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 shadow-lg cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -1001,24 +1001,24 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           className="flex items-stretch space-x-3 overflow-x-auto pb-1 pointer-events-auto custom-scrollbar scroll-smooth"
         >
           {/* Card 1: Critical ODOL Alert KM 62 */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 backdrop-blur-xl border border-rose-500/40 rounded-3xl shadow-2xl p-4 flex flex-col justify-between hover:border-rose-400 transition-all">
+          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-rose-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-rose-400 transition-all">
             <div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded-full">
                     KRITIS
                   </span>
                   <span className="text-xs font-bold text-white">ODOL Terlampaui</span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">Baru saja</span>
+                <span className="text-xs text-slate-400 font-mono">Baru saja</span>
               </div>
 
-              <div className="mt-2.5 space-y-1">
+              <div className="mt-3 space-y-1">
                 <h4 className="text-xs font-bold text-rose-300">KM 62 + 200, Tol Jakarta - Cikampek</h4>
-                <p className="text-[11px] text-slate-300 leading-tight">
+                <p className="text-xs text-slate-300 leading-tight">
                   Truk Tronton Golongan V terdeteksi GVW <strong className="text-white">67.4 Ton</strong> (+68.5% Overload).
                 </p>
-                <div className="flex items-center space-x-2 text-[10px] font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
                   <span>Kecepatan: 42 km/jam</span>
                   <span>•</span>
                   <span>Lajur 1 (Lambat)</span>
@@ -1026,16 +1026,16 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedAlertDetail(activeAlerts[0])}
-                className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
               >
                 Rincian
               </button>
               <button
                 onClick={() => handleExecuteAction('BATASI')}
-                className="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-rose-600/30 transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 Batasi Truk
               </button>
@@ -1043,24 +1043,24 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           </div>
 
           {/* Card 2: Priok Port Overload WIM */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 backdrop-blur-xl border border-rose-500/40 rounded-3xl shadow-2xl p-4 flex flex-col justify-between hover:border-rose-400 transition-all">
+          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-rose-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-rose-400 transition-all">
             <div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded-full">
                     KRITIS
                   </span>
                   <span className="text-xs font-bold text-white">Pos WIM Pelabuhan Priok</span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">2 mnt lalu</span>
+                <span className="text-xs text-slate-400 font-mono">2 mnt lalu</span>
               </div>
 
-              <div className="mt-2.5 space-y-1">
+              <div className="mt-3 space-y-1">
                 <h4 className="text-xs font-bold text-rose-300">Arteri Pelabuhan Tanjung Priok</h4>
-                <p className="text-[11px] text-slate-300 leading-tight">
+                <p className="text-xs text-slate-300 leading-tight">
                   Kontainer 40ft Gandeng terdeteksi <strong className="text-white">62.1 Ton</strong> (+55.2% Overload).
                 </p>
-                <div className="flex items-center space-x-2 text-[10px] font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
                   <span>Pelanggaran: 188 unit</span>
                   <span>•</span>
                   <span>Sensor 98.8%</span>
@@ -1068,16 +1068,16 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedWimStation(wimStations[1])}
-                className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
               >
                 Telemetri
               </button>
               <button
                 onClick={() => handleExecuteAction('TILANG')}
-                className="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-rose-600/30 transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 E-Tilang WIM
               </button>
@@ -1085,24 +1085,24 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           </div>
 
           {/* Card 3: Weather Alert Tol Jagorawi */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 backdrop-blur-xl border border-orange-500/40 rounded-3xl shadow-2xl p-4 flex flex-col justify-between hover:border-orange-400 transition-all">
+          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-orange-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-orange-400 transition-all">
             <div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-mono font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-mono font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2 py-1 rounded-full">
                     SIAGA
                   </span>
                   <span className="text-xs font-bold text-white">Hujan Lebat AWS</span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">5 mnt lalu</span>
+                <span className="text-xs text-slate-400 font-mono">5 mnt lalu</span>
               </div>
 
-              <div className="mt-2.5 space-y-1">
+              <div className="mt-3 space-y-1">
                 <h4 className="text-xs font-bold text-orange-300">KM 48 + 800, Tol Jagorawi</h4>
-                <p className="text-[11px] text-slate-300 leading-tight">
+                <p className="text-xs text-slate-300 leading-tight">
                   Intensitas hujan <strong className="text-white">78 mm/jam</strong>, resiko aquaplaning pada turunan Ciawi.
                 </p>
-                <div className="flex items-center space-x-2 text-[10px] font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
                   <span>Kecepatan Max: 60 km/jam</span>
                   <span>•</span>
                   <span>Visibilitas 300m</span>
@@ -1110,16 +1110,16 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedAlertDetail(activeAlerts[1])}
-                className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
               >
                 Rincian
               </button>
               <button
                 onClick={() => handleExecuteAction('ALIHKAN')}
-                className="flex-1 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-orange-600/30 transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 VMS Peringatan
               </button>
@@ -1127,24 +1127,24 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           </div>
 
           {/* Card 4: WIM Lenteng Agung */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 backdrop-blur-xl border border-amber-500/40 rounded-3xl shadow-2xl p-4 flex flex-col justify-between hover:border-amber-400 transition-all">
+          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-amber-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-amber-400 transition-all">
             <div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-full">
                     WASPADA
                   </span>
                   <span className="text-xs font-bold text-white">Genangan Air Box Culvert</span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">8 mnt lalu</span>
+                <span className="text-xs text-slate-400 font-mono">8 mnt lalu</span>
               </div>
 
-              <div className="mt-2.5 space-y-1">
+              <div className="mt-3 space-y-1">
                 <h4 className="text-xs font-bold text-amber-300">KM 12 + 400, Tol JORR</h4>
-                <p className="text-[11px] text-slate-300 leading-tight">
+                <p className="text-xs text-slate-300 leading-tight">
                   Genangan setinggi <strong className="text-white">15 cm</strong> di lajur 1 akibat sumbatan sampah inlet.
                 </p>
-                <div className="flex items-center space-x-2 text-[10px] font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
                   <span>Pompa Mobile: Standby</span>
                   <span>•</span>
                   <span>Laju 30 km/jam</span>
@@ -1152,16 +1152,16 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedAlertDetail(activeAlerts[2])}
-                className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
               >
                 Rincian
               </button>
               <button
                 onClick={() => handleExecuteAction('KIRIM_TIM')}
-                className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 SPK Tim Pompa
               </button>
@@ -1174,17 +1174,17 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       {/* MODAL 1: DETAIL POS WIM / TELEMETRI LENGKAP (DARK THEME) */}
       {/* ========================================================================= */}
       {selectedWimStation && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      className={`text-xs font-bold px-2 py-1 rounded-full font-mono ${
                         selectedWimStation.status === 'KRITIS'
                           ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                           : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
@@ -1194,50 +1194,50 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                     </span>
                     <span className="text-xs text-slate-400">{selectedWimStation.sensorHealth}</span>
                   </div>
-                  <h3 className="font-extrabold text-base text-white mt-0.5">{selectedWimStation.name}</h3>
+                  <h3 className="font-semibold text-base text-white mt-1">{selectedWimStation.name}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedWimStation(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-5 space-y-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80">
-                <span className="text-slate-400 text-[11px]">Koridor Ruas:</span>
-                <p className="text-sm font-bold text-white mt-0.5">{selectedWimStation.corridor}</p>
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80">
+                <span className="text-slate-400 text-xs">Koridor Ruas:</span>
+                <p className="text-sm font-bold text-white mt-1">{selectedWimStation.corridor}</p>
                 <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/60">
-                    <span className="text-slate-400 text-[10px]">Beban Terakhir:</span>
-                    <p className="text-sm font-extrabold text-rose-400 mt-0.5">{selectedWimStation.lastGvw}</p>
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-700/60">
+                    <span className="text-slate-400 text-xs">Beban Terakhir:</span>
+                    <p className="text-sm font-semibold text-rose-400 mt-1">{selectedWimStation.lastGvw}</p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/60">
-                    <span className="text-slate-400 text-[10px]">Truk Tertinggi Hari Ini:</span>
-                    <p className="text-sm font-extrabold text-amber-400 mt-0.5">{selectedWimStation.maxGvwToday}</p>
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-700/60">
+                    <span className="text-slate-400 text-xs">Truk Tertinggi Hari Ini:</span>
+                    <p className="text-sm font-semibold text-amber-400 mt-1">{selectedWimStation.maxGvwToday}</p>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-slate-400 text-[10px]">Kendaraan Ditimbang</span>
-                  <p className="text-base font-bold text-white mt-0.5 font-mono">{selectedWimStation.liveVehicles}</p>
+                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-slate-400 text-xs">Kendaraan Ditimbang</span>
+                  <p className="text-base font-bold text-white mt-1 font-mono">{selectedWimStation.liveVehicles}</p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-slate-400 text-[10px]">Pelanggaran ODOL</span>
-                  <p className="text-base font-bold text-rose-400 mt-0.5 font-mono">{selectedWimStation.overloadCount}</p>
+                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-slate-400 text-xs">Pelanggaran ODOL</span>
+                  <p className="text-base font-bold text-rose-400 mt-1 font-mono">{selectedWimStation.overloadCount}</p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <span className="text-slate-400 text-[10px]">Jumlah Lajur</span>
-                  <p className="text-base font-bold text-white mt-0.5 font-mono">{selectedWimStation.laneCount} Lajur</p>
+                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <span className="text-slate-400 text-xs">Jumlah Lajur</span>
+                  <p className="text-base font-bold text-white mt-1 font-mono">{selectedWimStation.laneCount} Lajur</p>
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 flex items-start space-x-2">
-                <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 flex items-start space-x-2">
+                <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-1" />
                 <p className="text-amber-200/90 text-xs leading-relaxed">
                   Kamera ANPR optik dan sensor timbang terhubung dengan sistem ETLE Korlantas Polri & Ditjen Perhubungan Darat.
                 </p>
@@ -1269,17 +1269,17 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       {/* MODAL 2: DETAIL INSIDEN / PERINGATAN (DARK THEME) */}
       {/* ========================================================================= */}
       {selectedAlertDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-slate-800 text-amber-400">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      className={`text-xs font-bold px-2 py-1 rounded-full font-mono ${
                         selectedAlertDetail.level === 'KRITIS'
                           ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                           : selectedAlertDetail.level === 'SIAGA'
@@ -1293,21 +1293,21 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                     </span>
                     <span className="text-xs text-slate-400 font-mono">{selectedAlertDetail.timeAgo}</span>
                   </div>
-                  <h3 className="font-extrabold text-base text-white mt-0.5">{selectedAlertDetail.title}</h3>
+                  <h3 className="font-semibold text-base text-white mt-1">{selectedAlertDetail.title}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedAlertDetail(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-5 space-y-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80">
-                <span className="text-slate-400 text-[11px]">Lokasi Ruas:</span>
-                <p className="text-sm font-bold text-white mt-0.5">{selectedAlertDetail.location}</p>
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80">
+                <span className="text-slate-400 text-xs">Lokasi Ruas:</span>
+                <p className="text-sm font-bold text-white mt-1">{selectedAlertDetail.location}</p>
                 <p className="text-xs text-amber-400 font-semibold mt-1">{selectedAlertDetail.meta}</p>
               </div>
 
@@ -1319,7 +1319,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
 
               {selectedAlertDetail.recommendedAction && (
-                <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30">
+                <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30">
                   <div className="flex items-center space-x-2 text-amber-400 font-bold mb-1">
                     <ShieldAlert className="w-4 h-4" />
                     <span>Rekomendasi Tindakan Operasional:</span>
@@ -1356,21 +1356,21 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       {/* MODAL 3: BUAT PERINGATAN BARU (DARK THEME) */}
       {/* ========================================================================= */}
       {isCreateAlertModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
                   <Plus className="w-5 h-5 stroke-[3]" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-white">Buat Peringatan Baru</h3>
+                  <h3 className="font-semibold text-base text-white">Buat Peringatan Baru</h3>
                   <p className="text-xs text-slate-400">Publikasikan sinyal peringatan ke VMS & Petugas Lapangan</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsCreateAlertModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1385,7 +1385,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                     onClick={() => setNewAlertForm({ ...newAlertForm, level: 'KRITIS' })}
                     className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
                       newAlertForm.level === 'KRITIS'
-                        ? 'bg-rose-500/20 border-rose-500 text-rose-300 font-extrabold'
+                        ? 'bg-rose-500/20 border-rose-500 text-rose-300 font-semibold'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
@@ -1396,7 +1396,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                     onClick={() => setNewAlertForm({ ...newAlertForm, level: 'SIAGA' })}
                     className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
                       newAlertForm.level === 'SIAGA'
-                        ? 'bg-orange-500/20 border-orange-500 text-orange-300 font-extrabold'
+                        ? 'bg-orange-500/20 border-orange-500 text-orange-300 font-semibold'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
@@ -1407,7 +1407,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                     onClick={() => setNewAlertForm({ ...newAlertForm, level: 'WASPADA' })}
                     className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
                       newAlertForm.level === 'WASPADA'
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-extrabold'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-semibold'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
                     }`}
                   >
@@ -1421,7 +1421,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                 <select
                   value={newAlertForm.category}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, category: e.target.value as any })}
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 >
                   <option value="ODOL">ODOL (Over Dimension Over Loading)</option>
                   <option value="WEATHER">Cuaca Ekstrem / Hujan Badai</option>
@@ -1438,7 +1438,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                   value={newAlertForm.title}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, title: e.target.value })}
                   required
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1450,7 +1450,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                   value={newAlertForm.location}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, location: e.target.value })}
                   required
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1461,7 +1461,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                   placeholder="Contoh: Beban berlebih: 68 ton | Kecepatan: 42 km/jam"
                   value={newAlertForm.meta}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, meta: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1472,7 +1472,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                   placeholder="Instruksi operasional bagi petugas gerbang / patroli..."
                   value={newAlertForm.details}
                   onChange={(e) => setNewAlertForm({ ...newAlertForm, details: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-white font-medium focus:ring-2 focus:ring-amber-500 outline-none"
                 />
               </div>
 
@@ -1486,7 +1486,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-lg shadow-amber-500/25 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow-lg transition-all cursor-pointer active:scale-95"
                 >
                   Terbitkan Peringatan
                 </button>
@@ -1500,18 +1500,18 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       {/* MODAL 4: KONFIRMASI TINDAKAN OPERASIONAL (DARK THEME) */}
       {/* ========================================================================= */}
       {isActionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
-                <h3 className="font-extrabold text-base text-white">Konfirmasi Tindakan Operasional</h3>
+                <h3 className="font-semibold text-base text-white">Konfirmasi Tindakan Operasional</h3>
               </div>
               <button
                 onClick={() => setIsActionModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1529,7 +1529,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                   'Apakah Anda ingin menerbitkan SPK darurat dan mengerahkan Tim Pemeliharaan Cepat Bina Marga ke lokasi?'}
               </p>
 
-              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/70 text-[11px] text-slate-400">
+              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/70 text-xs text-slate-400">
                 <p>Dispatcher: <strong className="text-white">{currentAccount.name}</strong></p>
                 <p>Hak Akses: <strong className="text-rose-400">Operations Manager (WIM & Dephub)</strong></p>
               </div>
@@ -1543,7 +1543,7 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
                 </button>
                 <button
                   onClick={handleConfirmAction}
-                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold shadow-lg shadow-rose-600/30 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold shadow-lg transition-all cursor-pointer active:scale-95"
                 >
                   Ya, Eksekusi Sekarang
                 </button>

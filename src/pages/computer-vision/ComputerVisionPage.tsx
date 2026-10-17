@@ -26,7 +26,7 @@ export const ComputerVisionPage: React.FC = () => {
       </div>
 
       <div className={cardClass}>
-        <h3 className="text-sm font-extrabold text-white">Taksonomi kelas kerusakan ({classes.length} kelas)</h3>
+        <h3 className="text-sm font-semibold text-white">Taksonomi kelas kerusakan ({classes.length} kelas)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>

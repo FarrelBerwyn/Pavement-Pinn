@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { RoadSegment, DamageReport, SimulationResult } from '../../types';
 import { UserAccount } from '../authentication/demoAccounts';
+import type { ReportCase } from '../../domain/workflow/model';
+import { StateBadge } from '../workflow/ReportWorkflowPanel';
 import { generateOfficialReportPdf } from '../../services/reporting/pdfGenerator';
 import { LeafletMap } from '../../components/maps/LeafletMap';
 
@@ -49,6 +51,8 @@ interface PavementPinnDashboardProps {
   onOpenTechnicalDetails?: () => void;
   onNavigateToSPK?: () => void;
   onNavigateToMap?: () => void;
+  /** Open workflow cases assigned to this engineer, soonest deadline first. */
+  assignedTasks?: ReportCase[];
   searchQuery?: string;
 }
 
@@ -64,6 +68,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
   onOpenTechnicalDetails,
   onNavigateToSPK,
   onNavigateToMap,
+  assignedTasks = [],
   searchQuery: externalSearchQuery
 }) => {
   // Condition filter
@@ -83,8 +88,10 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
   const completedChecklistCount = Object.values(checklist).filter(Boolean).length;
   
   // Modals state
-  const [activeModal, setActiveModal] = useState<'SURVEY_GUIDE' | 'DAMAGE_CATALOG' | 'TECH_DETAIL' | 'TASK_DETAIL' | null>(null);
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [activeModal, setActiveModal] = useState<'SURVEY_GUIDE' | 'DAMAGE_CATALOG' | 'TECH_DETAIL' | null>(null);
+
+  // "Tugas Saya": open cases an Operations Manager assigned to this engineer (shared workflow).
+  const myOpenTasks = assignedTasks;
 
   // Active Segment calculations
   const segmentReports = communityReports.filter((r) => r.segmentId === selectedSegment.id || r.segmentName.includes(selectedSegment.name));
@@ -109,59 +116,26 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Mock Tasks list
-  const tasksList = [
-    {
-      id: 'TSK-01',
-      title: 'Survei Kondisi Jl. Raya Bogor KM 28-30',
-      priority: 'TINGGI',
-      deadline: '12 Mei 2026',
-      location: 'Kec. Ciracas, Jakarta Timur',
-      status: 'Sedang Berjalan',
-      segmentId: selectedSegment.id,
-      notes: 'Lakukan pengukuran kedalaman lubang dan evaluasi retak kulit buaya menggunakan profilometrik.'
-    },
-    {
-      id: 'TSK-02',
-      title: 'Verifikasi Lendutan FWD Ruas Karawang Barat',
-      priority: 'SEDANG',
-      deadline: '15 Mei 2026',
-      location: 'Interchange Karawang Barat KM 02+400',
-      status: 'Menunggu Pengukuran',
-      segmentId: roadSegments[0]?.id,
-      notes: 'Uji lendutan FWD 50 kN untuk kalibrasi residual PDE Burmister PINN model.'
-    },
-    {
-      id: 'TSK-03',
-      title: 'Inspeksi Titik Timbangan WIM Tol Cikampek KM 42',
-      priority: 'TINGGI',
-      deadline: '18 Mei 2026',
-      location: 'Gerbang Tol Cikampek Utama',
-      status: 'Dijadwalkan',
-      segmentId: roadSegments[1]?.id,
-      notes: 'Korelasikan sensor beban sumbu WIM terhadap penurunan nilai PCI segmen.'
-    }
-  ];
 
   return (
-    <div className="min-h-full w-full bg-[#07090e] text-slate-100 font-sans pb-12">
+    <div className="min-h-full w-full bg-canvas text-slate-100 font-sans pb-12">
       {/* 2. MAIN DASHBOARD CONTENT (2 Columns Grid) */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 space-y-6">
         {/* Top Title & Quick Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 pb-4 border-b border-line">
+          <div className="min-w-0 flex-1 basis-[24rem] space-y-1">
+            <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>Dashboard Rekayasa & Kondisi Jalan</span>
-              <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
+              <span className="whitespace-nowrap text-xs font-medium text-amber-300 bg-amber-400/10 px-2 py-1 rounded-md border border-amber-400/20">
                 Intel OpenVINO Edge AI
               </span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400">
+            <p className="text-sm text-slate-400">
               Pantau, periksa, dan laporkan kondisi jalan di lapangan secara prediktif &bull; Insinyur: {currentAccount.name}
             </p>
           </div>
 
-          <div className="flex items-center space-x-2.5 shrink-0 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Download Official Report PDF */}
             <button
               onClick={() => {
@@ -172,7 +146,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                   onLaunchSimulation(selectedSegment);
                 }
               }}
-              className="px-3.5 py-1.5 rounded-2xl bg-[#161c2c] hover:bg-[#1f273d] text-slate-200 hover:text-white border border-white/10 text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer shadow-sm"
+              className="h-9 px-3 rounded-lg border border-line bg-surface hover:bg-elevated text-slate-200 hover:text-white text-sm font-medium inline-flex items-center gap-2 transition-colors cursor-pointer"
               title="Unduh Laporan Rekayasa Sipil (PDF)"
             >
               <FileDown className="w-4 h-4 text-amber-400" />
@@ -180,36 +154,32 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
             </button>
 
             {/* OpenVINO Hardware Telemetry Badge (From PDF) */}
-            <div className="flex items-center space-x-2 bg-[#121724] border border-white/10 rounded-2xl px-3.5 py-1.5 shadow-md">
-              <div className="flex items-center space-x-1.5 text-[11px] font-mono text-cyan-300">
-                <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                <span>Perangkat tidak diketahui</span>
-              </div>
-              <span className="text-slate-600">&bull;</span>
-              <span className="text-[11px] font-mono text-slate-400">latensi belum diukur</span>
+            <div className="h-9 flex items-center gap-2 rounded-lg border border-line px-3 text-xs text-slate-400" title="Perangkat inferensi dan latensi diisi dari pengukuran (Halaman Bukti)">
+              <Cpu className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">Perangkat belum terdeteksi · latensi belum diukur</span>
             </div>
           </div>
         </div>
 
         {/* Filter Chips Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter kondisi jalan">
           {/* Dropdown / Semua Kondisi */}
           <button
             onClick={() => setActiveFilter('ALL')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 cursor-pointer ${
               activeFilter === 'ALL'
                 ? 'bg-slate-700 text-white border border-slate-600 shadow-xs'
                 : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
             }`}
           >
             <span>Semua Kondisi</span>
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-4 h-4" />
           </button>
 
           {/* Baik */}
           <button
             onClick={() => setActiveFilter('GOOD')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 cursor-pointer ${
               activeFilter === 'GOOD'
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                 : 'bg-slate-900 text-slate-400 hover:text-emerald-300 border border-slate-800'
@@ -222,7 +192,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
           {/* Perlu Perhatian */}
           <button
             onClick={() => setActiveFilter('MODERATE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 cursor-pointer ${
               activeFilter === 'MODERATE'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                 : 'bg-slate-900 text-slate-400 hover:text-amber-300 border border-slate-800'
@@ -235,7 +205,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
           {/* Rusak Ringan */}
           <button
             onClick={() => setActiveFilter('LIGHT_DAMAGE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 cursor-pointer ${
               activeFilter === 'LIGHT_DAMAGE'
                 ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40'
                 : 'bg-slate-900 text-slate-400 hover:text-orange-300 border border-slate-800'
@@ -248,7 +218,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
           {/* Rusak Berat */}
           <button
             onClick={() => setActiveFilter('HEAVY_DAMAGE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 cursor-pointer ${
               activeFilter === 'HEAVY_DAMAGE'
                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                 : 'bg-slate-900 text-slate-400 hover:text-rose-300 border border-slate-800'
@@ -261,9 +231,9 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
           {/* Filter Action */}
           <button
             onClick={() => setActiveFilter('ALL')}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-white border border-slate-800 ml-auto flex items-center space-x-1.5 cursor-pointer"
+            className="px-3 py-2 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 hover:text-white border border-slate-800 ml-auto flex items-center space-x-2 cursor-pointer"
           >
-            <Filter className="w-3.5 h-3.5" />
+            <Filter className="w-4 h-4" />
             <span>Reset</span>
           </button>
         </div>
@@ -273,8 +243,8 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
           {/* LEFT COLUMN: Map & Ringkasan Kondisi Segmen & Tugas & Panduan (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
             {/* A. Map Card */}
-            <div className="bg-[#121622] border border-white/10 rounded-3xl p-4 shadow-xl overflow-hidden relative">
-              <div className="h-[360px] sm:h-[420px] w-full rounded-2xl overflow-hidden relative border border-white/10">
+            <div className="bg-surface border border-line rounded-2xl overflow-hidden relative">
+              <div className="h-[360px] md:h-[440px] xl:h-[520px] w-full overflow-hidden relative">
                 <LeafletMap
                   roadSegments={roadSegments}
                   selectedSegment={selectedSegment}
@@ -289,9 +259,9 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                 />
 
                 {/* Floating Map Legend (Bottom Left of Map) */}
-                <div className="absolute bottom-3 left-3 z-10 bg-[#0e1320]/90 backdrop-blur-md border border-white/10 rounded-xl px-3 py-2 text-[10px] space-y-1 shadow-lg text-slate-300">
-                  <span className="font-bold text-white block text-[9.5px] uppercase tracking-wider">Legenda Kondisi</span>
-                  <div className="flex items-center gap-3">
+                <div className="hidden sm:block absolute bottom-3 left-3 z-10 bg-surface border border-line rounded-lg px-3 py-2 text-xs space-y-1 shadow-md text-slate-300 max-w-[calc(100%-12rem)]">
+                  <span className="font-medium text-white block">Legenda kondisi</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="flex items-center gap-1">
                       <span className="w-3 h-1 bg-emerald-400 rounded-full inline-block" /> Baik
                     </span>
@@ -310,120 +280,128 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                 {/* Floating "+ Lapor Kondisi Jalan" Action Button (Bottom Right of Map) */}
                 <button
                   onClick={onOpenCreateReport}
-                  className="absolute bottom-3 right-3 z-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-1.5 transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+                  className="absolute bottom-3 right-3 z-10 h-10 px-4 rounded-lg bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 text-sm font-semibold shadow-md inline-flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <Plus className="w-4 h-4" />
                   <span>Lapor Kondisi Jalan</span>
                 </button>
               </div>
             </div>
 
+            {/* Legend below the map on phones (it would cover the map there) */}
+            <div className="sm:hidden flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-300 -mt-2" aria-label="Legenda kondisi">
+              <span className="flex items-center gap-2"><span className="w-3 h-1 rounded-full bg-emerald-400" />Baik</span>
+              <span className="flex items-center gap-2"><span className="w-3 h-1 rounded-full bg-amber-400" />Perlu Perhatian</span>
+              <span className="flex items-center gap-2"><span className="w-3 h-1 rounded-full bg-orange-400" />Rusak Ringan</span>
+              <span className="flex items-center gap-2"><span className="w-3 h-1 rounded-full bg-rose-500" />Rusak Berat</span>
+            </div>
+
             {/* B. Ringkasan Kondisi Segmen Card */}
-            <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+            <div className="bg-surface border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line pb-3">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <span>Ringkasan Kondisi Segmen</span>
-                  <Info className="w-3.5 h-3.5 text-slate-400 cursor-pointer" />
+                  <Info className="w-4 h-4 text-slate-400 cursor-pointer" />
                 </h3>
-                <span className="text-[11px] font-mono text-slate-400">{selectedSegment.name}</span>
+                <span className="min-w-0 truncate text-xs text-slate-400" title={selectedSegment.name}>{selectedSegment.name}</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,1fr)] gap-6">
                 {/* 1. PCI Score (3 cols) */}
-                <div className="md:col-span-3 space-y-2 border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 pr-0 md:pr-4">
-                  <span className="text-[11px] text-slate-400 font-medium">PCI Saat Ini</span>
+                <div className="min-w-0 space-y-2 border-b sm:border-b-0 sm:border-r border-line pb-4 sm:pb-0 sm:pr-4">
+                  <span className="text-xs text-slate-400 font-medium">PCI Saat Ini</span>
                   <div className="flex items-baseline space-x-2">
-                    <span className={`text-4xl font-black ${pciColor} font-mono tracking-tight`}>
+                    <span className={`text-4xl font-semibold ${pciColor} tabular-nums tracking-tight`}>
                       {pciValue}
                     </span>
                   </div>
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${pciBadgeBg}`}>
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${pciBadgeBg}`}>
                     {pciCategory}
                   </span>
 
-                  <div className="pt-2 flex items-center space-x-3 text-[11px] text-slate-400">
+                  <div className="pt-2 grid grid-cols-2 gap-3 text-xs text-slate-400">
                     <div>
-                      <span className="block text-[9.5px] text-slate-500">PCI Sebelumnya</span>
-                      <span className="font-bold text-slate-300 font-mono">68</span>
+                      <span className="block text-xs text-slate-500">PCI Sebelumnya</span>
+                      <span className="font-medium text-slate-300 tabular-nums">68</span>
                     </div>
                     <div>
-                      <span className="block text-[9.5px] text-slate-500">Penurunan</span>
-                      <span className="font-bold text-rose-400 font-mono flex items-center">&darr; 6</span>
+                      <span className="block text-xs text-slate-500">Penurunan</span>
+                      <span className="font-medium text-rose-400 tabular-nums flex items-center">&darr; 6</span>
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Jenis Kerusakan Dominan (5 cols) */}
-                <div className="md:col-span-5 space-y-2.5 border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 pr-0 md:pr-4">
-                  <span className="text-[11px] text-slate-400 font-medium block">Jenis Kerusakan Dominan</span>
+                <div className="min-w-0 space-y-3 border-b xl:border-b-0 xl:border-r border-line pb-4 xl:pb-0 xl:pr-4">
+                  <span className="text-xs text-slate-400 font-medium block">Jenis Kerusakan Dominan</span>
 
                   {/* Item 1: Retak Kulit Buaya */}
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between text-xs">
                       <span className="text-slate-300">Retak Kulit Buaya</span>
-                      <span className="font-mono font-bold text-slate-200">40%</span>
+                      <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">40%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full" style={{ width: '40%' }} />
                     </div>
                   </div>
 
                   {/* Item 2: Lubang */}
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between text-xs">
                       <span className="text-slate-300">Lubang</span>
-                      <span className="font-mono font-bold text-slate-200">30%</span>
+                      <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">30%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full bg-rose-500 rounded-full" style={{ width: '30%' }} />
                     </div>
                   </div>
 
                   {/* Item 3: Retak Memanjang */}
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between text-xs">
                       <span className="text-slate-300">Retak Memanjang</span>
-                      <span className="font-mono font-bold text-slate-200">20%</span>
+                      <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">20%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full bg-cyan-400 rounded-full" style={{ width: '20%' }} />
                     </div>
                   </div>
 
                   {/* Item 4: Alur */}
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between text-xs">
                       <span className="text-slate-300">Alur</span>
-                      <span className="font-mono font-bold text-slate-200">10%</span>
+                      <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">10%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full bg-emerald-400 rounded-full" style={{ width: '10%' }} />
                     </div>
                   </div>
                 </div>
 
                 {/* 3. Data Pendukung (4 cols) */}
-                <div className="md:col-span-4 space-y-2.5 text-[11px]">
+                <div className="min-w-0 space-y-3 text-xs sm:col-span-2 xl:col-span-1">
                   <span className="text-slate-400 font-medium block">Data Pendukung</span>
 
-                  <div className="flex items-center justify-between py-1 border-b border-white/5">
+                  <div className="flex items-baseline justify-between gap-3 py-1 border-b border-line">
                     <span className="text-slate-400">Lalu Lintas (Rata-rata)</span>
-                    <span className="font-mono font-bold text-slate-200">12.450 kend/hari</span>
+                    <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">12.450 kend/hari</span>
                   </div>
 
-                  <div className="flex items-center justify-between py-1 border-b border-white/5">
+                  <div className="flex items-baseline justify-between gap-3 py-1 border-b border-line">
                     <span className="text-slate-400">Curah Hujan (7 hari)</span>
-                    <span className="font-mono font-bold text-slate-200">78 mm</span>
+                    <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">78 mm</span>
                   </div>
 
-                  <div className="flex items-center justify-between py-1 border-b border-white/5">
+                  <div className="flex items-baseline justify-between gap-3 py-1 border-b border-line">
                     <span className="text-slate-400">Kondisi Tanah Dasar (CBR)</span>
-                    <span className="font-mono font-bold text-slate-200">{selectedSegment.defaultCbrPercent || 6}%</span>
+                    <span className="tabular-nums font-medium whitespace-nowrap text-slate-200">{selectedSegment.defaultCbrPercent || 6}%</span>
                   </div>
 
                   <div className="flex items-center justify-between py-1">
                     <span className="text-slate-400">Tipe Perkerasan</span>
-                    <span className="font-mono font-bold text-amber-300">AC-WC</span>
+                    <span className="tabular-nums font-medium whitespace-nowrap text-amber-300">AC-WC</span>
                   </div>
                 </div>
               </div>
@@ -432,54 +410,45 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
             {/* C. Bottom Row: Tugas Saya (Left) + Panduan Cepat (Right) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Tugas Saya */}
-              <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
+              <div className="bg-surface border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center space-x-2">
                     <h3 className="text-sm font-bold text-white">Tugas Saya</h3>
-                    <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      7 tugas aktif
+                    <span className="text-xs font-medium text-slate-300 px-2 py-1 rounded-md border border-line">
+                      {myOpenTasks.length} tugas aktif
                     </span>
                   </div>
                   <button
                     onClick={onNavigateToSPK}
-                    className="text-[11px] font-bold text-amber-400 hover:text-amber-300 cursor-pointer"
+                    className="text-xs font-bold text-amber-400 hover:text-amber-300 cursor-pointer"
                   >
                     Lihat Semua
                   </button>
                 </div>
 
                 <div className="space-y-3">
-                  {tasksList.slice(0, 2).map((task) => (
-                    <div
-                      key={task.id}
-                      className="bg-[#181e2f] border border-white/5 hover:border-white/15 p-3.5 rounded-2xl space-y-2 transition-colors"
-                    >
+                  {myOpenTasks.length === 0 && (
+                    <p className="text-xs text-slate-400">Belum ada inspeksi yang ditugaskan M.O ke akun Anda.</p>
+                  )}
+                  {myOpenTasks.slice(0, 2).map((task) => (
+                    <div key={task.id} className="bg-elevated border border-white/5 hover:border-white/15 p-4 rounded-2xl space-y-2 transition-colors">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span
-                            className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
-                              task.priority === 'TINGGI'
-                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
-                            }`}
-                          >
-                            Prioritas {task.priority}
-                          </span>
-                          <h4 className="text-xs font-bold text-white mt-1">{task.title}</h4>
+                        <div className="min-w-0">
+                          <StateBadge state={task.state} />
+                          <h4 className="text-xs font-bold text-white mt-1 truncate">
+                            {task.report.damageTypeLabel} · {task.report.segmentName}
+                          </h4>
                         </div>
                         <button
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setActiveModal('TASK_DETAIL');
-                          }}
-                          className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black rounded-xl transition-transform active:scale-95 cursor-pointer shrink-0"
+                          onClick={onNavigateToSPK}
+                          className="h-8 px-3 rounded-lg bg-brand text-navy hover:bg-brand-hover text-xs font-semibold transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
                         >
-                          Lihat Tugas
+                          Buka Tugas
                         </button>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5">
-                        <span>Batas waktu: {task.deadline}</span>
-                        <span className="text-slate-300">{task.location}</span>
+                      <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-white/5">
+                        <span>Batas waktu: {new Date(task.assignment!.dueAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <span className="font-mono text-slate-300">{task.id}</span>
                       </div>
                     </div>
                   ))}
@@ -487,27 +456,27 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
               </div>
 
               {/* Panduan Cepat */}
-              <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
+              <div className="bg-surface border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <h3 className="text-sm font-bold text-white">Panduan Cepat</h3>
-                  <span className="text-[10px] text-slate-400 font-mono">Bina Marga / PUPR</span>
+                  <span className="text-xs text-slate-400 tabular-nums">Bina Marga / PUPR</span>
                 </div>
 
                 <div className="space-y-3">
                   {/* Guideline 1 */}
                   <div
                     onClick={() => setActiveModal('SURVEY_GUIDE')}
-                    className="flex items-center justify-between p-3.5 bg-[#181e2f] hover:bg-[#20283e] border border-white/5 rounded-2xl cursor-pointer transition-all group"
+                    className="flex items-center justify-between p-4 bg-elevated hover:bg-elevated border border-white/5 rounded-2xl cursor-pointer transition-all group"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-500/30">
+                      <div className="p-3 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-500/30">
                         <BookOpen className="w-4 h-4" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                           Cara Survei Jalan
                         </h4>
-                        <p className="text-[10.5px] text-slate-400">Panduan langkah demi langkah</p>
+                        <p className="text-xs text-slate-400">Panduan langkah demi langkah</p>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
@@ -516,17 +485,17 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                   {/* Guideline 2 */}
                   <div
                     onClick={() => setActiveModal('DAMAGE_CATALOG')}
-                    className="flex items-center justify-between p-3.5 bg-[#181e2f] hover:bg-[#20283e] border border-white/5 rounded-2xl cursor-pointer transition-all group"
+                    className="flex items-center justify-between p-4 bg-elevated hover:bg-elevated border border-white/5 rounded-2xl cursor-pointer transition-all group"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/30">
+                      <div className="p-3 bg-amber-400/10 text-amber-300 rounded-lg">
                         <Activity className="w-4 h-4" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                           Jenis Kerusakan Jalan
                         </h4>
-                        <p className="text-[10.5px] text-slate-400">Kenali 19 jenis kerusakan Bina Marga</p>
+                        <p className="text-xs text-slate-400">Kenali 19 jenis kerusakan Bina Marga</p>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
@@ -539,15 +508,15 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
           {/* RIGHT COLUMN: DETAIL RUAS JALAN TERPILIH PANEL (4 cols) */}
           <div className="lg:col-span-4 space-y-6">
             {/* Main Selected Road Segment Panel */}
-            <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
+            <div className="bg-surface border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
               {/* Header */}
               <div className="flex items-start justify-between border-b border-white/10 pb-3">
                 <div>
                   <h3 className="text-sm font-bold text-white">Ruas Jalan Terpilih</h3>
-                  <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
+                  <p className="text-xs text-slate-400 leading-snug mt-1">
                     {selectedSegment.name}
                   </p>
-                  <p className="text-[10px] text-slate-500">{selectedSegment.corridor}</p>
+                  <p className="text-xs text-slate-500">{selectedSegment.corridor}</p>
                 </div>
                 <button
                   onClick={() => alert(`Ruas: ${selectedSegment.name}\nPanjang: ${selectedSegment.lengthKm} km\nPCI: ${selectedSegment.currentPci}`)}
@@ -559,23 +528,23 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
 
               {/* Status Badge & Key Metrics */}
               <div className="flex items-center justify-between">
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${pciBadgeBg}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${pciBadgeBg}`}>
                   {pciCategory}
                 </span>
                 <div className="text-right">
-                  <span className="text-[9.5px] text-slate-400 block uppercase">PCI Terakhir</span>
-                  <span className={`text-base font-black font-mono ${pciColor}`}>{pciValue}</span>
+                  <span className="text-xs text-slate-400 block">PCI Terakhir</span>
+                  <span className={`text-base font-semibold tabular-nums ${pciColor}`}>{pciValue}</span>
                 </div>
               </div>
 
               {/* Length & Last Update */}
-              <div className="grid grid-cols-2 gap-2 bg-[#181e2f] p-3 rounded-2xl border border-white/5 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 bg-elevated p-3 rounded-2xl border border-white/5 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Panjang Segmen</span>
+                  <span className="text-slate-400 block text-xs">Panjang Segmen</span>
                   <span className="font-bold text-slate-200">{selectedSegment.lengthKm * 1000} m</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Update Terakhir</span>
+                  <span className="text-slate-400 block text-xs">Update Terakhir</span>
                   <span className="font-bold text-slate-200">2 jam lalu</span>
                 </div>
               </div>
@@ -592,7 +561,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                   title="Navigasi ke Lokasi"
                 >
                   <Navigation className="w-4 h-4 mb-1 text-cyan-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-[9.5px] font-bold">Navigasi</span>
+                  <span className="text-xs font-bold">Navigasi</span>
                 </button>
 
                 {/* 2. Detail Teknis (PINN Tensor) */}
@@ -608,7 +577,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                   title="Detail Teknis & Tensor PINN"
                 >
                   <Activity className="w-4 h-4 mb-1 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-[9.5px] font-bold">Detail Teknis</span>
+                  <span className="text-xs font-bold">Detail Teknis</span>
                 </button>
 
                 {/* 3. Riwayat */}
@@ -618,7 +587,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                   title="Riwayat Degradasi Jalan"
                 >
                   <History className="w-4 h-4 mb-1 text-indigo-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-[9.5px] font-bold">Riwayat</span>
+                  <span className="text-xs font-bold">Riwayat</span>
                 </button>
 
                 {/* 4. Unduh Data */}
@@ -634,57 +603,57 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                   className="flex flex-col items-center justify-center p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all cursor-pointer group"
                   title="Unduh Data PDF"
                 >
-                  <FileDown className="w-4 h-4 mb-1 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-[9.5px] font-bold">Unduh Data</span>
+                  <FileDown className="w-4 h-4 mb-1 text-amber-400" />
+                  <span className="text-xs font-bold">Unduh Data</span>
                 </button>
               </div>
 
               {/* Rekomendasi Tindakan Card */}
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3.5 space-y-1.5">
+              <div className="bg-elevated border border-line rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase text-emerald-400 flex items-center gap-1.5">
-                    <Wrench className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium text-amber-300 flex items-center gap-2">
+                    <Wrench className="w-4 h-4" />
                     Rekomendasi Tindakan
                   </span>
-                  <Wrench className="w-4 h-4 text-emerald-400 opacity-60" />
+                  <Wrench className="w-4 h-4 text-slate-500" />
                 </div>
                 <p className="text-xs font-bold text-slate-200 leading-snug">
                   Lakukan penanganan pemeliharaan rutin dalam 3 bulan ke depan
                 </p>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-xs text-slate-400">
                   Rekomendasi tebal overlay AC-WC: {selectedSegment.wimDetails?.overlayRecommendationCm || 6.5} cm.
                 </p>
               </div>
 
               {/* Laporan Terbaru di Segmen Ini */}
-              <div className="space-y-2.5 pt-2 border-t border-white/10">
+              <div className="space-y-3 pt-2 border-t border-white/10">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-white">Laporan Terbaru di Segmen Ini</span>
                   <button
                     onClick={onNavigateToMap}
-                    className="text-[11px] text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
                   >
                     Lihat Semua
                   </button>
                 </div>
 
-                <div className="bg-[#181e2f] border border-white/5 p-3 rounded-2xl flex items-center space-x-3">
+                <div className="bg-elevated border border-white/5 p-3 rounded-2xl flex items-center space-x-3">
                   <img
                     src={activeReport.photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400&q=80'}
                     alt="Kerusakan"
                     className="w-14 h-14 rounded-xl object-cover border border-white/10 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center space-x-2">
                       <span className="font-bold text-xs text-white truncate">{activeReport.damageTypeLabel}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-500/20 text-orange-300">
+                      <span className="text-xs px-2 py-1 rounded font-bold bg-orange-500/20 text-orange-300">
                         {activeReport.severity}
                       </span>
                     </div>
-                    <p className="text-[10.5px] text-slate-400 mt-0.5 truncate">
+                    <p className="text-xs text-slate-400 mt-1 truncate">
                       Oleh: {activeReport.reporterName}
                     </p>
-                    <p className="text-[9.5px] text-slate-500 font-mono mt-0.5">
+                    <p className="text-xs text-slate-500 tabular-nums mt-1">
                       {activeReport.timestamp}
                     </p>
                   </div>
@@ -692,19 +661,19 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
 
                 {/* Pagination Indicator Dots */}
                 <div className="flex items-center justify-center space-x-1 pt-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="w-2 h-2 rounded-full bg-white/20" />
+                  <span className="w-2 h-2 rounded-full bg-white/20" />
+                  <span className="w-2 h-2 rounded-full bg-white/20" />
+                  <span className="w-2 h-2 rounded-full bg-white/20" />
                 </div>
               </div>
 
               {/* Checklist Pemeriksaan Lapangan (0/5) */}
-              <div className="space-y-2.5 pt-2 border-t border-white/10">
+              <div className="space-y-3 pt-2 border-t border-white/10">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-white">Checklist Pemeriksaan Lapangan</span>
-                  <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                  <span className="text-xs tabular-nums text-emerald-400 font-bold">
                     {completedChecklistCount}/5
                   </span>
                 </div>
@@ -796,7 +765,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                       alert('Memulai mode pemeriksaan lapangan terpandu.');
                     }
                   }}
-                  className="w-full mt-2 py-2.5 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                  className="w-full mt-2 h-10 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{completedChecklistCount === 5 ? 'Pemeriksaan Selesai' : 'Mulai Pemeriksaan'}</span>
@@ -805,15 +774,15 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
             </div>
 
             {/* Dokumen & Referensi Box */}
-            <div className="bg-[#121622] border border-white/10 rounded-3xl p-5 shadow-xl space-y-3">
+            <div className="bg-surface border border-white/10 rounded-2xl p-5 shadow-xl space-y-3">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <h3 className="text-sm font-bold text-white">Dokumen & Referensi</h3>
-                <span className="text-[11px] text-amber-400 font-bold cursor-pointer" onClick={() => setActiveModal('DAMAGE_CATALOG')}>
+                <span className="text-xs text-amber-400 font-bold cursor-pointer" onClick={() => setActiveModal('DAMAGE_CATALOG')}>
                   Lihat Semua
                 </span>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {/* Doc 1 */}
                 <div
                   onClick={() => {
@@ -823,13 +792,13 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                       alert('Mengunduh Manual Survei Kondisi Jalan Bina Marga 2024 (PDF)...');
                     }
                   }}
-                  className="flex items-center justify-between p-3 bg-[#181e2f] hover:bg-[#20283e] border border-white/5 rounded-2xl cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 bg-elevated hover:bg-elevated border border-white/5 rounded-2xl cursor-pointer transition-colors"
                 >
-                  <div className="flex items-center space-x-2.5">
+                  <div className="flex items-center space-x-3">
                     <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-slate-200">Manual Survei Jalan 2024</h4>
-                      <span className="text-[10px] text-slate-400">PDF &bull; 8.4 MB</span>
+                      <span className="text-xs text-slate-400">PDF &bull; 8.4 MB</span>
                     </div>
                   </div>
                   <FileDown className="w-4 h-4 text-slate-400 hover:text-white" />
@@ -844,13 +813,13 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
                       alert('Mengunduh Standar Penilaian Kondisi Jalan (PCI) AASHTO & Bina Marga (PDF)...');
                     }
                   }}
-                  className="flex items-center justify-between p-3 bg-[#181e2f] hover:bg-[#20283e] border border-white/5 rounded-2xl cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 bg-elevated hover:bg-elevated border border-white/5 rounded-2xl cursor-pointer transition-colors"
                 >
-                  <div className="flex items-center space-x-2.5">
+                  <div className="flex items-center space-x-3">
                     <FileText className="w-4 h-4 text-amber-400 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-slate-200">Standar Penilaian Kondisi Jalan (PCI)</h4>
-                      <span className="text-[10px] text-slate-400">PDF &bull; 5.1 MB</span>
+                      <span className="text-xs text-slate-400">PDF &bull; 5.1 MB</span>
                     </div>
                   </div>
                   <FileDown className="w-4 h-4 text-slate-400 hover:text-white" />
@@ -864,8 +833,8 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
       {/* 4. MODALS FOR GUIDES & TASKS */}
       {/* A. Survey Guide Modal */}
       {activeModal === 'SURVEY_GUIDE' && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#121622] border border-white/20 rounded-3xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-surface border border-white/20 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center space-x-2">
                 <BookOpen className="w-5 h-5 text-amber-400" />
@@ -908,7 +877,7 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
 
             <button
               onClick={() => setActiveModal(null)}
-              className="w-full py-2.5 rounded-2xl bg-amber-400 text-slate-950 font-black text-xs cursor-pointer"
+              className="w-full py-3 rounded-2xl bg-amber-400 text-slate-950 font-semibold text-xs cursor-pointer"
             >
               Mengerti & Tutup Panduan
             </button>
@@ -918,8 +887,8 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
 
       {/* B. Damage Catalog Modal (19 Jenis Kerusakan Bina Marga) */}
       {activeModal === 'DAMAGE_CATALOG' && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#121622] border border-white/20 rounded-3xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-surface border border-white/20 rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center space-x-2">
                 <Activity className="w-5 h-5 text-emerald-400" />
@@ -936,38 +905,38 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                 <span className="font-bold text-rose-400 block">1. Lubang (Potholes)</span>
-                <p className="text-slate-400 text-[11px] mt-1">Cekungan mangkok dengan diameter &gt; 15 cm dan kedalaman &gt; 2.5 cm.</p>
+                <p className="text-slate-400 text-xs mt-1">Cekungan mangkok dengan diameter &gt; 15 cm dan kedalaman &gt; 2.5 cm.</p>
               </div>
 
               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                 <span className="font-bold text-amber-400 block">2. Retak Kulit Buaya (Alligator Crack)</span>
-                <p className="text-slate-400 text-[11px] mt-1">Retak saling sambung membentuk pola poligon akibat kelelahan beban berulang.</p>
+                <p className="text-slate-400 text-xs mt-1">Retak saling sambung membentuk pola poligon akibat kelelahan beban berulang.</p>
               </div>
 
               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                 <span className="font-bold text-cyan-400 block">3. Alur Roda (Rutting)</span>
-                <p className="text-slate-400 text-[11px] mt-1">Depresi memanjang pada jalur jejak roda akibat deformasi plastis lapisan aspal/tanah.</p>
+                <p className="text-slate-400 text-xs mt-1">Depresi memanjang pada jalur jejak roda akibat deformasi plastis lapisan aspal/tanah.</p>
               </div>
 
               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                 <span className="font-bold text-emerald-400 block">4. Retak Memanjang & Melintang</span>
-                <p className="text-slate-400 text-[11px] mt-1">Retak garis lurus searah atau memotong sumbu jalan karena susut termal/sambungan.</p>
+                <p className="text-slate-400 text-xs mt-1">Retak garis lurus searah atau memotong sumbu jalan karena susut termal/sambungan.</p>
               </div>
 
               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                 <span className="font-bold text-indigo-400 block">5. Amblas / Penurunan (Depression)</span>
-                <p className="text-slate-400 text-[11px] mt-1">Penurunan lokal permukaan perkerasan akibat konsolidasi tanah dasar yang tidak merata.</p>
+                <p className="text-slate-400 text-xs mt-1">Penurunan lokal permukaan perkerasan akibat konsolidasi tanah dasar yang tidak merata.</p>
               </div>
 
               <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
                 <span className="font-bold text-purple-400 block">6. Jembul / Keriting (Corrugation & Shoving)</span>
-                <p className="text-slate-400 text-[11px] mt-1">Gelombang transversal akibat gaya gesek pengereman kendaraan berat di persimpangan.</p>
+                <p className="text-slate-400 text-xs mt-1">Gelombang transversal akibat gaya gesek pengereman kendaraan berat di persimpangan.</p>
               </div>
             </div>
 
             <button
               onClick={() => setActiveModal(null)}
-              className="w-full py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs cursor-pointer"
+              className="w-full py-3 h-10 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm cursor-pointer"
             >
               Tutup Katalog
             </button>
@@ -975,62 +944,6 @@ export const PavementPinnDashboard: React.FC<PavementPinnDashboardProps> = ({
         </div>
       )}
 
-      {/* C. Task Detail Modal */}
-      {activeModal === 'TASK_DETAIL' && selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#121622] border border-white/20 rounded-3xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <span className="text-[10px] font-bold text-amber-400 font-mono">{selectedTask.id}</span>
-                <h3 className="text-base font-bold text-white">{selectedTask.title}</h3>
-              </div>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-slate-300">
-              <div className="flex justify-between py-1 border-b border-white/5">
-                <span className="text-slate-400">Lokasi:</span>
-                <span className="font-bold text-white">{selectedTask.location}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-white/5">
-                <span className="text-slate-400">Batas Waktu:</span>
-                <span className="font-bold text-rose-400">{selectedTask.deadline}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-white/5">
-                <span className="text-slate-400">Status:</span>
-                <span className="font-bold text-emerald-400">{selectedTask.status}</span>
-              </div>
-              <div className="p-3 bg-white/5 rounded-2xl border border-white/10 mt-2">
-                <span className="font-bold text-slate-200 block mb-1">Instruksi Teknis:</span>
-                <p className="text-slate-400">{selectedTask.notes}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                onClick={() => {
-                  alert(`Memulai pelaksanaan tugas: ${selectedTask.title}`);
-                  setActiveModal(null);
-                }}
-                className="py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs cursor-pointer"
-              >
-                Mulai Tugas Lapangan
-              </button>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="py-2.5 rounded-2xl bg-white/10 text-white font-bold text-xs hover:bg-white/15 cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -14,10 +14,10 @@ import { ReportWorkflowPanel, StateBadge } from '../../features/workflow/ReportW
 import { engineerQueue, isOverdue, operationsQueue, segmentPriorities, type QueueBucket } from '../../features/workflow/queues';
 
 const RISK_STYLE: Record<string, string> = {
-  HIGH: 'bg-risk-high/15 text-[#ff9a9d] border-risk-high/40',
-  WATCH: 'bg-risk-watch/15 text-[#ffc56b] border-risk-watch/40',
-  MODERATE: 'bg-risk-moderate/15 text-[#f5dc8a] border-risk-moderate/40',
-  GOOD: 'bg-risk-good/15 text-[#7ee08c] border-risk-good/40'
+  HIGH: 'bg-risk-high/15 text-rose-300 border-risk-high/40',
+  WATCH: 'bg-risk-watch/15 text-orange-300 border-risk-watch/40',
+  MODERATE: 'bg-risk-moderate/15 text-amber-200 border-risk-moderate/40',
+  GOOD: 'bg-risk-good/15 text-emerald-300 border-risk-good/40'
 };
 
 export const WorkflowQueueSection: React.FC = () => {
@@ -45,27 +45,27 @@ export const WorkflowQueueSection: React.FC = () => {
     role === 'OPERATIONS_MANAGER' ? 'Antrian operasional laporan' : role === 'FIELD_ENGINEER' ? 'Tugas inspeksi saya' : 'Prioritas ruas berbasis bukti';
 
   return (
-    <section aria-labelledby="workflow-queue-title" className="m-3 sm:m-4 rounded-2xl border border-slate-700/60 bg-[#0f1420] text-slate-100 shadow-sm">
+    <section aria-labelledby="workflow-queue-title" className="m-3 sm:m-4 rounded-2xl border border-slate-700/60 bg-surface text-slate-100 shadow-sm">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
         <div>
           <h2 id="workflow-queue-title" className="text-sm font-bold">
             {heading}
           </h2>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-xs text-slate-400">
             Sumber: alur kerja laporan bersama ({workflow.mode === 'SERVER' ? 'tersimpan di server' : 'DEMO OFFLINE di browser ini'}). AI merekomendasikan; keputusan tetap di tangan petugas.
           </p>
         </div>
         <button
           type="button"
           onClick={() => workflow.refresh()}
-          className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 transition-colors"
+          className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 transition-colors"
         >
           Muat ulang
         </button>
       </header>
 
       {workflow.error && (
-        <p role="alert" className="mx-4 mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
+        <p role="alert" className="mx-4 mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
           Data alur kerja tidak dapat dimuat: {workflow.error}
         </p>
       )}
@@ -75,34 +75,34 @@ export const WorkflowQueueSection: React.FC = () => {
       ) : (
         <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <div className="min-w-0 space-y-3">
-            {workflow.loading && staffCases.length === 0 && <p className="text-[11px] text-slate-400">Memuat antrian…</p>}
+            {workflow.loading && staffCases.length === 0 && <p className="text-xs text-slate-400">Memuat antrian…</p>}
             {buckets.map((b) => (
               <div key={b.key} className="min-w-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                   <h3 className="text-xs font-semibold text-slate-100">
-                    {b.title} <span className="ml-1 rounded bg-white/10 px-1.5 text-[10px] font-bold">{b.items.length}</span>
+                    {b.title} <span className="ml-1 rounded bg-white/10 px-2 text-xs font-bold">{b.items.length}</span>
                   </h3>
-                  <span className="text-[10px] text-slate-500">{b.hint}</span>
+                  <span className="text-xs text-slate-400">{b.hint}</span>
                 </div>
                 {b.items.length === 0 ? (
-                  <p className="mt-1 text-[11px] text-slate-500">Tidak ada.</p>
+                  <p className="mt-1 text-xs text-slate-400">Tidak ada.</p>
                 ) : (
-                  <ul className="mt-1.5 max-h-72 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
+                  <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
                     {b.items.map((c) => (
                       <li key={c.id}>
                         <button
                           type="button"
                           onClick={() => setSelectedId(c.id)}
                           aria-current={selectedId === c.id}
-                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 ${
-                            selectedId === c.id ? 'border-sky-400/60 bg-sky-500/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
+                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 ${
+                            selectedId === c.id ? 'border-brand/60 bg-brand/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="truncate text-[11px] font-semibold">{c.report.segmentName}</span>
+                            <span className="truncate text-xs font-semibold">{c.report.segmentName}</span>
                             <StateBadge state={c.state} />
                           </div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-slate-400">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
                             <span className="font-mono">{c.id}</span>
                             <span>{c.report.damageTypeLabel}</span>
                             <span>· {c.inspection?.severity ?? c.report.severity}</span>
@@ -127,7 +127,7 @@ export const WorkflowQueueSection: React.FC = () => {
                 onShowOnMap={() => showOnMap(selectedView.case as ReportCase)}
               />
             ) : (
-              <p className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-[11px] text-slate-400">Pilih laporan di antrian untuk melihat bukti dan tindakan yang tersedia.</p>
+              <p className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-xs text-slate-400">Pilih laporan di antrian untuk melihat bukti dan tindakan yang tersedia.</p>
             )}
           </div>
         </div>
@@ -145,11 +145,11 @@ const PolicyPriorities: React.FC<{ cases: ReportCase[]; onOpen: (id: string) => 
 
   return (
     <div className="space-y-3 p-4">
-      <p className="text-[11px] text-slate-400">
+      <p className="text-xs text-slate-400">
         Peringkat memakai estimasi RULE_BASED (belum tervalidasi) dan laporan yang terverifikasi. Tidak ada angka penghematan atau anggaran yang ditampilkan tanpa model ekonomi tervalidasi.
       </p>
       <div className="overflow-x-auto rounded-xl border border-white/10">
-        <table className="min-w-full text-left text-[11px]">
+        <table className="min-w-full text-left text-xs">
           <thead className="bg-white/[0.04] text-slate-300">
             <tr>
               <th scope="col" className="px-3 py-2 font-semibold">Ruas</th>
@@ -166,10 +166,10 @@ const PolicyPriorities: React.FC<{ cases: ReportCase[]; onOpen: (id: string) => 
               <tr key={r.segment.id} className="border-t border-white/5">
                 <th scope="row" className="px-3 py-2 font-medium text-slate-100">
                   {r.segment.name}
-                  {r.segment.pilot && <span className="ml-1 text-[10px] text-sky-300">pilot</span>}
+                  {r.segment.pilot && <span className="ml-1 text-xs text-amber-300">pilot</span>}
                 </th>
                 <td className="px-3 py-2">
-                  <span className={`inline-block rounded border px-1.5 py-0.5 font-bold ${RISK_STYLE[r.risk]}`}>{r.risk}</span>
+                  <span className={`inline-block rounded border px-2 py-1 font-bold ${RISK_STYLE[r.risk]}`}>{r.risk}</span>
                   <span className="ml-1 text-slate-400">skor {r.conditionScorePrototype}</span>
                 </td>
                 <td className="px-3 py-2">{r.openReports}</td>
@@ -184,7 +184,7 @@ const PolicyPriorities: React.FC<{ cases: ReportCase[]; onOpen: (id: string) => 
       </div>
       <div>
         <h3 className="text-xs font-semibold">Rekomendasi yang menunggu atau sudah disetujui</h3>
-        <ul className="mt-1.5 space-y-1">
+        <ul className="mt-2 space-y-1">
           {cases
             .filter((c) => ['ACTION_RECOMMENDED', 'ACTION_APPROVED', 'IN_PROGRESS'].includes(c.state))
             .map((c) => (
@@ -192,10 +192,10 @@ const PolicyPriorities: React.FC<{ cases: ReportCase[]; onOpen: (id: string) => 
                 <button
                   type="button"
                   onClick={() => onOpen(c.id)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
                 >
-                  <span className="text-[11px] font-semibold">{c.report.segmentName}</span>
-                  <span className="ml-2 text-[10px] text-slate-400">{c.recommendation?.treatment ?? '—'}</span>
+                  <span className="text-xs font-semibold">{c.report.segmentName}</span>
+                  <span className="ml-2 text-xs text-slate-400">{c.recommendation?.treatment ?? '—'}</span>
                   <span className="ml-2">
                     <StateBadge state={c.state} />
                   </span>

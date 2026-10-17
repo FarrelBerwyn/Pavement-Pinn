@@ -100,7 +100,7 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
           aria-label={en ? 'Close layer settings' : 'Tutup pengaturan lapisan'}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
@@ -114,11 +114,11 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
               role="radio"
               aria-checked={active}
               onClick={() => onBaseMapStyleChange(style)}
-              className={`flex flex-col items-center gap-0.5 rounded-lg py-1.5 text-[10px] font-semibold cursor-pointer ${
+              className={`flex flex-col items-center gap-1 rounded-lg py-2 text-xs font-semibold cursor-pointer ${
                 active ? 'bg-slate-800 text-amber-300' : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4" />
               {en ? label : id}
             </button>
           );
@@ -128,7 +128,7 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
       <div className="mt-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-white">{en ? 'Report density' : 'Kepadatan laporan'}</p>
-          <p className="text-[10px] leading-snug text-slate-400">
+          <p className="text-xs leading-snug text-slate-400">
             {en
               ? 'Where users reported damage. A count of reports, not damage level or risk.'
               : 'Lokasi laporan pengguna. Jumlah laporan, bukan tingkat kerusakan atau risiko.'}
@@ -140,7 +140,7 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
           aria-checked={showDensity}
           aria-label={en ? 'Report density' : 'Kepadatan laporan'}
           onClick={() => onShowDensityChange(!showDensity)}
-          className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors cursor-pointer ${
+          className={`relative mt-1 h-5 w-9 shrink-0 rounded-full transition-colors cursor-pointer ${
             showDensity ? 'bg-amber-400' : 'bg-slate-700'
           }`}
         >
@@ -153,10 +153,10 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
       </div>
 
       {showDensity && (
-        <div className="mt-2 space-y-1 text-[10px] text-slate-300">
+        <div className="mt-2 space-y-1 text-xs text-slate-300">
           <div
-            className="h-1.5 rounded-full"
-            style={{ background: 'linear-gradient(90deg,#06b6d4,#22c55e,#eab308,#f97316,#ef4444)' }}
+            className="h-2 rounded-full"
+            style={{ background: 'linear-gradient(90deg,#8296b0,#57ae78,#e8b23a,#e2823d,#d9655d)' }}
           />
           <div className="flex justify-between text-slate-400">
             <span>{en ? 'Low' : 'Rendah'}</span>
@@ -169,11 +169,11 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
         </div>
       )}
 
-      <div className="mt-3 border-t border-slate-800 pt-2 text-[10px] text-slate-300">
+      <div className="mt-3 border-t border-slate-800 pt-2 text-xs text-slate-300">
         <p className="mb-1 font-semibold text-slate-400">{en ? 'Segment condition (demo data)' : 'Kondisi ruas (data demo)'}</p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1">
           {CONDITIONS.map(([key, id, label]) => (
-            <span key={key} className="flex items-center gap-1.5">
+            <span key={key} className="flex items-center gap-2">
               <span className="h-1 w-4 rounded-full" style={{ backgroundColor: CONDITION_COLOR[key] }} />
               {en ? label : id}
             </span>

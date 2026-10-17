@@ -115,10 +115,10 @@ export interface StrategicWeatherStation {
 // 🟠 Oranye: Buruk (30 - 49)
 // 🔴 Merah: Sangat Buruk (< 30)
 export function getPciColor(pci: number): string {
-  if (pci >= 70) return '#22c55e'; // Green
-  if (pci >= 50) return '#eab308'; // Yellow
-  if (pci >= 30) return '#f97316'; // Orange
-  return '#ef4444'; // Red
+  if (pci >= 70) return '#57ae78'; // Green
+  if (pci >= 50) return '#e8b23a'; // Yellow
+  if (pci >= 30) return '#e2823d'; // Orange
+  return '#d9655d'; // Red
 }
 
 export function getPciCategoryName(pci: number): string {
@@ -148,7 +148,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 2.1,
     priorityLevel: 'P1',
     priorityLabel: 'Critical / Darurat',
-    priorityHaloColor: '#ef4444',
+    priorityHaloColor: '#d9655d',
     pinnHealthProfile: {
       roadConditionScore: 42,
       roadConditionCategory: 'BURUK',
@@ -197,7 +197,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 1.4,
     priorityLevel: 'P1',
     priorityLabel: 'Critical / Darurat',
-    priorityHaloColor: '#ef4444',
+    priorityHaloColor: '#d9655d',
     pinnHealthProfile: {
       roadConditionScore: 32,
       roadConditionCategory: 'SANGAT_BURUK',
@@ -246,7 +246,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 1.8,
     priorityLevel: 'P1',
     priorityLabel: 'Critical / Darurat',
-    priorityHaloColor: '#ef4444',
+    priorityHaloColor: '#d9655d',
     pinnHealthProfile: {
       roadConditionScore: 38,
       roadConditionCategory: 'BURUK',
@@ -295,7 +295,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 3.4,
     priorityLevel: 'P2',
     priorityLabel: 'High / Rehabilitasi',
-    priorityHaloColor: '#f97316',
+    priorityHaloColor: '#e2823d',
     pinnHealthProfile: {
       roadConditionScore: 54,
       roadConditionCategory: 'SEDANG',
@@ -346,7 +346,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 4.1,
     priorityLevel: 'P2',
     priorityLabel: 'High / Rehabilitasi',
-    priorityHaloColor: '#f97316',
+    priorityHaloColor: '#e2823d',
     pinnHealthProfile: {
       roadConditionScore: 60,
       roadConditionCategory: 'SEDANG',
@@ -394,7 +394,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 6.8,
     priorityLevel: 'P3',
     priorityLabel: 'Moderate / Preservasi',
-    priorityHaloColor: '#eab308',
+    priorityHaloColor: '#e8b23a',
     pinnHealthProfile: {
       roadConditionScore: 74,
       roadConditionCategory: 'BAIK',
@@ -442,7 +442,7 @@ export const STRATEGIC_CORRIDORS: StrategicCorridor[] = [
     remainingLifeYears: 7.2,
     priorityLevel: 'P3',
     priorityLabel: 'Moderate / Preservasi',
-    priorityHaloColor: '#eab308',
+    priorityHaloColor: '#e8b23a',
     pinnHealthProfile: {
       roadConditionScore: 76,
       roadConditionCategory: 'BAIK',
@@ -491,7 +491,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 72,
     investmentNeededM: 28.4,
     criticalHotspots: 24,
-    clusterBadgeColor: '#ef4444',
+    clusterBadgeColor: '#d9655d',
     badgeLabel: '24',
     corridors: ['Arteri Kalimalang', 'Jl. I Gusti Ngurah Rai', 'Bina Marga Bypass Cakung'],
     priorityCounts: {
@@ -516,7 +516,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 74,
     investmentNeededM: 32.1,
     criticalHotspots: 12,
-    clusterBadgeColor: '#ef4444',
+    clusterBadgeColor: '#d9655d',
     badgeLabel: '12',
     corridors: ['Jl. Jampea Pelabuhan Tanjung Priok', 'Arteri Marunda Logistik', 'Jl. Yos Sudarso'],
     priorityCounts: {
@@ -541,7 +541,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 78,
     investmentNeededM: 24.5,
     criticalHotspots: 11,
-    clusterBadgeColor: '#f97316',
+    clusterBadgeColor: '#e2823d',
     badgeLabel: '11',
     corridors: ['Pantura KM 62 - Klari', 'Jl. Akses KIIC Karawang Barat', 'Arteri Industri Suryacipta'],
     priorityCounts: {
@@ -566,7 +566,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 73,
     investmentNeededM: 16.8,
     criticalHotspots: 18,
-    clusterBadgeColor: '#f97316',
+    clusterBadgeColor: '#e2823d',
     badgeLabel: '18',
     corridors: ['Jl. Margonda Raya', 'Jl. Raya Bogor KM 28-35', 'Jl. Sawangan Raya'],
     priorityCounts: {
@@ -591,7 +591,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 76,
     investmentNeededM: 19.5,
     criticalHotspots: 8,
-    clusterBadgeColor: '#f59e0b',
+    clusterBadgeColor: '#e8b23a',
     badgeLabel: '8',
     corridors: ['Daan Mogot Arteri', 'Jl. Panjang Kebon Jeruk', 'Ring Road Cengkareng'],
     priorityCounts: {
@@ -616,7 +616,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 84,
     investmentNeededM: 22.0,
     criticalHotspots: 5,
-    clusterBadgeColor: '#22c55e',
+    clusterBadgeColor: '#57ae78',
     badgeLabel: '5',
     corridors: ['Jl. Arteri Cikarang - Lemahabang', 'Kawasan Industri MM2100', 'Jl. Sultan Agung'],
     priorityCounts: {
@@ -641,7 +641,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 80,
     investmentNeededM: 18.2,
     criticalHotspots: 7,
-    clusterBadgeColor: '#eab308',
+    clusterBadgeColor: '#e8b23a',
     badgeLabel: '7',
     corridors: ['Jl. Daan Mogot Tangerang', 'Jl. Raya Serang KM 12-25', 'Arteri Bandara Soetta'],
     priorityCounts: {
@@ -666,7 +666,7 @@ export const STRATEGIC_REGIONS: StrategicRegion[] = [
     projectionWith: 75,
     investmentNeededM: 21.0,
     criticalHotspots: 15,
-    clusterBadgeColor: '#ef4444',
+    clusterBadgeColor: '#d9655d',
     badgeLabel: '!',
     corridors: ['Jl. Raya Puncak Gadog', 'Jl. Raya Tajur', 'Jl. Sholeh Iskandar'],
     priorityCounts: {

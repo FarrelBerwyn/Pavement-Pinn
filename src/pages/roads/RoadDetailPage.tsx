@@ -19,14 +19,14 @@ const CONDITION_LABEL: Record<RoadConditionCategory, string> = {
   HEAVY_DAMAGE: 'Rusak Berat'
 };
 
-const cardClass = 'bg-[#121622] border border-white/10 rounded-3xl p-5 space-y-3';
-const primaryButton = 'px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs cursor-pointer';
+const cardClass = 'bg-surface border border-white/10 rounded-2xl p-5 space-y-3';
+const primaryButton = 'px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs cursor-pointer';
 const secondaryLink = 'inline-block px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-slate-200 font-bold text-xs';
 
 const Fact: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="bg-[#181f33] p-3 rounded-2xl border border-white/10">
-    <p className="text-[10px] font-mono font-bold uppercase text-slate-400">{label}</p>
-    <p className="text-sm font-extrabold text-white">{value}</p>
+  <div className="bg-elevated p-3 rounded-2xl border border-white/10">
+    <p className="text-xs font-bold text-slate-400">{label}</p>
+    <p className="text-sm font-semibold text-white">{value}</p>
   </div>
 );
 
@@ -122,21 +122,21 @@ export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ p
       </div>
 
       {segment.pilot && (
-        <p className="text-[11px] text-slate-400">
+        <p className="text-xs text-slate-400">
           Ruas pilot Karawang. Geometri ILUSTRATIF; atribut PCI/CBR/lalu lintas SINTETIS (bukan pengukuran lapangan).
         </p>
       )}
 
       {insightError && (
-        <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
+        <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
           Analisis ruas tidak tersedia: {insightError}
         </p>
       )}
-      {!insight && !insightError && <p className="text-[11px] text-slate-400">Memuat analisis ruas…</p>}
+      {!insight && !insightError && <p className="text-xs text-slate-400">Memuat analisis ruas…</p>}
       {insight && <SegmentRiskCard assessment={insight.assessment} explanation={insight.explanation} />}
       {story && <RoadStoryTimeline story={story.story} note={story.note} />}
       {insight && !isFieldEngineer && (
-        <p className="rounded-2xl border border-white/10 bg-[#121622] p-4 text-[11px] text-slate-400">
+        <p className="rounded-2xl border border-white/10 bg-surface p-4 text-xs text-slate-400">
           What-If (simulasi skenario) tersedia untuk Field Engineer. Hasil simulasi yang sudah dijalankan tampil di Road Story dengan label SIMULATED.
         </p>
       )}
@@ -155,7 +155,7 @@ export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ p
       )}
 
       <div className={cardClass}>
-        <h3 className="text-sm font-extrabold text-white">Laporan warga pada ruas ini</h3>
+        <h3 className="text-sm font-semibold text-white">Laporan warga pada ruas ini</h3>
         {reports.length === 0 ? (
           <p className="text-xs text-slate-400">Belum ada laporan untuk ruas ini.</p>
         ) : (
@@ -164,11 +164,11 @@ export const RoadDetailPage: React.FC<{ params: Record<string, string> }> = ({ p
               <div key={report.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-white/5 pt-2">
                 <div>
                   <p className="text-xs font-bold text-white">{report.damageTypeLabel}</p>
-                  <p className="text-[11px] text-slate-400">{report.timestamp}</p>
+                  <p className="text-xs text-slate-400">{report.timestamp}</p>
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-mono">
-                  <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">{report.severity}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-cyan-300">{report.status}</span>
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">{report.severity}</span>
+                  <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-cyan-300">{report.status}</span>
                 </div>
               </div>
             ))}

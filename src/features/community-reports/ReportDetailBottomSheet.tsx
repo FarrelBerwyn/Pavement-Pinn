@@ -220,14 +220,14 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             : 'translateY(0px)',
           opacity: isClosing ? 0 : 1
         }}
-        className={`fixed sm:absolute z-40 sm:z-30 bg-[#0B0F19] border-t sm:border border-white/20 rounded-t-[36px] sm:rounded-[32px] shadow-2xl flex flex-col overflow-hidden text-slate-100 box-border inset-x-0 bottom-0 select-none will-change-transform ${
+        className={`fixed sm:absolute z-40 sm:z-30 bg-canvas border-t sm:border border-white/20 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 box-border inset-x-0 bottom-0 select-none will-change-transform ${
           isClosing
             ? 'transition-all duration-320 ease-[cubic-bezier(0.32,0,0.67,0)]'
             : 'transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]'
         } ${
           /* Max height snap point: 90vh on mobile so user has 90% full card view with full scrollability */
           snapPoint === 'PEEK'
-            ? 'h-[116px] left-2! right-2! bottom-[calc(env(safe-area-inset-bottom)+88px)]! rounded-2xl! cursor-pointer sm:h-auto sm:left-auto! sm:top-4 sm:right-4! sm:bottom-24! sm:w-[420px] sm:rounded-[32px]!'
+            ? 'h-[116px] left-2! right-2! bottom-[calc(env(safe-area-inset-bottom)+88px)]! rounded-2xl! cursor-pointer sm:h-auto sm:left-auto! sm:top-4 sm:right-4! sm:bottom-24! sm:w-[420px] sm:rounded-2xl!'
             : snapPoint === 'HALF'
             ? 'h-[48vh] min-h-[360px] max-h-[460px] cursor-pointer sm:h-auto sm:max-h-none sm:top-4 sm:right-4 sm:bottom-24 sm:w-[420px] sm:inset-x-auto'
             : 'h-[90vh] max-h-[90dvh] top-[10vh] sm:top-4 sm:right-4 sm:bottom-24 sm:w-[430px] sm:inset-x-auto sm:h-auto'
@@ -237,11 +237,11 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
         <div
           data-sheet-grab
           onClick={toggleSnapPoint}
-          className="touch-none sm:touch-auto w-full pt-2.5 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors shrink-0"
+          className="touch-none sm:touch-auto w-full pt-3 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors shrink-0"
         >
           {/* Visual Pill Indicator */}
-          <div className="w-14 h-1.5 bg-white/40 hover:bg-amber-400 rounded-full transition-all duration-200" />
-          <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
+          <div className="w-14 h-2 bg-white/40 hover:bg-amber-400 rounded-full transition-all duration-200" />
+          <div className="flex items-center justify-center gap-1 text-xs font-bold text-slate-400 mt-1">
             <span>{snapPoint === 'PEEK' ? 'Ketuk untuk membuka detail' : snapPoint === 'HALF' ? 'Ketuk / Tarik Ke Atas Untuk Detail Penuh (90%)' : 'Tarik Ke Bawah Untuk Perkecil'}</span>
             {snapPoint === 'HALF' ? (
               <ChevronUp className="w-3 h-3 text-amber-400" />
@@ -254,7 +254,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
         {/* STICKY HEADER ZONE (AVATAR, TITLE, CLOSE BUTTON) */}
         <div
           data-sheet-grab
-          className="touch-none sm:touch-auto px-4 pt-1 pb-2.5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0"
+          className="touch-none sm:touch-auto px-4 pt-1 pb-3 border-b border-white/10 flex items-center justify-between gap-3 shrink-0"
         >
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             {/* Circular Thumbnail Avatar */}
@@ -262,25 +262,25 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
               <img
                 src={report.photoUrl}
                 alt={report.damageTypeLabel}
-                className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md shadow-amber-400/25"
+                className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md "
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=300';
                 }}
               />
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-900 border border-white/30 flex items-center justify-center text-[9px]">
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-900 border border-white/30 flex items-center justify-center text-xs">
                 📍
               </div>
             </div>
 
             <div className="min-w-0 flex-1">
-              <h3 className="font-black text-sm sm:text-base text-white truncate leading-tight">
+              <h3 className="font-semibold text-sm sm:text-base text-white truncate leading-tight">
                 {report.damageTypeLabel}
               </h3>
-              <p className="text-xs text-slate-300 truncate font-medium mt-0.5">
+              <p className="text-xs text-slate-300 truncate font-medium mt-1">
                 {report.segmentName}
               </p>
-              <div className="flex items-center gap-1.5 text-[10.5px] mt-0.5 text-slate-400 font-medium truncate">
+              <div className="flex items-center gap-2 text-xs mt-1 text-slate-400 font-medium truncate">
                 <span className={`font-bold ${isRepaired ? 'text-emerald-400' : report.status === 'PENDING' ? 'text-rose-400' : 'text-sky-300'}`}>
                   {STATUS_LABEL[report.status]}
                 </span>
@@ -293,7 +293,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           </div>
 
           {/* Quick Action Controls: Expand Toggle + Circular Close Button */}
-          <div className="flex items-center space-x-1.5 shrink-0">
+          <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={toggleSnapPoint}
               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 flex items-center justify-center transition-all cursor-pointer"
@@ -317,27 +317,27 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
         <div
           ref={scrollContainerRef}
           data-sheet-scroll
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-3.5 custom-scrollbar select-text overscroll-contain"
+          className="flex-1 overflow-y-auto px-4 py-3 space-y-4 custom-scrollbar select-text overscroll-contain"
         >
           {/* Quick Info Badges Row */}
-          <div className="flex items-center gap-1.5 flex-wrap text-xs">
-            <div className="flex items-center gap-1 bg-[#171d2e] border border-white/10 px-2.5 py-1 rounded-full text-[11px] font-bold text-amber-300">
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <div className="flex items-center gap-1 bg-elevated border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-amber-300">
               <span>5.0</span>
               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
               <span className="text-slate-400 font-mono">({reviews.length + report.upvotesCount})</span>
             </div>
             <button
               onClick={() => onUpvoteReport(report.id)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all border ${
+              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all border ${
                 report.userUpvoted
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/20'
-                  : 'bg-[#171d2e] hover:bg-white/10 text-slate-200 border-white/10'
+                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md '
+                  : 'bg-elevated hover:bg-white/10 text-slate-200 border-white/10'
               }`}
             >
               <ThumbsUp className="w-3 h-3" />
               <span>{report.userUpvoted ? 'Telah Didukung' : 'Dukung Laporan'}</span>
             </button>
-            <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 truncate">
+            <span className="text-xs font-mono px-3 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 truncate">
               GPS: {report.coordinates[0].toFixed(4)}, {report.coordinates[1].toFixed(4)}
             </span>
           </div>
@@ -346,35 +346,35 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => onUpvoteReport(report.id)}
-              className={`py-2 px-3 rounded-2xl border text-xs font-black flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+              className={`py-2 px-3 rounded-2xl border text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer ${
                 report.userUpvoted
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/30'
-                  : 'bg-[#171d2e] hover:bg-[#1f273d] text-white border-white/10'
+                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md '
+                  : 'bg-elevated hover:bg-elevated text-white border-white/10'
               }`}
             >
-              <ThumbsUp className="w-3.5 h-3.5" />
+              <ThumbsUp className="w-4 h-4" />
               <span>{report.userUpvoted ? 'Upvoted' : 'Upvote Laporan'}</span>
-              <span className="font-mono text-[11px]">({report.upvotesCount})</span>
+              <span className="font-mono text-xs">({report.upvotesCount})</span>
             </button>
 
             <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${report.coordinates[0]},${report.coordinates[1]}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-2 px-3 rounded-2xl bg-[#171d2e] hover:bg-[#1f273d] text-white border border-white/10 text-xs font-black flex items-center justify-center space-x-1.5 transition-all cursor-pointer truncate shadow-sm"
+              className="py-2 px-3 rounded-2xl bg-elevated hover:bg-elevated text-white border border-white/10 text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer truncate shadow-sm"
             >
-              <Navigation className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <Navigation className="w-4 h-4 text-amber-400 shrink-0" />
               <span className="truncate">Rute Navigasi</span>
             </a>
           </div>
 
           {/* Sub-Tabs Selector */}
-          <div className="grid grid-cols-3 gap-1 bg-[#171d2e] p-1 rounded-2xl border border-white/10 text-xs w-full">
+          <div className="grid grid-cols-3 gap-1 bg-elevated p-1 rounded-2xl border border-white/10 text-xs w-full">
             <button
               onClick={() => setDetailsTab('COMPARISON')}
-              className={`py-1.5 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
+              className={`py-2 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
                 detailsTab === 'COMPARISON'
-                  ? 'bg-amber-400 text-slate-950 shadow-md font-extrabold'
+                  ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -382,9 +382,9 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             </button>
             <button
               onClick={() => setDetailsTab('TELEMETRY')}
-              className={`py-1.5 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
+              className={`py-2 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
                 detailsTab === 'TELEMETRY'
-                  ? 'bg-amber-400 text-slate-950 shadow-md font-extrabold'
+                  ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -392,9 +392,9 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             </button>
             <button
               onClick={() => setDetailsTab('OVERVIEW')}
-              className={`py-1.5 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
+              className={`py-2 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
                 detailsTab === 'OVERVIEW'
-                  ? 'bg-amber-400 text-slate-950 shadow-md font-extrabold'
+                  ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -404,12 +404,12 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
 
           {/* TAB 1: SIDE-BY-SIDE BEFORE & AFTER */}
           {detailsTab === 'COMPARISON' && (
-            <div className="space-y-2.5 animate-in fade-in duration-200">
+            <div className="space-y-3 animate-in fade-in duration-200">
               <div className="grid grid-cols-2 gap-2">
                 {/* Before (Rusak) */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-slate-950 aspect-video shadow-md">
-                    <span className="absolute bottom-1 left-1 z-10 bg-slate-950/80 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                    <span className="absolute bottom-1 left-1 z-10 bg-slate-950/80 text-amber-300 text-xs font-bold px-2 py-1 rounded">
                       {ILLUSTRATIVE_PHOTO_LABEL.id}
                     </span>
                     <img
@@ -421,19 +421,19 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                           'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=600';
                       }}
                     />
-                    <div className="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[8px] font-mono font-black px-2 py-0.5 rounded-full shadow flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    <div className="absolute top-1.5 left-1.5 bg-rose-600 text-white text-xs font-mono font-semibold px-2 py-1 rounded-full shadow flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                       SEBELUM (RUSAK)
                     </div>
                   </div>
-                  <div className="bg-[#171d2e] p-2 rounded-xl border border-white/5 text-[10px] text-slate-300 flex justify-between items-center">
+                  <div className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 flex justify-between items-center">
                     <span className="text-slate-400">Kedalaman:</span>
                     <span className="font-mono font-bold text-rose-400">{report.estimatedDepthCm} cm</span>
                   </div>
                 </div>
 
                 {/* After (Perbaikan) */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-slate-950 aspect-video shadow-md">
                     <img
                       src={
@@ -447,12 +447,12 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                           'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=800';
                       }}
                     />
-                    <div className="absolute top-1.5 left-1.5 bg-emerald-600 text-slate-950 text-[8px] font-mono font-black px-2 py-0.5 rounded-full shadow flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-pulse" />
+                    <div className="absolute top-1.5 left-1.5 bg-emerald-600 text-slate-950 text-xs font-mono font-semibold px-2 py-1 rounded-full shadow flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-slate-950 animate-pulse" />
                       SESUDAH (PERBAIKAN)
                     </div>
                   </div>
-                  <div className="bg-[#171d2e] p-2 rounded-xl border border-white/5 text-[10px] text-slate-300 flex justify-between items-center">
+                  <div className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 flex justify-between items-center">
                     <span className="text-slate-400">Target PCI:</span>
                     <span className="font-mono font-bold text-amber-300">
                       {report.repairDetails?.repairedPciImprovement?.split('(')[0] || 'PCI 28 → 88'}
@@ -462,26 +462,26 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
               </div>
 
               {/* Status & Method Summary */}
-              <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-2 text-xs">
+              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5 min-w-0">
+                  <div className="flex items-center space-x-2 min-w-0">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-black text-emerald-300 text-xs truncate">
+                    <span className="font-semibold text-emerald-300 text-xs truncate">
                       {isRepaired ? 'Telah Selesai Diperbaiki' : 'Rencana Pemulihan'}
                     </span>
                   </div>
-                  <span className="text-[9.5px] font-mono font-bold text-amber-300 bg-amber-400/15 px-2 py-0.5 rounded-full border border-amber-400/30 shrink-0">
+                  <span className="text-xs font-mono font-bold text-amber-300 bg-amber-400/15 px-2 py-1 rounded-full border border-amber-400/30 shrink-0">
                     {report.repairDetails?.repairedPciImprovement || 'PCI 28 → 88 (Mulus)'}
                   </span>
                 </div>
-                <div className="space-y-1 text-[11px] text-slate-300 border-t border-white/5 pt-2">
+                <div className="space-y-1 text-xs text-slate-300 border-t border-white/5 pt-2">
                   <p>
                     <span className="text-slate-400 font-semibold">Metode: </span>
                     <span className="font-medium text-slate-200">
                       {report.repairDetails?.repairMethod || 'Hotmix Asphalt Overlay & Patching AC-WC 6cm'}
                     </span>
                   </p>
-                  <p className="text-slate-400 text-[10px] leading-relaxed">
+                  <p className="text-slate-400 text-xs leading-relaxed">
                     {report.repairDetails?.engineerNote ||
                       'Catatan perbaikan belum tersedia.'}
                   </p>
@@ -492,48 +492,48 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
 
           {/* TAB 2: TELEMETRY & AI METRICS */}
           {detailsTab === 'TELEMETRY' && (
-            <div className="space-y-2.5 animate-in fade-in duration-200 text-xs">
+            <div className="space-y-3 animate-in fade-in duration-200 text-xs">
               {/* Computer Vision YOLOv8 */}
-              <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-2">
+              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400 font-medium">OpenVINO YOLOv8 Edge AI:</span>
-                  <span className="font-extrabold text-emerald-400 font-mono flex items-center gap-1 text-xs">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> 94.2% Confidence
+                  <span className="font-semibold text-emerald-400 font-mono flex items-center gap-1 text-xs">
+                    <Sparkles className="w-4 h-4 text-emerald-400" /> 94.2% Confidence
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
                   <div>
-                    <p className="text-[10px] text-slate-400">Kedalaman Lubang:</p>
-                    <p className="text-sm font-black text-rose-400 font-mono">{report.estimatedDepthCm} cm</p>
+                    <p className="text-xs text-slate-400">Kedalaman Lubang:</p>
+                    <p className="text-sm font-semibold text-rose-400 font-mono">{report.estimatedDepthCm} cm</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400">Luas Area Kerusakan:</p>
-                    <p className="text-sm font-black text-amber-300 font-mono">{report.estimatedAreaM2} m²</p>
+                    <p className="text-xs text-slate-400">Luas Area Kerusakan:</p>
+                    <p className="text-sm font-semibold text-amber-300 font-mono">{report.estimatedAreaM2} m²</p>
                   </div>
                 </div>
               </div>
 
               {/* WIM Overload Correlation */}
-              <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-1.5">
+              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">WIM Telemetry:</span>
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold font-mono">
+                  <span className="text-xs font-bold text-slate-400">WIM Telemetry:</span>
+                  <span className="px-2 py-1 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold font-mono">
                     OVERLOAD +184%
                   </span>
                 </div>
                 <p className="text-xs font-bold text-white">Truk Terdeteksi: B 9281 KFU (Golongan V)</p>
-                <p className="text-[10.5px] text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   Muatan gandar 28.4 Ton melampaui batas izin 10.0 Ton. Akumulasi 142 truk/hari mempercepat fatik aspal.
                 </p>
               </div>
 
               {/* PINN Physics Recommendation */}
-              <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-1">
+              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">PINN Recommendation:</span>
-                  <span className="text-emerald-400 text-[10px] font-mono font-bold">Residual Life: 6.4 Thn</span>
+                  <span className="text-xs font-bold text-slate-400">PINN Recommendation:</span>
+                  <span className="text-emerald-400 text-xs font-mono font-bold">Residual Life: 6.4 Thn</span>
                 </div>
-                <p className="text-xs font-extrabold text-amber-300">Tebal Overlay Dianjurkan: 8.5 cm AC-WC</p>
+                <p className="text-xs font-semibold text-amber-300">Tebal Overlay Dianjurkan: 8.5 cm AC-WC</p>
               </div>
             </div>
           )}
@@ -542,25 +542,25 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           {detailsTab === 'OVERVIEW' && (
             <div className="space-y-3 animate-in fade-in duration-200 text-xs">
               {/* Location Card with Copy button */}
-              <div className="space-y-1 bg-[#171d2e] p-3 rounded-2xl border border-white/10">
+              <div className="space-y-1 bg-elevated p-3 rounded-2xl border border-white/10">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Lokasi:</span>
+                  <span className="text-xs font-bold text-slate-400">Lokasi:</span>
                   <button
                     onClick={handleCopyLocation}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
                   >
                     {copiedLocation ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedLocation ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
                 <p className="text-xs font-bold text-white">{report.segmentName}</p>
-                <p className="text-[10.5px] text-slate-400">
+                <p className="text-xs text-slate-400">
                   {report.province} &bull; GPS: {report.coordinates[0].toFixed(4)}, {report.coordinates[1].toFixed(4)}
                 </p>
               </div>
 
               {/* Reporter Info & Description */}
-              <div className="text-[11px] text-slate-400 flex items-center justify-between bg-[#171d2e] p-2.5 rounded-2xl border border-white/10">
+              <div className="text-xs text-slate-400 flex items-center justify-between bg-elevated p-3 rounded-2xl border border-white/10">
                 <span>Pelapor:</span>
                 <span className="font-semibold text-slate-200 truncate ml-2">
                   {report.reporterName} &bull; {report.timestamp}
@@ -568,23 +568,23 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
               </div>
 
               <div className="space-y-1">
-                <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Deskripsi Masalah:</span>
-                <p className="text-xs text-slate-300 bg-[#171d2e] p-3 rounded-2xl border border-white/10 italic leading-relaxed">
+                <span className="text-xs font-bold text-slate-400">Deskripsi Masalah:</span>
+                <p className="text-xs text-slate-300 bg-elevated p-3 rounded-2xl border border-white/10 italic leading-relaxed">
                   "{report.description}"
                 </p>
               </div>
 
               {/* Community Reviews */}
-              <div className="space-y-2.5 pt-2 border-t border-white/10">
+              <div className="space-y-3 pt-2 border-t border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm text-white">Ulasan Komunitas Warga</span>
                   <span className="text-xs text-slate-400 font-mono">{reviews.length} Ulasan</span>
                 </div>
 
                 {/* Reviews List */}
-                <div className="space-y-2.5 max-h-56 overflow-y-auto custom-scrollbar pr-1 divide-y divide-white/10">
+                <div className="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-1 divide-y divide-white/10">
                   {reviews.map((rev) => (
-                    <div key={rev.id} className="pt-2.5 first:pt-0 space-y-1.5 text-xs">
+                    <div key={rev.id} className="pt-3 first:pt-0 space-y-2 text-xs">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 min-w-0">
                           <img
@@ -596,10 +596,10 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                             <span className="font-bold text-white text-xs block truncate leading-tight">
                               {rev.userName}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">{rev.timeAgo}</span>
+                            <span className="text-xs text-slate-400 font-mono">{rev.timeAgo}</span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-0.5">
+                        <div className="flex items-center space-x-1">
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
@@ -616,7 +616,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                 </div>
 
                 {/* Add Review Box */}
-                <div className="bg-[#171d2e] p-3 rounded-2xl border border-white/10 space-y-2 mt-2">
+                <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2 mt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white">Tulis Ulasan:</span>
                     <div className="flex items-center space-x-1">
@@ -625,10 +625,10 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                           key={star}
                           type="button"
                           onClick={() => setNewReviewRating(star)}
-                          className="p-0.5 hover:scale-110 transition-transform cursor-pointer"
+                          className="p-1 hover:scale-110 transition-transform cursor-pointer"
                         >
                           <Star
-                            className={`w-3.5 h-3.5 ${
+                            className={`w-4 h-4 ${
                               star <= newReviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'
                             }`}
                           />
@@ -647,8 +647,8 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
 
                   <div className="flex items-center justify-between">
                     {reviewSubmitSuccess ? (
-                      <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Ulasan berhasil dikirim!
+                      <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> Ulasan berhasil dikirim!
                       </span>
                     ) : (
                       <span />
@@ -656,7 +656,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                     <button
                       onClick={handleSubmitReview}
                       disabled={!newReviewText.trim()}
-                      className="py-1.5 px-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-950 font-black text-xs flex items-center space-x-1 transition-all cursor-pointer ml-auto"
+                      className="py-2 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-950 font-semibold text-xs flex items-center space-x-1 transition-all cursor-pointer ml-auto"
                     >
                       <Send className="w-3 h-3" />
                       <span>Kirim</span>
@@ -671,7 +671,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           {canEditReport(currentAccount, report) && onOpenEditModal && (
             <button
               onClick={() => onOpenEditModal(report)}
-              className="w-full py-2 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+              className="w-full py-2 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
             >
               <span>✏️ Edit Laporan Ini</span>
             </button>
@@ -685,9 +685,9 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             <button
               type="button"
               onClick={onOpenSPK}
-              className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
+              className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70"
             >
-              <HardHat className="w-3.5 h-3.5 text-amber-400" />
+              <HardHat className="w-4 h-4 text-amber-400" />
               <span>Buka tugas inspeksi saya</span>
             </button>
           )}
@@ -707,7 +707,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
               }}
               className="py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-bold flex items-center justify-center space-x-1 cursor-pointer truncate"
             >
-              <Share2 className="w-3.5 h-3.5 shrink-0" />
+              <Share2 className="w-4 h-4 shrink-0" />
               <span>Share</span>
             </button>
 
@@ -719,7 +719,7 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                   : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
               }`}
             >
-              <Bookmark className="w-3.5 h-3.5 shrink-0" />
+              <Bookmark className="w-4 h-4 shrink-0" />
               <span>{isSaved ? 'Saved' : 'Save'}</span>
             </button>
 
@@ -727,11 +727,11 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
               onClick={() => onUpvoteReport(report.id)}
               className={`py-2 rounded-xl border text-xs font-bold flex items-center justify-center space-x-1 cursor-pointer transition-all truncate ${
                 report.userUpvoted
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 font-extrabold'
+                  ? 'bg-amber-400 text-slate-950 border-amber-400 font-semibold'
                   : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{report.userUpvoted ? 'Upvoted' : 'Upvote'}</span>
             </button>
           </div>

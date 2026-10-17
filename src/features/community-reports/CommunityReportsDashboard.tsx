@@ -59,11 +59,11 @@ interface CommunityReportsDashboardProps {
 /* Calm look shared with the report sheet: solid surfaces, thin borders, one yellow accent. */
 const UI_CARD = 'rounded-2xl border border-white/[0.08] bg-white/[0.03]';
 const UI_FIELD =
-  'w-full h-11 rounded-xl border border-white/[0.08] bg-[#121826] px-3.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-400/70';
+  'w-full h-11 rounded-xl border border-white/[0.08] bg-surface px-4 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-400/70';
 const UI_PRIMARY =
   'h-11 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
 const UI_GHOST =
-  'h-9 px-3 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] inline-flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+  'h-9 px-3 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] inline-flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
 const SEVERITY_LABEL: Record<string, string> = { LIGHT: 'Ringan', MODERATE: 'Sedang', SEVERE: 'Berat', CRITICAL: 'Kritis' };
 const SEVERITY_DOT: Record<string, string> = { LIGHT: 'bg-emerald-400', MODERATE: 'bg-amber-400', SEVERE: 'bg-orange-400', CRITICAL: 'bg-red-400' };
 const STATUS_LABEL: Record<string, string> = {
@@ -320,7 +320,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
           ].map(([label, value]) => (
             <div key={label as string} className={`${UI_CARD} px-4 py-3`}>
               <dt className="text-xs text-slate-400">{label}</dt>
-              <dd className="text-xl font-semibold text-white mt-0.5">{value}</dd>
+              <dd className="text-xl font-semibold text-white mt-1">{value}</dd>
             </div>
           ))}
         </dl>
@@ -328,15 +328,15 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
 
       {/* EDIT MODAL / FORM */}
       {editingReport && (
-        <div className="fixed inset-0 z-[1450] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#121622]/98 border border-white/15 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-slate-100 max-h-[92vh] overflow-y-auto animate-fadeIn custom-scrollbar">
+        <div className="fixed inset-0 z-[1450] bg-slate-950/85 flex items-center justify-center p-4">
+          <div className="bg-surface/98 border border-white/15 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-slate-100 max-h-[92vh] overflow-y-auto animate-fadeIn custom-scrollbar">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-amber-400 text-slate-950 font-black rounded-2xl shadow-md shadow-amber-400/20">
+                <div className="p-3 bg-amber-400 text-slate-950 font-semibold rounded-2xl shadow-md ">
                   <Edit3 className="w-5 h-5 text-slate-950" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">
+                  <h3 className="text-base font-semibold text-white">
                     Edit Laporan Kerusakan: {editingReport.id}
                   </h3>
                   <p className="text-xs text-slate-300">
@@ -354,12 +354,12 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="font-bold text-slate-200">Jenis Kerusakan Jalan:</label>
                   <select
                     value={editDamageType}
                     onChange={(e) => setEditDamageType(e.target.value as DamageType)}
-                    className="w-full bg-[#171d2e] border border-white/15 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 font-medium"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 focus:outline-none focus:border-amber-400 font-medium"
                   >
                     <option value="POTHOLE">Lubang Dalam (Pothole)</option>
                     <option value="ALLIGATOR_CRACK">Retak Buaya (Alligator Cracking)</option>
@@ -369,12 +369,12 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="font-bold text-slate-200">Tingkat Keparahan Bahaya:</label>
                   <select
                     value={editSeverity}
                     onChange={(e) => setEditSeverity(e.target.value as ReportSeverity)}
-                    className="w-full bg-[#171d2e] border border-white/15 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 font-medium"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 focus:outline-none focus:border-amber-400 font-medium"
                   >
                     <option value="LIGHT">Ringan (Tidak Membahayakan)</option>
                     <option value="MODERATE">Sedang (Perlu Kehati-hatian)</option>
@@ -385,7 +385,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="font-bold text-slate-200">Estimasi Kedalaman (cm):</label>
                   <input
                     type="number"
@@ -393,10 +393,10 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                     max={50}
                     value={editDepthCm}
                     onChange={(e) => setEditDepthCm(Number(e.target.value))}
-                    className="w-full bg-[#171d2e] border border-white/15 text-white rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 font-mono font-bold"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 font-mono font-bold"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="font-bold text-slate-200">Estimasi Luas Area (m²):</label>
                   <input
                     type="number"
@@ -405,15 +405,15 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                     max={100}
                     value={editAreaM2}
                     onChange={(e) => setEditAreaM2(Number(e.target.value))}
-                    className="w-full bg-[#171d2e] border border-white/15 text-white rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 font-mono font-bold"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 font-mono font-bold"
                   />
                 </div>
               </div>
 
               {/* Photo Preset Selection */}
               <div className="space-y-2">
-                <label className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-amber-400" />
+                <label className="font-bold text-slate-200 flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-amber-400" />
                   Foto Lampiran Lapangan:
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -424,24 +424,24 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                       className={`cursor-pointer rounded-xl border p-1 transition-all ${
                         editPhotoPresetIndex === idx
                           ? 'border-amber-400 bg-amber-950/40 ring-2 ring-amber-400/50'
-                          : 'border-white/10 bg-[#171d2e] opacity-60 hover:opacity-100'
+                          : 'border-white/10 bg-elevated opacity-60 hover:opacity-100'
                       }`}
                     >
                       <img src={preset.url} alt={preset.label} className="w-full h-16 object-cover rounded-lg mb-1" />
-                      <p className="text-[9.5px] font-bold text-center text-slate-300 truncate">{preset.label}</p>
+                      <p className="text-xs font-bold text-center text-slate-300 truncate">{preset.label}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Catatan Deskripsi */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="font-bold text-slate-200">Deskripsi Detail Kerusakan & Dampak:</label>
                 <textarea
                   rows={3}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full bg-[#171d2e] border border-white/15 text-white rounded-xl p-3 focus:outline-none focus:border-amber-400 font-medium"
+                  className="w-full bg-elevated border border-white/15 text-white rounded-xl p-3 focus:outline-none focus:border-amber-400 font-medium"
                 />
               </div>
 
@@ -450,13 +450,13 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                 <button
                   type="button"
                   onClick={() => setEditingReport(null)}
-                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer"
+                  className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black flex items-center space-x-1.5 shadow-lg shadow-amber-400/25 cursor-pointer"
+                  className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold flex items-center space-x-2 shadow-lg cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
                   <span>Simpan Perubahan Laporan</span>
@@ -544,8 +544,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
             >
               <div className="relative aspect-[16/10] bg-white/[0.03]">
                 <img src={report.photoUrl} alt={report.damageTypeLabel} className="w-full h-full object-cover" />
-                <span className="absolute top-3 left-3 rounded-full bg-[#121826]/90 px-2.5 py-1 text-xs text-slate-100 flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${SEVERITY_DOT[report.severity] ?? 'bg-slate-400'}`} />
+                <span className="absolute top-3 left-3 rounded-full bg-surface/90 px-3 py-1 text-xs text-slate-100 flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${SEVERITY_DOT[report.severity] ?? 'bg-slate-400'}`} />
                   {SEVERITY_LABEL[report.severity] ?? report.severity}
                 </span>
               </div>
@@ -556,7 +556,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
                     <h3 className="text-sm font-medium text-white truncate">{report.segmentName}</h3>
                     <p className="text-xs text-slate-400 truncate">{report.damageTypeLabel} · {report.province}</p>
                   </div>
-                  <span className="shrink-0 rounded-full border border-white/[0.1] px-2.5 py-0.5 text-xs text-slate-300">
+                  <span className="shrink-0 rounded-full border border-white/[0.1] px-3 py-1 text-xs text-slate-300">
                     {STATUS_LABEL[report.status] ?? report.status}
                   </span>
                 </div>
@@ -565,17 +565,17 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
 
                 {report.wimCorrelation && (
                   <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-xs text-slate-400">
-                    <span className="flex items-center gap-1.5 text-slate-300">
-                      <Truck className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="flex items-center gap-2 text-slate-300">
+                      <Truck className="w-4 h-4 text-amber-400" />
                       Contoh data WIM (DEMO)
                     </span>
-                    <span className="block mt-0.5">
+                    <span className="block mt-1">
                       Beban sumbu maks {report.wimCorrelation.maxAxleLoadTon} t · lebih {report.wimCorrelation.overloadPercent}%
                     </span>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2.5 mt-auto pt-1">
+                <div className="flex items-center gap-3 mt-auto pt-1">
                   <img
                     src={report.reporterAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
                     alt=""

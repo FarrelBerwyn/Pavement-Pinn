@@ -29,7 +29,7 @@ export const OpenVINOModelDiagnosticsModal: React.FC<OpenVINOModelDiagnosticsMod
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="openvino-status-title">
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0f1320] p-6 text-slate-200 shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f1320] p-6 text-slate-200 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="openvino-status-title" className="flex items-center gap-2 text-sm font-bold text-white">
             <Cpu className="h-4 w-4 text-slate-400" /> Status OpenVINO
@@ -46,7 +46,7 @@ export const OpenVINOModelDiagnosticsModal: React.FC<OpenVINOModelDiagnosticsMod
             </div>
           ))}
         </dl>
-        <p className="mt-4 text-[11px] text-slate-400">
+        <p className="mt-4 text-xs text-slate-400">
           Angka performa hanya ditampilkan setelah skrip benchmark dijalankan pada perangkat uji dan hasilnya tersimpan di
           measurements/*.json. Status: DEMO.
         </p>

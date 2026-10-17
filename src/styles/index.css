@@ -6,16 +6,128 @@
  * exposes @theme colors as utilities (e.g. bg-risk-high, text-risk-good).
  */
 @theme {
-  --color-risk-high: #e5484d;
-  --color-risk-watch: #f5a524;
-  --color-risk-moderate: #f2c94c;
-  --color-risk-good: #2fb344;
-  --color-info: #3b82f6;
-  --color-simulation: #8b5cf6;
-  --color-focus: #7dd3fc;
+  /*
+   * Brand (from src/assets/pavement-pinn-logo.jpg): yellow for identity, primary actions,
+   * active states and highlights only; navy from the logo mark.
+   */
+  --color-brand: #f5bc24;
+  --color-brand-hover: #f8cc4f;
+  --color-brand-press: #e0a812;
+  --color-navy: #141a35;
 
-  --radius-card: 8px;
+  /* Surfaces, lines and text (dark UI). */
+  --color-canvas: #0b0d12;
+  --color-surface: #121621;
+  --color-elevated: #191f2d;
+  --color-line: #2a3040;
+  --color-fg: #f4f5f7;
+  --color-fg-muted: #a0a8b8;
+  --color-fg-subtle: #758095;
+
+  /*
+   * Road condition status: calm, never neon; identical on map, markers, legend, badges,
+   * charts and reports (map code uses src/design/statusColors.ts with the same values).
+   */
+  --color-status-good: #57ae78;
+  --color-status-watch: #e8b23a;
+  --color-status-light: #e2823d;
+  --color-status-heavy: #d9655d;
+
+  --color-risk-high: #d9655d;
+  --color-risk-watch: #e2823d;
+  --color-risk-moderate: #e8b23a;
+  --color-risk-good: #57ae78;
+  --color-info: #8296b0;
+  --color-simulation: #8296b0;
+  --color-focus: #f5bc24;
+
+  /*
+   * Tailwind palette remapped to the calm system, so existing utility classes follow the
+   * brand without touching every component: amber/yellow = brand yellow; slate/gray =
+   * neutrals above; decorative hues (cyan, sky, blue, indigo, violet, purple, fuchsia,
+   * pink) collapse into one muted steel; greens, reds and oranges become status tones.
+   */
+  --color-amber-50: #fef8e7; --color-amber-100: #fdefc4; --color-amber-200: #fae08a; --color-amber-300: #f8cc4f;
+  --color-amber-400: #f5bc24; --color-amber-500: #e0a812; --color-amber-600: #b9890c; --color-amber-700: #8f690c;
+  --color-amber-800: #6b4f0e; --color-amber-900: #4a370c; --color-amber-950: #2a1f07;
+  --color-yellow-50: #fef8e7; --color-yellow-100: #fdefc4; --color-yellow-200: #fae08a; --color-yellow-300: #f8cc4f;
+  --color-yellow-400: #f5bc24; --color-yellow-500: #e0a812; --color-yellow-600: #b9890c; --color-yellow-700: #8f690c;
+  --color-yellow-800: #6b4f0e; --color-yellow-900: #4a370c; --color-yellow-950: #2a1f07;
+
+  --color-slate-50: #f7f8fa; --color-slate-100: #eef0f3; --color-slate-200: #d9dce3; --color-slate-300: #bcc2ce;
+  --color-slate-400: #a0a8b8; --color-slate-500: #758095; --color-slate-600: #525b6e; --color-slate-700: #2a3040;
+  --color-slate-800: #191f2d; --color-slate-900: #121621; --color-slate-950: #0b0d12;
+  --color-gray-50: #f7f8fa; --color-gray-100: #eef0f3; --color-gray-200: #d9dce3; --color-gray-300: #bcc2ce;
+  --color-gray-400: #a0a8b8; --color-gray-500: #758095; --color-gray-600: #525b6e; --color-gray-700: #2a3040;
+  --color-gray-800: #191f2d; --color-gray-900: #121621; --color-gray-950: #0b0d12;
+
+  --color-cyan-50: #f1f4f8; --color-cyan-100: #e1e7ef; --color-cyan-200: #c3cfde; --color-cyan-300: #9fb0c6;
+  --color-cyan-400: #8296b0; --color-cyan-500: #677c98; --color-cyan-600: #52647d; --color-cyan-700: #3f4d61;
+  --color-cyan-800: #2c3646; --color-cyan-900: #1e2532; --color-cyan-950: #141922;
+  --color-sky-50: #f1f4f8; --color-sky-100: #e1e7ef; --color-sky-200: #c3cfde; --color-sky-300: #9fb0c6;
+  --color-sky-400: #8296b0; --color-sky-500: #677c98; --color-sky-600: #52647d; --color-sky-700: #3f4d61;
+  --color-sky-800: #2c3646; --color-sky-900: #1e2532; --color-sky-950: #141922;
+  --color-blue-50: #f1f4f8; --color-blue-100: #e1e7ef; --color-blue-200: #c3cfde; --color-blue-300: #9fb0c6;
+  --color-blue-400: #8296b0; --color-blue-500: #677c98; --color-blue-600: #52647d; --color-blue-700: #3f4d61;
+  --color-blue-800: #2c3646; --color-blue-900: #1e2532; --color-blue-950: #141922;
+  --color-indigo-50: #f1f4f8; --color-indigo-100: #e1e7ef; --color-indigo-200: #c3cfde; --color-indigo-300: #9fb0c6;
+  --color-indigo-400: #8296b0; --color-indigo-500: #677c98; --color-indigo-600: #52647d; --color-indigo-700: #3f4d61;
+  --color-indigo-800: #2c3646; --color-indigo-900: #1e2532; --color-indigo-950: #141922;
+  --color-violet-50: #f1f4f8; --color-violet-100: #e1e7ef; --color-violet-200: #c3cfde; --color-violet-300: #9fb0c6;
+  --color-violet-400: #8296b0; --color-violet-500: #677c98; --color-violet-600: #52647d; --color-violet-700: #3f4d61;
+  --color-violet-800: #2c3646; --color-violet-900: #1e2532; --color-violet-950: #141922;
+  --color-purple-50: #f1f4f8; --color-purple-100: #e1e7ef; --color-purple-200: #c3cfde; --color-purple-300: #9fb0c6;
+  --color-purple-400: #8296b0; --color-purple-500: #677c98; --color-purple-600: #52647d; --color-purple-700: #3f4d61;
+  --color-purple-800: #2c3646; --color-purple-900: #1e2532; --color-purple-950: #141922;
+  --color-fuchsia-50: #f1f4f8; --color-fuchsia-100: #e1e7ef; --color-fuchsia-200: #c3cfde; --color-fuchsia-300: #9fb0c6;
+  --color-fuchsia-400: #8296b0; --color-fuchsia-500: #677c98; --color-fuchsia-600: #52647d; --color-fuchsia-700: #3f4d61;
+  --color-fuchsia-800: #2c3646; --color-fuchsia-900: #1e2532; --color-fuchsia-950: #141922;
+  --color-pink-50: #f1f4f8; --color-pink-100: #e1e7ef; --color-pink-200: #c3cfde; --color-pink-300: #9fb0c6;
+  --color-pink-400: #8296b0; --color-pink-500: #677c98; --color-pink-600: #52647d; --color-pink-700: #3f4d61;
+  --color-pink-800: #2c3646; --color-pink-900: #1e2532; --color-pink-950: #141922;
+
+  --color-emerald-50: #eef7f1; --color-emerald-100: #d6eedd; --color-emerald-200: #addcbc; --color-emerald-300: #7fc598;
+  --color-emerald-400: #57ae78; --color-emerald-500: #3e9461; --color-emerald-600: #31784e; --color-emerald-700: #285f3f;
+  --color-emerald-800: #1f4932; --color-emerald-900: #173625; --color-emerald-950: #0e2117;
+  --color-green-50: #eef7f1; --color-green-100: #d6eedd; --color-green-200: #addcbc; --color-green-300: #7fc598;
+  --color-green-400: #57ae78; --color-green-500: #3e9461; --color-green-600: #31784e; --color-green-700: #285f3f;
+  --color-green-800: #1f4932; --color-green-900: #173625; --color-green-950: #0e2117;
+  --color-teal-50: #eef7f1; --color-teal-100: #d6eedd; --color-teal-200: #addcbc; --color-teal-300: #7fc598;
+  --color-teal-400: #57ae78; --color-teal-500: #3e9461; --color-teal-600: #31784e; --color-teal-700: #285f3f;
+  --color-teal-800: #1f4932; --color-teal-900: #173625; --color-teal-950: #0e2117;
+  --color-lime-400: #57ae78; --color-lime-500: #3e9461;
+
+  --color-red-50: #fcefee; --color-red-100: #f8d9d7; --color-red-200: #f0b2ae; --color-red-300: #e5867f;
+  --color-red-400: #d9655d; --color-red-500: #c54a42; --color-red-600: #a33b34; --color-red-700: #82302b;
+  --color-red-800: #622522; --color-red-900: #451b19; --color-red-950: #2a100f;
+  --color-rose-50: #fcefee; --color-rose-100: #f8d9d7; --color-rose-200: #f0b2ae; --color-rose-300: #e5867f;
+  --color-rose-400: #d9655d; --color-rose-500: #c54a42; --color-rose-600: #a33b34; --color-rose-700: #82302b;
+  --color-rose-800: #622522; --color-rose-900: #451b19; --color-rose-950: #2a100f;
+  --color-orange-50: #fdf2ea; --color-orange-100: #fadfcb; --color-orange-200: #f4be96; --color-orange-300: #ec9c62;
+  --color-orange-400: #e2823d; --color-orange-500: #cc6c2a; --color-orange-600: #a85722; --color-orange-700: #84441d;
+  --color-orange-800: #613319; --color-orange-900: #432413; --color-orange-950: #28150b;
+
+  /* One UI typeface; one mono for coordinates and IDs. */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* 4-point radii: 4, 8, 12, 16. */
+  --radius-xs: 4px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
+  --radius-card: 12px;
   --radius-sheet: 16px;
+
+  /* Shadows: barely there; no coloured glow. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.24);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 0.24);
+  --shadow-lg: 0 4px 12px rgb(0 0 0 / 0.28);
+  --shadow-xl: 0 8px 20px rgb(0 0 0 / 0.32);
+  --shadow-2xl: 0 12px 28px rgb(0 0 0 / 0.36);
 
   /* Motion: short, purposeful, ease-out on enter. */
   --duration-micro: 120ms;
@@ -52,6 +164,14 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
 }
 
 html, body, #root {
@@ -102,19 +222,15 @@ html, body, #root {
 
 /* Glassmorphic floating card shadow */
 .floating-glass-card {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  border: 1px solid #e3e6eb;
+  box-shadow: var(--shadow-md);
 }
 
 .dark .floating-glass-card {
-  background: rgba(18, 22, 34, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-md);
 }
 
 /* Snapchat Heatmap Thermal Glow */
@@ -149,7 +265,7 @@ html, body, #root {
 
 .snapchat-story-chip:hover {
   transform: translateY(-54%) scale(1.05);
-  box-shadow: 0 16px 30px -4px rgba(0, 0, 0, 0.35), 0 0 16px rgba(239, 68, 68, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .snapchat-story-avatar {
@@ -204,23 +320,23 @@ html, body, #root {
 @keyframes pinBlinkHighlight {
   0% {
     transform: scale(1);
-    filter: drop-shadow(0 0 0px rgba(245, 158, 11, 0));
+    filter: none;
   }
   20% {
     transform: scale(1.35);
-    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 1));
+    filter: none;
   }
   40% {
     transform: scale(0.92);
-    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+    filter: none;
   }
   60% {
     transform: scale(1.28);
-    filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.95));
+    filter: none;
   }
   80% {
     transform: scale(0.96);
-    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+    filter: none;
   }
   100% {
     transform: scale(1);
@@ -265,7 +381,7 @@ html, body, #root {
   right: -16px;
   bottom: -16px;
   border-radius: 50%;
-  border: 3.5px solid #f59e0b;
+  border: 2px solid var(--color-brand);
   animation: pingRingExpand 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
   pointer-events: none;
   z-index: 10;
@@ -278,7 +394,7 @@ html, body, #root {
   right: -16px;
   bottom: -16px;
   border-radius: 50%;
-  border: 2px solid #fbbf24;
+  border: 1px solid var(--color-brand);
   animation: pingRingExpand 1.2s cubic-bezier(0, 0, 0.2, 1) 0.5s infinite;
   pointer-events: none;
   z-index: 9;

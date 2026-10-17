@@ -26,20 +26,20 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
   };
 
   const roleIcons: Record<UserRole, React.ReactNode> = {
-    FIELD_ENGINEER: <HardHat className="w-3.5 h-3.5 text-amber-400" />,
-    OPERATIONS_MANAGER: <Truck className="w-3.5 h-3.5 text-rose-400" />,
-    POLICY_MAKER: <Briefcase className="w-3.5 h-3.5 text-indigo-400" />,
-    PUBLIC_REPORTER: <Camera className="w-3.5 h-3.5 text-cyan-400" />,
-    PUBLIC_VIEWER: <Users className="w-3.5 h-3.5 text-emerald-400" />
+    FIELD_ENGINEER: <HardHat className="w-4 h-4 text-amber-400" />,
+    OPERATIONS_MANAGER: <Truck className="w-4 h-4 text-rose-400" />,
+    POLICY_MAKER: <Briefcase className="w-4 h-4 text-indigo-400" />,
+    PUBLIC_REPORTER: <Camera className="w-4 h-4 text-cyan-400" />,
+    PUBLIC_VIEWER: <Users className="w-4 h-4 text-emerald-400" />
   };
 
   return (
-    <div className="bg-slate-900/90 backdrop-blur-xl border-b border-white/10 py-2 px-4 sm:px-6 lg:px-8 shadow-md">
+    <div className="bg-slate-900/90 border-b border-white/10 py-2 px-4 sm:px-6 lg:px-8 shadow-md">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Card Ganti Akun (Nama & Role Singkat) */}
         <div
           onClick={onOpenLoginModal}
-          className="flex items-center space-x-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/40 p-1.5 pr-3.5 rounded-2xl cursor-pointer transition-all shadow-sm group"
+          className="flex items-center space-x-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/40 p-2 pr-4 rounded-2xl cursor-pointer transition-all shadow-sm group"
           title="Klik untuk membuka Pop Up Detail & Ganti Akun"
         >
           <div className="relative shrink-0">
@@ -48,7 +48,7 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
               alt={currentAccount.name}
               className="w-9 h-9 rounded-xl object-cover border border-indigo-400/50 shadow-sm"
             />
-            <span className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-slate-900 border border-white/10">
+            <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-slate-900 border border-white/10">
               {roleIcons[activeRole]}
             </span>
           </div>
@@ -58,18 +58,18 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
               <p className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
                 {currentAccount.name}
               </p>
-              <span className="text-[9px] font-mono font-bold px-2 py-0.2 rounded-full bg-indigo-500/20 text-cyan-300 border border-indigo-500/30">
+              <span className="text-xs font-mono font-bold px-2 py-0.2 rounded-full bg-indigo-500/20 text-cyan-300 border border-indigo-500/30">
                 {currentAccount.agencyCode}
               </span>
             </div>
-            <p className="text-[11px] text-slate-300 font-medium flex items-center gap-1">
+            <p className="text-xs text-slate-300 font-medium flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
               <span>{shortRoles[activeRole]}</span>
             </p>
           </div>
 
           <div className="ml-2 pl-3 border-l border-white/10 shrink-0">
-            <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-2.5 py-1 rounded-xl font-mono font-bold border border-indigo-400/30 group-hover:bg-indigo-500 group-hover:text-white transition-all flex items-center gap-1">
+            <span className="text-xs bg-indigo-500/30 text-indigo-200 px-3 py-1 rounded-xl font-mono font-bold border border-indigo-400/30 group-hover:bg-indigo-500 group-hover:text-white transition-all flex items-center gap-1">
               <KeyRound className="w-3 h-3 text-cyan-300" />
               <span>Ganti Akun</span>
             </span>
@@ -78,7 +78,7 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
 
         {/* Quick Role Switcher Buttons */}
         <div className="flex items-center space-x-2 text-xs">
-          <span className="text-[10px] font-mono font-bold uppercase text-slate-400 hidden md:inline">
+          <span className="text-xs font-bold text-slate-400 hidden md:inline">
             Akses Cepat Role:
           </span>
           <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-white/10">
@@ -116,7 +116,7 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
               onClick={() => onSelectRole('PUBLIC_REPORTER')}
               className={`px-3 py-1 rounded-xl font-mono text-xs font-bold transition-all ${
                 activeRole === 'PUBLIC_REPORTER'
-                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -126,7 +126,7 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
               onClick={() => onSelectRole('PUBLIC_VIEWER')}
               className={`px-3 py-1 rounded-xl font-mono text-xs font-bold transition-all ${
                 activeRole === 'PUBLIC_VIEWER'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-400 hover:text-white'
               }`}
             >

@@ -212,16 +212,16 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
     <div className="space-y-6">
       {/* 1. Header Banner & Profile Strip */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3.5">
+        <div className="flex items-center space-x-4">
           <div className="p-3 bg-slate-800 text-amber-400 border border-slate-700 rounded-xl font-bold shrink-0">
             <HardHat className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-              <span className="text-[10px] bg-slate-800 text-slate-300 font-mono font-medium px-2.5 py-0.5 rounded-md border border-slate-700">
+              <span className="text-xs bg-slate-800 text-slate-300 font-mono font-medium px-3 py-1 rounded-md border border-slate-700">
                 PUPR BBPJN DKI-JABAR &bull; LAPANGAN
               </span>
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-mono font-medium px-2 py-0.5 rounded-md border border-emerald-500/20">
+              <span className="text-xs bg-emerald-500/10 text-emerald-400 font-mono font-medium px-2 py-1 rounded-md border border-emerald-500/20">
                 Otorisasi SPK & Verifikasi Level 3
               </span>
             </div>
@@ -238,7 +238,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           {result && (
             <button
               onClick={() => generateOfficialReportPdf(result, 'FIELD_ENGINEER')}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs flex items-center space-x-2 border border-slate-700 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs flex items-center space-x-2 border border-slate-700 transition-colors cursor-pointer"
             >
               <FileDown className="w-4 h-4 text-slate-300" />
               <span>Cetak PDF Rekayasa</span>
@@ -246,7 +246,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           )}
           <button
             onClick={() => setIsCreateSpkModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Terbitkan SPK Baru</span>
@@ -258,7 +258,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
       <div className="flex items-center space-x-2 overflow-x-auto pb-1 custom-scrollbar">
         <button
           onClick={() => setActiveEngineeringTab('CHARTS')}
-          className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
             activeEngineeringTab === 'CHARTS'
               ? 'bg-slate-800 text-white border border-slate-700 shadow-xs'
               : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
@@ -270,7 +270,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
 
         <button
           onClick={() => setActiveEngineeringTab('OVERLAY_CALC')}
-          className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
             activeEngineeringTab === 'OVERLAY_CALC'
               ? 'bg-slate-800 text-white border border-slate-700 shadow-xs'
               : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
@@ -282,7 +282,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
 
         <button
           onClick={() => setActiveEngineeringTab('SPK_ORDERS')}
-          className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
             activeEngineeringTab === 'SPK_ORDERS'
               ? 'bg-slate-800 text-white border border-slate-700 shadow-xs'
               : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
@@ -290,14 +290,14 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
         >
           <FileText className="w-4 h-4 text-emerald-400" />
           <span>Surat Perintah Kerja (SPK & Kontraktor)</span>
-          <span className="px-1.5 py-0.2 rounded-md bg-slate-700 text-slate-200 font-mono text-[9px]">
+          <span className="px-2 py-0.2 rounded-md bg-slate-700 text-slate-200 font-mono text-xs">
             {workOrders.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveEngineeringTab('PINN_DIAGNOSTICS')}
-          className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
             activeEngineeringTab === 'PINN_DIAGNOSTICS'
               ? 'bg-slate-800 text-white border border-slate-700 shadow-xs'
               : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
@@ -314,13 +314,13 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
       {activeEngineeringTab === 'CHARTS' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Chart 1: Deflection Basin Curve (6 cols) */}
-          <div className="lg:col-span-6 bg-[#121622] border border-white/10 p-5 rounded-3xl shadow-2xl space-y-3">
+          <div className="lg:col-span-6 bg-surface border border-white/10 p-5 rounded-2xl shadow-2xl space-y-3">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center">
                 <Activity className="w-4 h-4 text-cyan-400 mr-2" />
                 Kurva Mangkok Lendutan Surface Deflection Basin w(r)
               </h3>
-              <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-500/30">
+              <span className="text-xs font-mono text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded-full border border-cyan-500/30">
                 FWD 50 kN Pulse
               </span>
             </div>
@@ -353,20 +353,20 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-300 font-mono bg-white/5 p-2.5 rounded-xl">
+            <div className="flex items-center justify-between text-xs text-slate-300 font-mono bg-white/5 p-3 rounded-xl">
               <span>Lendutan Maksimum di Bawah Beban (D0):</span>
               <span className="font-bold text-cyan-300">{result ? result.tensors.surfaceDeflectionMaxMicron : 480} µm</span>
             </div>
           </div>
 
           {/* Chart 2: Tensile & Compressive Strain vs AASHTO Limit (6 cols) */}
-          <div className="lg:col-span-6 bg-[#121622] border border-white/10 p-5 rounded-3xl shadow-2xl space-y-3">
+          <div className="lg:col-span-6 bg-surface border border-white/10 p-5 rounded-2xl shadow-2xl space-y-3">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center">
                 <Ruler className="w-4 h-4 text-amber-400 mr-2" />
                 Tensor Regangan Kritis (Microstrain µε) vs Batas Ijin
               </h3>
-              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span className="text-xs font-mono text-amber-300 bg-amber-500/20 px-2 py-1 rounded-full border border-amber-500/30">
                 AASHTO Fatigue Criteria
               </span>
             </div>
@@ -387,12 +387,12 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
-                  <Bar dataKey="NilaiSimulasi" name="Nilai Simulasi PINN" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="NilaiSimulasi" name="Nilai Simulasi PINN" fill="#e8b23a" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="BatasIjinAashto" name="Batas Ijin AASHTO" fill="#64748b" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-300 font-mono bg-white/5 p-2.5 rounded-xl">
+            <div className="flex items-center justify-between text-xs text-slate-300 font-mono bg-white/5 p-3 rounded-xl">
               <span>Status Kelelahan Aspal:</span>
               <span className="font-bold text-rose-400">MELEBIHI AMBANG BATAS (+22.5%)</span>
             </div>
@@ -402,14 +402,14 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
 
       {/* TAB 2: OVERLAY CALCULATOR */}
       {activeEngineeringTab === 'OVERLAY_CALC' && (
-        <div className="bg-[#121622] border border-white/10 p-6 rounded-3xl shadow-2xl space-y-6">
+        <div className="bg-surface border border-white/10 p-6 rounded-2xl shadow-2xl space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 bg-amber-400/20 text-amber-300 rounded-2xl">
+              <div className="p-3 bg-amber-400/20 text-amber-300 rounded-2xl">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-white">Kalkulator Desain Lapisan Tambah (Overlay AC-WC & AC-BC)</h3>
+                <h3 className="text-base font-semibold text-white">Kalkulator Desain Lapisan Tambah (Overlay AC-WC & AC-BC)</h3>
                 <p className="text-xs text-slate-400">Perhitungan volumetrik hotmix aspal, tack coat emulsi, dan estimasi biaya perbaikan Bina Marga</p>
               </div>
             </div>
@@ -419,46 +419,46 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="font-bold text-slate-300">Panjang Ruas Target (m):</label>
               <input
                 type="number"
                 value={calcSegmentLengthM}
                 onChange={(e) => setCalcSegmentLengthM(Number(e.target.value))}
-                className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2.5 font-mono font-bold focus:outline-none focus:border-amber-400"
+                className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 font-mono font-bold focus:outline-none focus:border-amber-400"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="font-bold text-slate-300">Lebar Perkerasan (m):</label>
               <input
                 type="number"
                 step="0.5"
                 value={calcRoadWidthM}
                 onChange={(e) => setCalcRoadWidthM(Number(e.target.value))}
-                className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2.5 font-mono font-bold focus:outline-none focus:border-amber-400"
+                className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 font-mono font-bold focus:outline-none focus:border-amber-400"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="font-bold text-slate-300">Tebal Lapisan AC-WC (cm):</label>
               <input
                 type="number"
                 step="0.5"
                 value={calcAcWcThicknessCm}
                 onChange={(e) => setCalcAcWcThicknessCm(Number(e.target.value))}
-                className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2.5 font-mono font-bold focus:outline-none focus:border-amber-400"
+                className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 font-mono font-bold focus:outline-none focus:border-amber-400"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="font-bold text-slate-300">Tebal Lapisan Pengikat AC-BC (cm):</label>
               <input
                 type="number"
                 step="0.5"
                 value={calcAcBcThicknessCm}
                 onChange={(e) => setCalcAcBcThicknessCm(Number(e.target.value))}
-                className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2.5 font-mono font-bold focus:outline-none focus:border-amber-400"
+                className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 font-mono font-bold focus:outline-none focus:border-amber-400"
               />
             </div>
           </div>
@@ -466,27 +466,27 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
           {/* Results Summary Box */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 space-y-1">
-              <p className="text-[11px] font-mono text-slate-400 uppercase">Total Tebal Overlay</p>
-              <p className="text-xl font-extrabold text-amber-400">{(calcAcWcThicknessCm + calcAcBcThicknessCm).toFixed(1)} cm</p>
-              <p className="text-[10.5px] text-slate-400">AC-WC + AC-BC Terpadu</p>
+              <p className="text-xs text-slate-400">Total Tebal Overlay</p>
+              <p className="text-xl font-semibold text-amber-400">{(calcAcWcThicknessCm + calcAcBcThicknessCm).toFixed(1)} cm</p>
+              <p className="text-xs text-slate-400">AC-WC + AC-BC Terpadu</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 space-y-1">
-              <p className="text-[11px] font-mono text-slate-400 uppercase">Kebutuhan Tonase Aspal</p>
-              <p className="text-xl font-extrabold text-cyan-300">{calculatedTonnage.toFixed(1)} Ton</p>
-              <p className="text-[10.5px] text-slate-400">Volume: {calculatedVolumeM3.toFixed(1)} m³</p>
+              <p className="text-xs text-slate-400">Kebutuhan Tonase Aspal</p>
+              <p className="text-xl font-semibold text-cyan-300">{calculatedTonnage.toFixed(1)} Ton</p>
+              <p className="text-xs text-slate-400">Volume: {calculatedVolumeM3.toFixed(1)} m³</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 space-y-1">
-              <p className="text-[11px] font-mono text-slate-400 uppercase">Kebutuhan Tack Coat</p>
-              <p className="text-xl font-extrabold text-emerald-400">{calculatedTackCoatLiter.toFixed(0)} Liter</p>
-              <p className="text-[10.5px] text-slate-400">Lapis Perekat Emulsi Aspal</p>
+              <p className="text-xs text-slate-400">Kebutuhan Tack Coat</p>
+              <p className="text-xl font-semibold text-emerald-400">{calculatedTackCoatLiter.toFixed(0)} Liter</p>
+              <p className="text-xs text-slate-400">Lapis Perekat Emulsi Aspal</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 space-y-1">
-              <p className="text-[11px] font-mono text-slate-400 uppercase">Estimasi Anggaran (HPS)</p>
-              <p className="text-xl font-extrabold text-rose-400">Rp {estimatedCostMillion.toFixed(1)} Juta</p>
-              <p className="text-[10.5px] text-slate-400">Standar Harga Satuan PUPR</p>
+              <p className="text-xs text-slate-400">Estimasi Anggaran (HPS)</p>
+              <p className="text-xl font-semibold text-rose-400">Rp {estimatedCostMillion.toFixed(1)} Juta</p>
+              <p className="text-xs text-slate-400">Standar Harga Satuan PUPR</p>
             </div>
           </div>
         </div>
@@ -496,15 +496,15 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
       {activeEngineeringTab === 'SPK_ORDERS' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-white flex items-center space-x-2">
+            <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
               <FileText className="w-4 h-4 text-amber-400" />
               <span>Daftar Surat Perintah Kerja (SPK) Aktif BBPJN Karawang</span>
             </h3>
             <button
               onClick={() => setIsCreateSpkModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center space-x-1.5 shadow-md shadow-amber-400/20 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs flex items-center space-x-2 shadow-md cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               <span>Buat SPK Baru</span>
             </button>
           </div>
@@ -513,15 +513,15 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
             {workOrders.map((spk) => (
               <div
                 key={spk.id}
-                className="bg-[#121622] border border-white/10 p-5 rounded-3xl shadow-xl space-y-3.5 flex flex-col justify-between"
+                className="bg-surface border border-white/10 p-5 rounded-2xl shadow-xl space-y-4 flex flex-col justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/30">
+                    <span className="text-xs font-mono font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md border border-amber-400/30">
                       {spk.id}
                     </span>
                     <span
-                      className={`text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                      className={`text-xs font-mono font-bold px-2 py-1 rounded-full border ${
                         spk.status === 'COMPLETED'
                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                           : spk.status === 'IN_PROGRESS'
@@ -534,19 +534,19 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                   </div>
 
                   <h4 className="text-sm font-bold text-white leading-snug">{spk.segmentName}</h4>
-                  <p className="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-xs text-slate-300 font-semibold flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-slate-400" />
                     {spk.contractorName}
                   </p>
 
-                  <div className="bg-[#181f33] p-2.5 rounded-xl space-y-1 text-[11px] text-slate-300">
+                  <div className="bg-elevated p-3 rounded-xl space-y-1 text-xs text-slate-300">
                     <p><span className="text-slate-400 font-medium">Tindakan:</span> {spk.recommendedAction}</p>
                     <p><span className="text-slate-400 font-medium">Tebal Overlay:</span> <strong className="text-amber-400 font-mono">{spk.overlayThicknessCm} cm</strong> ({spk.estimatedVolumeTons} Ton)</p>
                     <p><span className="text-slate-400 font-medium">Pagu Anggaran:</span> <strong className="text-emerald-400 font-mono">Rp {(spk.budgetRupiah / 1000000).toFixed(1)} Juta</strong></p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-400">
                   <span>Target: {spk.targetCompletionDate}</span>
                   <span className="text-cyan-400 font-bold">Otorisasi Level 3 &check;</span>
                 </div>
@@ -559,25 +559,25 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
       {/* TAB 4: PINN DIAGNOSTICS */}
       {activeEngineeringTab === 'PINN_DIAGNOSTICS' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
-            <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fungsi Objektif Total</h4>
-            <p className="text-2xl font-black text-emerald-400 font-mono">
+          <div className="bg-surface border border-white/10 p-5 rounded-2xl space-y-3">
+            <h4 className="text-xs font-bold text-white">Loss Fungsi Objektif Total</h4>
+            <p className="text-2xl font-semibold text-emerald-400 font-mono">
               belum diukur
             </p>
             <p className="text-xs text-slate-400">Mesin saat ini RULE_BASED (rumus), bukan jaringan terlatih; tidak ada loss pelatihan.</p>
           </div>
 
-          <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
-            <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Fisika (PI-surrogate, rencana)</h4>
-            <p className="text-2xl font-black text-cyan-300 font-mono">
+          <div className="bg-surface border border-white/10 p-5 rounded-2xl space-y-3">
+            <h4 className="text-xs font-bold text-white">Loss Fisika (PI-surrogate, rencana)</h4>
+            <p className="text-2xl font-semibold text-cyan-300 font-mono">
               belum diukur
             </p>
             <p className="text-xs text-slate-400">Tersedia setelah PI-surrogate dilatih dan diukur (Fase 2).</p>
           </div>
 
-          <div className="bg-[#121622] border border-white/10 p-5 rounded-3xl space-y-3">
-            <h4 className="text-xs font-bold text-white uppercase font-mono">Loss Data Observasi Sensor</h4>
-            <p className="text-2xl font-black text-amber-400 font-mono">
+          <div className="bg-surface border border-white/10 p-5 rounded-2xl space-y-3">
+            <h4 className="text-xs font-bold text-white">Loss Data Observasi Sensor</h4>
+            <p className="text-2xl font-semibold text-amber-400 font-mono">
               belum diukur
             </p>
             <p className="text-xs text-slate-400">Tidak ada data sensor WIM/FWD yang terhubung.</p>
@@ -587,33 +587,33 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
 
       {/* MODAL: CREATE SPK */}
       {isCreateSpkModalOpen && (
-        <div className="fixed inset-0 z-[1600] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#121622] border border-white/20 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 z-[1600] bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-surface border border-white/20 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-2xl bg-amber-400 text-slate-950 font-black">
+                <div className="p-3 rounded-2xl bg-amber-400 text-slate-950 font-semibold">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Terbitkan Surat Perintah Kerja (SPK)</h3>
+                  <h3 className="text-base font-semibold text-white">Terbitkan Surat Perintah Kerja (SPK)</h3>
                   <p className="text-xs text-slate-400">Disposisi Resmi Penanganan Ruas Jalan BBPJN DKI-Jabar</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsCreateSpkModalOpen(false)}
-                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSpk} className="space-y-3.5 text-xs">
+            <form onSubmit={handleCreateSpk} className="space-y-4 text-xs">
               <div className="space-y-1">
                 <label className="font-bold text-slate-300">Ruas Jalan Sasaran:</label>
                 <select
                   value={newSpkSegment}
                   onChange={(e) => setNewSpkSegment(e.target.value)}
-                  className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 font-semibold"
+                  className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 focus:outline-none focus:border-amber-400 font-semibold"
                 >
                   {roadSegments.map((s) => (
                     <option key={s.id} value={s.name}>
@@ -628,7 +628,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                 <select
                   value={newSpkContractor}
                   onChange={(e) => setNewSpkContractor(e.target.value)}
-                  className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 font-semibold"
+                  className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-3 focus:outline-none focus:border-amber-400 font-semibold"
                 >
                   <option value="PT Wijaya Karya (Persero) Tbk">PT Wijaya Karya (Persero) Tbk</option>
                   <option value="PT Brantas Abipraya (Persero)">PT Brantas Abipraya (Persero)</option>
@@ -645,7 +645,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                     step="0.5"
                     value={newSpkThickness}
                     onChange={(e) => setNewSpkThickness(Number(e.target.value))}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
                   />
                 </div>
                 <div className="space-y-1">
@@ -654,7 +654,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                     type="number"
                     value={newSpkVolume}
                     onChange={(e) => setNewSpkVolume(Number(e.target.value))}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
                   />
                 </div>
               </div>
@@ -666,7 +666,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                     type="number"
                     value={newSpkBudget}
                     onChange={(e) => setNewSpkBudget(Number(e.target.value))}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
                   />
                 </div>
                 <div className="space-y-1">
@@ -675,7 +675,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                     type="date"
                     value={newSpkTargetDate}
                     onChange={(e) => setNewSpkTargetDate(e.target.value)}
-                    className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    className="w-full bg-elevated border border-white/15 text-white rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400"
                   />
                 </div>
               </div>
@@ -686,7 +686,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                   rows={2}
                   value={newSpkAction}
                   onChange={(e) => setNewSpkAction(e.target.value)}
-                  className="w-full bg-[#181f33] border border-white/15 text-white rounded-xl p-2.5 focus:outline-none focus:border-amber-400"
+                  className="w-full bg-elevated border border-white/15 text-white rounded-xl p-3 focus:outline-none focus:border-amber-400"
                 />
               </div>
 
@@ -700,7 +700,7 @@ export const FieldEngineerTools: React.FC<FieldEngineerToolsProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black flex items-center space-x-1.5 shadow-lg shadow-amber-400/30 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold flex items-center space-x-2 shadow-lg cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>Terbitkan & Otorisasi SPK</span>

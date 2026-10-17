@@ -2,8 +2,8 @@ import React from 'react';
 import { StatusBadge } from '../../../components/ui/PageOverlay';
 
 // Shared styling for the three computer-vision pages.
-export const cardClass = 'bg-[#121622] border border-white/10 rounded-3xl p-5 space-y-3';
-export const primaryLink = 'inline-block px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs cursor-pointer';
+export const cardClass = 'bg-surface border border-white/10 rounded-2xl p-5 space-y-3';
+export const primaryLink = 'inline-block px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs cursor-pointer';
 export const secondaryLink = 'inline-block px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-slate-200 font-bold text-xs';
 
 /** Shown on every Computer Vision page so the capability is never overstated. */

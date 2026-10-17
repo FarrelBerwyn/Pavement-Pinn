@@ -19,7 +19,7 @@ import { DEMO_CV_PROVIDER } from '../../domain/workflow/screening';
 import { canEditReport, isOfficialRole } from '../../domain/access';
 import type { ReportDraft } from '../../domain/reports/reportFactory';
 import type { RoadSegment } from '../../types';
-import { assessSegment, ENGINE_INPUT_RANGES, type AssessmentInputs, type EngineeringAssessment } from '../../domain/intelligence/assessment';
+import { assessSegment, snapshotOf, ENGINE_INPUT_RANGES, type AssessmentInputs, type EngineeringAssessment } from '../../domain/intelligence/assessment';
 import { explainAssessment, type StructuredExplanation } from '../../domain/intelligence/explain';
 import { runWhatIf, type WhatIfResult } from '../../domain/intelligence/whatIf';
 import { buildRoadStory, type StoryEntry } from '../../domain/intelligence/roadStory';
@@ -359,6 +359,13 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
 
   async transition(id: string, command: WorkflowCommand, expectedVersion: number): Promise<ReportView> {
     await this.ready;
+    if (command.action === 'RECOMMEND_ACTION') {
+      // Same rule as the server route: the assessment is computed here, never taken from the caller.
+      const current = await this.service.getCase(id);
+      const segment = current ? this.segments.find((s) => s.id === current.segmentId) : undefined;
+      const assessment = segment ? assessSegment(segment, { now: new Date().toISOString(), cases: await this.service.listCases() }) : null;
+      command = { ...command, assessmentId: assessment ? assessment.id : null, assessment: assessment ? snapshotOf(assessment) : null };
+    }
     return this.unwrap(await this.service.transition(id, command, this.actor, expectedVersion));
   }
 

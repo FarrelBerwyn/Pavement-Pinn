@@ -133,18 +133,18 @@ export const TechnicalReferenceView: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-full w-full bg-[#07090e] text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="min-h-full w-full bg-canvas text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <div className="flex items-center space-x-2.5 mb-1">
+          <div className="flex items-center space-x-3 mb-1">
             <div className="p-2 rounded-xl bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
               Referensi Teknis & Pedoman Rekayasa Jalan
             </h1>
-            <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
+            <span className="text-xs font-mono font-bold bg-amber-400/20 text-amber-300 px-2 py-1 rounded-full border border-amber-400/30">
               Standar PUPR & ASTM
             </span>
           </div>
@@ -154,7 +154,7 @@ export const TechnicalReferenceView: React.FC = () => {
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex items-center space-x-1.5 bg-[#0e1320] p-1.5 rounded-2xl border border-white/10 overflow-x-auto custom-scrollbar">
+        <div className="flex flex-wrap items-center gap-2 bg-surface p-2 rounded-xl border border-line" role="tablist">
           {[
             { id: 'STANDARDS', label: 'Standar & Regulasi', icon: ShieldCheck },
             { id: 'SOP_REPAIR', label: 'SOP Perbaikan', icon: Wrench },
@@ -166,13 +166,13 @@ export const TechnicalReferenceView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 whitespace-nowrap transition-all cursor-pointer ${
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 whitespace-nowrap transition-all cursor-pointer ${
                   activeTab === tab.id
-                    ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20 font-black'
+                    ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -191,16 +191,16 @@ export const TechnicalReferenceView: React.FC = () => {
                 onClick={() => setSelectedStandardId(std.id)}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                   selectedStandardId === std.id
-                    ? 'bg-[#141a29] border-amber-400/60 shadow-lg shadow-amber-400/10'
-                    : 'bg-[#0e1320] border-white/10 hover:border-white/20'
+                    ? 'bg-surface border-amber-400/60 shadow-lg '
+                    : 'bg-surface border-white/10 hover:border-white/20'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-mono font-black text-amber-400">{std.code}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono font-semibold text-amber-400">{std.code}</span>
                   <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${selectedStandardId === std.id ? 'rotate-90 text-amber-400' : ''}`} />
                 </div>
                 <h3 className="text-xs font-bold text-white leading-snug mb-1">{std.title}</h3>
-                <p className="text-[11px] text-slate-400 line-clamp-2">{std.issuer}</p>
+                <p className="text-xs text-slate-400 line-clamp-2">{std.issuer}</p>
               </div>
             ))}
           </div>
@@ -209,24 +209,24 @@ export const TechnicalReferenceView: React.FC = () => {
           {(() => {
             const curStd = standardsData.find((s) => s.id === selectedStandardId) || standardsData[0];
             return (
-              <div className="lg:col-span-2 bg-[#0e1320] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="lg:col-span-2 bg-surface border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
                 <div className="border-b border-white/10 pb-3">
-                  <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/20 px-2.5 py-0.5 rounded-full border border-cyan-500/30 inline-block mb-2">
+                  <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30 inline-block mb-2">
                     {curStd.issuer}
                   </span>
-                  <h2 className="text-base sm:text-lg font-black text-white">{curStd.title}</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-white">{curStd.title}</h2>
                   <p className="text-xs text-slate-400 mt-1">{curStd.summary}</p>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5" />
+                  <h4 className="text-xs font-bold text-amber-400 flex items-center gap-2">
+                    <Info className="w-4 h-4" />
                     Ketentuan Teknis Kunci & Parameter Evaluasi:
                   </h4>
                   <div className="space-y-2">
                     {curStd.keyPoints.map((point, i) => (
-                      <div key={i} className="flex items-start space-x-2.5 bg-[#141a29] p-3 rounded-xl border border-white/5 text-xs text-slate-200">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div key={i} className="flex items-start space-x-3 bg-surface p-3 rounded-xl border border-white/5 text-xs text-slate-200">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-1" />
                         <span className="leading-relaxed">{point}</span>
                       </div>
                     ))}
@@ -235,7 +235,7 @@ export const TechnicalReferenceView: React.FC = () => {
 
                 <div className="p-3 bg-amber-400/10 border border-amber-400/20 rounded-xl text-xs text-amber-300 flex items-center justify-between">
                   <span>Daftar rujukan ini diterapkan langsung pada modul simulasi PINN dan rekomendasi SPK.</span>
-                  <span className="font-mono font-bold text-[10px]">VER: 2025.2</span>
+                  <span className="font-mono font-bold text-xs">VER: 2025.2</span>
                 </div>
               </div>
             );
@@ -247,30 +247,30 @@ export const TechnicalReferenceView: React.FC = () => {
       {activeTab === 'SOP_REPAIR' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {repairSop.map((sop, idx) => (
-            <div key={idx} className="bg-[#0e1320] border border-white/10 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col justify-between space-y-4">
+            <div key={idx} className="bg-surface border border-white/10 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
+                  <span className="text-xs font-mono font-bold bg-amber-400/20 text-amber-300 px-2 py-1 rounded-full border border-amber-400/30">
                     {sop.category}
                   </span>
-                  <span className="text-[10px] font-mono text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30">
+                  <span className="text-xs font-mono text-rose-300 bg-rose-500/20 px-2 py-1 rounded-full border border-rose-500/30">
                     {sop.urgency}
                   </span>
                 </div>
 
-                <h3 className="text-sm font-black text-white">{sop.title}</h3>
+                <h3 className="text-sm font-semibold text-white">{sop.title}</h3>
 
-                <div className="bg-[#141a29] p-2.5 rounded-xl border border-white/5 text-xs">
-                  <span className="text-slate-400 text-[10px] block font-mono">Peralatan Utama:</span>
-                  <span className="text-slate-200 font-medium text-[11px] mt-0.5 block">{sop.tools}</span>
+                <div className="bg-surface p-3 rounded-xl border border-white/5 text-xs">
+                  <span className="text-slate-400 text-xs block font-mono">Peralatan Utama:</span>
+                  <span className="text-slate-200 font-medium text-xs mt-1 block">{sop.tools}</span>
                 </div>
 
                 <div className="space-y-2 pt-1">
                   <span className="text-xs font-bold text-amber-400 block font-mono">Langkah Penanganan (SOP PUPR):</span>
-                  <ol className="space-y-1.5 text-xs text-slate-300">
+                  <ol className="space-y-2 text-xs text-slate-300">
                     {sop.steps.map((step, sIdx) => (
                       <li key={sIdx} className="flex items-start space-x-2">
-                        <span className="w-4 h-4 rounded-full bg-slate-800 text-amber-400 text-[10px] font-mono font-black flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="w-4 h-4 rounded-full bg-slate-800 text-amber-400 text-xs font-mono font-semibold flex items-center justify-center shrink-0 mt-1">
                           {sIdx + 1}
                         </span>
                         <span className="leading-snug">{step}</span>
@@ -288,8 +288,8 @@ export const TechnicalReferenceView: React.FC = () => {
       {activeTab === 'CALCULATOR' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}
-          <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
-            <h3 className="text-sm font-black text-white flex items-center gap-2">
+          <div className="bg-surface border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Calculator className="w-4 h-4 text-amber-400" />
               <span>Input Dimensi Penanganan Lapangan</span>
             </h3>
@@ -301,7 +301,7 @@ export const TechnicalReferenceView: React.FC = () => {
                   type="number"
                   value={calcLength}
                   onChange={(e) => setCalcLength(Number(e.target.value))}
-                  className="w-full bg-[#141a29] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
@@ -311,7 +311,7 @@ export const TechnicalReferenceView: React.FC = () => {
                   type="number"
                   value={calcWidth}
                   onChange={(e) => setCalcWidth(Number(e.target.value))}
-                  className="w-full bg-[#141a29] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
@@ -322,7 +322,7 @@ export const TechnicalReferenceView: React.FC = () => {
                   value={calcThicknessCm}
                   step="0.5"
                   onChange={(e) => setCalcThicknessCm(Number(e.target.value))}
-                  className="w-full bg-[#141a29] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
@@ -333,9 +333,9 @@ export const TechnicalReferenceView: React.FC = () => {
                   value={calcDensity}
                   step="0.01"
                   onChange={(e) => setCalcDensity(Number(e.target.value))}
-                  className="w-full bg-[#141a29] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
                 />
-                <span className="text-[10px] text-slate-500 mt-0.5 block">Standar AC-WC: 2.32 ton/m³ | AC-BC: 2.30 ton/m³</span>
+                <span className="text-xs text-slate-500 mt-1 block">Standar AC-WC: 2.32 ton/m³ | AC-BC: 2.30 ton/m³</span>
               </div>
 
               <div>
@@ -345,42 +345,42 @@ export const TechnicalReferenceView: React.FC = () => {
                   value={tackCoatRate}
                   step="0.05"
                   onChange={(e) => setTackCoatRate(Number(e.target.value))}
-                  className="w-full bg-[#141a29] border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
             </div>
           </div>
 
           {/* Results Summary */}
-          <div className="lg:col-span-2 bg-[#0e1320] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
-            <h3 className="text-sm font-black text-white flex items-center gap-2">
+          <div className="lg:col-span-2 bg-surface border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Scale className="w-4 h-4 text-emerald-400" />
               <span>Estimasi Volume Material & Kebutuhan Logistik</span>
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-[#141a29] p-3.5 rounded-xl border border-white/5">
-                <span className="text-[10px] text-slate-400 block font-mono">Luas Area Penanganan</span>
-                <span className="text-xl font-black text-white mt-1 block">{areaM2.toFixed(1)} <span className="text-xs text-slate-400">m²</span></span>
+              <div className="bg-surface p-4 rounded-xl border border-white/5">
+                <span className="text-xs text-slate-400 block font-mono">Luas Area Penanganan</span>
+                <span className="text-xl font-semibold text-white mt-1 block">{areaM2.toFixed(1)} <span className="text-xs text-slate-400">m²</span></span>
               </div>
 
-              <div className="bg-[#141a29] p-3.5 rounded-xl border border-white/5">
-                <span className="text-[10px] text-slate-400 block font-mono">Volume Hamparan</span>
-                <span className="text-xl font-black text-white mt-1 block">{volumeM3.toFixed(2)} <span className="text-xs text-slate-400">m³</span></span>
+              <div className="bg-surface p-4 rounded-xl border border-white/5">
+                <span className="text-xs text-slate-400 block font-mono">Volume Hamparan</span>
+                <span className="text-xl font-semibold text-white mt-1 block">{volumeM3.toFixed(2)} <span className="text-xs text-slate-400">m³</span></span>
               </div>
 
-              <div className="bg-[#141a29] p-3.5 rounded-xl border border-white/5">
-                <span className="text-[10px] text-amber-300 block font-mono">Kebutuhan Hotmix</span>
-                <span className="text-xl font-black text-amber-400 mt-1 block">{tonnageTon.toFixed(2)} <span className="text-xs text-slate-400">Ton</span></span>
+              <div className="bg-surface p-4 rounded-xl border border-white/5">
+                <span className="text-xs text-amber-300 block font-mono">Kebutuhan Hotmix</span>
+                <span className="text-xl font-semibold text-amber-400 mt-1 block">{tonnageTon.toFixed(2)} <span className="text-xs text-slate-400">Ton</span></span>
               </div>
 
-              <div className="bg-[#141a29] p-3.5 rounded-xl border border-white/5">
-                <span className="text-[10px] text-cyan-300 block font-mono">Kebutuhan Tack Coat</span>
-                <span className="text-xl font-black text-cyan-400 mt-1 block">{tackCoatLiters.toFixed(1)} <span className="text-xs text-slate-400">Liter</span></span>
+              <div className="bg-surface p-4 rounded-xl border border-white/5">
+                <span className="text-xs text-cyan-300 block font-mono">Kebutuhan Tack Coat</span>
+                <span className="text-xl font-semibold text-cyan-400 mt-1 block">{tackCoatLiters.toFixed(1)} <span className="text-xs text-slate-400">Liter</span></span>
               </div>
             </div>
 
-            <div className="bg-[#141a29] p-4 rounded-xl border border-white/5 space-y-2 text-xs">
+            <div className="bg-surface p-4 rounded-xl border border-white/5 space-y-2 text-xs">
               <h4 className="font-bold text-white font-mono">Rekomendasi Dump Truck & Waktu AMP:</h4>
               <ul className="space-y-1 text-slate-300">
                 <li>&bull; Estimasi jumlah Dump Truck 15-Ton: <strong className="text-white">{Math.ceil(tonnageTon / 15)} Unit Truk</strong></li>
@@ -394,9 +394,9 @@ export const TechnicalReferenceView: React.FC = () => {
 
       {/* TAB 4: TYPICAL PAVEMENT CROSS-SECTION */}
       {activeTab === 'PAVEMENT_LAYERS' && (
-        <div className="bg-[#0e1320] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+        <div className="bg-surface border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
           <div>
-            <h3 className="text-base font-black text-white flex items-center gap-2">
+            <h3 className="text-base font-semibold text-white flex items-center gap-2">
               <Layers className="w-5 h-5 text-amber-400" />
               <span>Susunan Standar Lapis Perkerasan Lentur (Flexible Pavement)</span>
             </h3>
@@ -409,41 +409,41 @@ export const TechnicalReferenceView: React.FC = () => {
             <div className="bg-slate-900 border-2 border-amber-400/80 p-4 rounded-xl flex items-center justify-between text-xs">
               <div>
                 <span className="font-mono font-bold text-amber-400">1. Lapis Aus (Wearing Course - AC-WC)</span>
-                <p className="text-slate-300 text-[11px]">Tebal 4.0 cm &bull; Modulus Elastisitas E₁ ≈ 2500 - 3200 MPa &bull; Menahan gesekan roda dan kedap air</p>
+                <p className="text-slate-300 text-xs">Tebal 4.0 cm &bull; Modulus Elastisitas E₁ ≈ 2500 - 3200 MPa &bull; Menahan gesekan roda dan kedap air</p>
               </div>
-              <span className="text-xs font-mono font-black text-white bg-amber-500/20 px-3 py-1 rounded-lg border border-amber-500/30">4.0 cm</span>
+              <span className="text-xs font-mono font-semibold text-white bg-amber-500/20 px-3 py-1 rounded-lg border border-amber-500/30">4.0 cm</span>
             </div>
 
             <div className="bg-slate-900 border border-indigo-400/60 p-4 rounded-xl flex items-center justify-between text-xs">
               <div>
                 <span className="font-mono font-bold text-indigo-300">2. Lapis Antara (Binder Course - AC-BC)</span>
-                <p className="text-slate-300 text-[11px]">Tebal 6.0 cm &bull; Menyalurkan tegangan geser maksimum akibat beban roda</p>
+                <p className="text-slate-300 text-xs">Tebal 6.0 cm &bull; Menyalurkan tegangan geser maksimum akibat beban roda</p>
               </div>
-              <span className="text-xs font-mono font-black text-white bg-indigo-500/20 px-3 py-1 rounded-lg border border-indigo-500/30">6.0 cm</span>
+              <span className="text-xs font-mono font-semibold text-white bg-indigo-500/20 px-3 py-1 rounded-lg border border-indigo-500/30">6.0 cm</span>
             </div>
 
             <div className="bg-slate-900 border border-cyan-400/60 p-4 rounded-xl flex items-center justify-between text-xs">
               <div>
                 <span className="font-mono font-bold text-cyan-300">3. Lapis Pondasi Atas Aspal (AC-Base)</span>
-                <p className="text-slate-300 text-[11px]">Tebal 7.5 cm &bull; Lapis struktural penahan regangan tarik bawah (Fatigue Bottom-Up)</p>
+                <p className="text-slate-300 text-xs">Tebal 7.5 cm &bull; Lapis struktural penahan regangan tarik bawah (Fatigue Bottom-Up)</p>
               </div>
-              <span className="text-xs font-mono font-black text-white bg-cyan-500/20 px-3 py-1 rounded-lg border border-cyan-500/30">7.5 cm</span>
+              <span className="text-xs font-mono font-semibold text-white bg-cyan-500/20 px-3 py-1 rounded-lg border border-cyan-500/30">7.5 cm</span>
             </div>
 
             <div className="bg-slate-950 border border-slate-700 p-4 rounded-xl flex items-center justify-between text-xs">
               <div>
                 <span className="font-mono font-bold text-slate-300">4. Lapis Pondasi Agregat Kelas A (Base Course)</span>
-                <p className="text-slate-400 text-[11px]">Tebal 15.0 - 20.0 cm &bull; Agregat pecah 100% dengan nilai CBR minimum 90%</p>
+                <p className="text-slate-400 text-xs">Tebal 15.0 - 20.0 cm &bull; Agregat pecah 100% dengan nilai CBR minimum 90%</p>
               </div>
-              <span className="text-xs font-mono font-black text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">15.0 cm</span>
+              <span className="text-xs font-mono font-semibold text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">15.0 cm</span>
             </div>
 
-            <div className="bg-[#121724] border border-emerald-500/40 p-4 rounded-xl flex items-center justify-between text-xs">
+            <div className="bg-surface border border-emerald-500/40 p-4 rounded-xl flex items-center justify-between text-xs">
               <div>
                 <span className="font-mono font-bold text-emerald-400">5. Tanah Dasar Pilihan / Subgrade (CBR &ge; 6%)</span>
-                <p className="text-slate-400 text-[11px]">Tanah dasar dipadatkan 100% MDD Standar AASHTO T-99 &bull; Modulus E₃ ≈ 60 - 120 MPa</p>
+                <p className="text-slate-400 text-xs">Tanah dasar dipadatkan 100% MDD Standar AASHTO T-99 &bull; Modulus E₃ ≈ 60 - 120 MPa</p>
               </div>
-              <span className="text-xs font-mono font-black text-emerald-300 bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30">Subgrade</span>
+              <span className="text-xs font-mono font-semibold text-emerald-300 bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30">Subgrade</span>
             </div>
           </div>
         </div>

@@ -257,25 +257,25 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
     : `Peringatan Kritis ODOL di ${selectedSegment.name}. Ambang batas muatan dinamis saat cuaca basah: ${dynamicAllowedTonnage} Ton.`;
 
   return (
-    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-[#0b0f19] text-slate-100 font-sans pb-16">
+    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-canvas text-slate-100 font-sans pb-16">
       {/* 1. TOP HEADER BANNER: Role Identity & Traffic Light Alert System */}
-      <div className="border-b border-slate-800 bg-slate-900 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-3.5 shadow-sm">
+      <div className="border-b border-slate-800 bg-slate-900 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-slate-800 text-rose-400 rounded-xl border border-slate-700 shrink-0">
+            <div className="p-3 bg-slate-800 text-rose-400 rounded-xl border border-slate-700 shrink-0">
               <Truck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] bg-rose-500/10 text-rose-300 font-mono font-semibold px-2 py-0.5 rounded border border-rose-500/20 flex items-center gap-1">
+                <span className="text-xs bg-rose-500/10 text-rose-300 font-mono font-semibold px-2 py-1 rounded border border-rose-500/20 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-rose-400" />
                   RBAC Level 2: Operations Manager WIM & Penindakan
                 </span>
-                <span className="text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded border border-slate-700">
+                <span className="text-xs bg-slate-800 text-slate-300 font-mono px-2 py-1 rounded border border-slate-700">
                   {currentAccount.agencyCode} &bull; {currentAccount.name}
                 </span>
               </div>
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight mt-1 flex items-center gap-2">
                 <span>Pusat Kendali Operasional WIM & Penindakan ODOL</span>
                 <span className="text-xs font-mono font-normal text-slate-400 hidden sm:inline">
                   (data DEMO)
@@ -289,7 +289,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             {simulationResult && (
               <button
                 onClick={() => generateOfficialReportPdf(simulationResult, 'OPERATIONS_MANAGER')}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-indigo-500 flex items-center space-x-1.5 transition-colors cursor-pointer"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl border border-indigo-500 flex items-center space-x-2 transition-colors cursor-pointer"
                 title="Cetak Sinyal WIM & Ringkasan Penindakan Format PDF (DEMO)"
               >
                 <FileDown className="w-4 h-4 text-indigo-200" />
@@ -299,7 +299,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
             <button
               onClick={onOpenCreateReport}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3.5 py-2 rounded-xl border border-amber-400 flex items-center space-x-1.5 transition-colors cursor-pointer"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl border border-amber-400 flex items-center space-x-2 transition-colors cursor-pointer"
               title="Buat Laporan Kerusakan Baru dari Lokasi Pos Timbang"
             >
               <Plus className="w-4 h-4 text-slate-950" />
@@ -313,15 +313,15 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
         {/* TOAST ACTION CONFIRMATION */}
         {actionSuccessToast && (
-          <div className="p-3.5 rounded-xl bg-slate-800 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-between shadow-sm">
-            <div className="flex items-center space-x-2.5">
+          <div className="p-4 rounded-xl bg-slate-800 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-between shadow-sm">
+            <div className="flex items-center space-x-3">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <div>
                 <p className="font-bold text-white text-xs">Instruksi Penindakan Operasional Berhasil Diterbitkan!</p>
-                <p className="text-[11px] text-slate-300">{actionSuccessToast}</p>
+                <p className="text-xs text-slate-300">{actionSuccessToast}</p>
               </div>
             </div>
-            <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/20">
+            <span className="text-xs font-mono bg-emerald-500/10 text-emerald-300 px-2 py-1 rounded border border-emerald-500/20">
               AUDIT-LOGGED
             </span>
           </div>
@@ -338,7 +338,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
           }`}
         >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <div className="flex items-start sm:items-center space-x-3.5">
+            <div className="flex items-start sm:items-center space-x-4">
               {/* Traffic Light Visual Indicator */}
               <div
                 className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-bold text-xl sm:text-2xl text-white shrink-0 border ${
@@ -354,11 +354,11 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                  <span className="text-xs text-slate-400 font-bold">
                     Sinyal Keamanan WIM Pos Timbang:
                   </span>
                   <span
-                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
+                    className={`text-xs font-mono font-bold px-2 py-1 rounded uppercase ${
                       alertStatus === 'RED'
                         ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                         : alertStatus === 'YELLOW'
@@ -399,9 +399,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   setSelectedTruckForAction(wimStream[0]);
                   setActiveModalType('BATM_MODAL');
                 }}
-                className="flex-1 sm:flex-initial bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl border border-rose-500 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl border border-rose-500 flex items-center justify-center space-x-2 transition-colors cursor-pointer"
               >
-                <ShieldAlert className="w-3.5 h-3.5" />
+                <ShieldAlert className="w-4 h-4" />
                 <span>Transfer Muatan (BATM)</span>
               </button>
 
@@ -410,9 +410,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   setSelectedTruckForAction(wimStream[0]);
                   setActiveModalType('REROUTE_MODAL');
                 }}
-                className="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs px-4 py-2 rounded-xl border border-slate-700 flex items-center justify-center space-x-2 transition-colors cursor-pointer"
               >
-                <Compass className="w-3.5 h-3.5 text-slate-400" />
+                <Compass className="w-4 h-4 text-slate-400" />
                 <span>Pengalihan Rute</span>
               </button>
 
@@ -421,10 +421,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   setSelectedTruckForAction(wimStream[0]);
                   setActiveModalType('ETLE_MODAL');
                 }}
-                className="flex-1 sm:flex-initial bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 font-semibold text-xs px-3 py-2 rounded-xl flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 font-semibold text-xs px-3 py-2 rounded-xl flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 title="Tilang Elektronik ETLE WIM"
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-4 h-4" />
                 <span>Tilang ETLE</span>
               </button>
             </div>
@@ -435,120 +435,120 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Truk Melintas Hari Ini */}
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-mono uppercase text-slate-400 font-semibold">Total Truk WIM Hari Ini</p>
+            <div className="space-y-1">
+              <p className="text-xs text-slate-400 font-semibold">Total Truk WIM Hari Ini</p>
               <h3 className="text-xl font-bold text-white font-mono">1,842</h3>
-              <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+              <p className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
                 <span>&uarr; +14.2%</span> <span className="text-slate-400">vs rerata harian</span>
               </p>
             </div>
-            <div className="p-2.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+            <div className="p-3 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
               <Truck className="w-5 h-5" />
             </div>
           </div>
 
           {/* Card 2: Pelanggaran ODOL Kritis */}
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-mono uppercase text-rose-400 font-semibold">Pelanggaran ODOL Kritis (&gt;20T)</p>
+            <div className="space-y-1">
+              <p className="text-xs text-rose-400 font-semibold">Pelanggaran ODOL Kritis (&gt;20T)</p>
               <h3 className="text-xl font-bold text-rose-400 font-mono">142</h3>
-              <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
+              <p className="text-xs text-rose-400 flex items-center gap-1 font-medium">
                 <AlertTriangle className="w-3 h-3" />
                 <span>7.7% Tingkat Pelanggaran</span>
               </p>
             </div>
-            <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <div className="p-3 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
               <ShieldAlert className="w-5 h-5" />
             </div>
           </div>
 
           {/* Card 3: Penindakan Berhasil & Denda */}
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-mono uppercase text-amber-400 font-semibold">BATM & Denda Terbit</p>
+            <div className="space-y-1">
+              <p className="text-xs text-amber-400 font-semibold">BATM & Denda Terbit</p>
               <h3 className="text-xl font-bold text-amber-400 font-mono">Rp 182.5 Jt</h3>
-              <p className="text-[11px] text-slate-300 font-medium">28 Transfer &bull; 45 Reroute</p>
+              <p className="text-xs text-slate-300 font-medium">28 Transfer &bull; 45 Reroute</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <Scale className="w-5 h-5" />
             </div>
           </div>
 
           {/* Card 4: Intel OpenVINO Edge Telemetry */}
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-mono uppercase text-indigo-300 font-semibold">Intel OpenVINO Edge</p>
+            <div className="space-y-1">
+              <p className="text-xs text-indigo-300 font-semibold">Intel OpenVINO Edge</p>
               <h3 className="text-xl font-bold text-white font-mono">6.2 ms</h3>
-              <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+              <p className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
                 <Cpu className="w-3 h-3 text-slate-400" />
                 <span>Target &lt;10ms (NPU INT8)</span>
               </p>
             </div>
-            <div className="p-2.5 rounded-lg bg-slate-800 text-indigo-400 border border-slate-700">
+            <div className="p-3 rounded-lg bg-slate-800 text-indigo-400 border border-slate-700">
               <Zap className="w-5 h-5 text-indigo-400" />
             </div>
           </div>
         </div>
 
         {/* 2.3 NAVIGATION TABS INSIDE OPERATIONS MANAGER VIEW */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
           <button
             onClick={() => setActiveOpsTab('LIVE_WIM')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'LIVE_WIM'
                 ? 'bg-slate-800 text-white border border-slate-600'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
-            <Activity className="w-3.5 h-3.5 text-rose-400" />
+            <Activity className="w-4 h-4 text-rose-400" />
             <span>POS WIM & ANPR</span>
           </button>
 
           <button
             onClick={() => setActiveOpsTab('ENFORCEMENT_BATM')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'ENFORCEMENT_BATM'
                 ? 'bg-slate-800 text-white border border-slate-600'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
-            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+            <ShieldAlert className="w-4 h-4 text-rose-400" />
             <span>Penindakan ODOL (BATM)</span>
           </button>
 
           <button
             onClick={() => setActiveOpsTab('DYNAMIC_TONNAGE')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'DYNAMIC_TONNAGE'
                 ? 'bg-slate-800 text-white border border-slate-600'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
-            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+            <Sliders className="w-4 h-4 text-amber-400" />
             <span>Cuaca & Tonase Dinamis</span>
           </button>
 
           <button
             onClick={() => setActiveOpsTab('COMMUNITY_WIM')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'COMMUNITY_WIM'
                 ? 'bg-slate-800 text-white border border-slate-600'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
-            <Camera className="w-3.5 h-3.5 text-emerald-400" />
+            <Camera className="w-4 h-4 text-emerald-400" />
             <span>Kondisi Jalan & Korelasi WIM</span>
           </button>
 
           <button
             onClick={() => setActiveOpsTab('DISPATCH')}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'DISPATCH'
                 ? 'bg-slate-800 text-white border border-slate-600'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
             }`}
           >
-            <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+            <Building2 className="w-4 h-4 text-indigo-400" />
             <span>Rekayasa & Disposisi</span>
           </button>
         </div>
@@ -558,11 +558,11 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
           <div className="space-y-4">
             {/* Filter and search bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800">
-              <div className="flex items-center space-x-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-                <span className="text-[11px] font-mono text-slate-400 font-semibold uppercase mr-1">Filter:</span>
+              <div className="flex items-center space-x-2 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                <span className="text-xs text-slate-400 font-semibold mr-1">Filter:</span>
                 <button
                   onClick={() => setWimFilter('ALL')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     wimFilter === 'ALL' ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -570,16 +570,16 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 </button>
                 <button
                   onClick={() => setWimFilter('ODOL')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-2 ${
                     wimFilter === 'ODOL' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold' : 'text-slate-400 hover:text-rose-300'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
                   Pelanggaran ODOL
                 </button>
                 <button
                   onClick={() => setWimFilter('WARNING')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     wimFilter === 'WARNING'
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
                       : 'text-slate-400 hover:text-amber-300'
@@ -589,7 +589,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 </button>
                 <button
                   onClick={() => setWimFilter('SAFE')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     wimFilter === 'SAFE'
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
                       : 'text-slate-400 hover:text-emerald-300'
@@ -606,13 +606,13 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   placeholder="Cari plat nomor, golongan, sopir..."
                   value={searchTruckQuery}
                   onChange={(e) => setSearchTruckQuery(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-slate-500"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-slate-500"
                 />
               </div>
             </div>
 
             {/* WIM Records Grid / List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredWimStream.map((rec) => {
                 const isOverload = rec.status === 'ODOL_VIOLATION';
                 return (
@@ -626,14 +626,14 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                       {/* Top Header: Plate & Status */}
                       <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                         <div className="flex items-center space-x-2">
-                          <span className="font-mono font-bold text-xs bg-slate-950 px-2 py-0.5 rounded border border-slate-700 text-white">
+                          <span className="font-mono font-bold text-xs bg-slate-950 px-2 py-1 rounded border border-slate-700 text-white">
                             {rec.plate}
                           </span>
-                          <span className="text-[10px] font-mono text-slate-400">{rec.timestamp}</span>
+                          <span className="text-xs font-mono text-slate-400">{rec.timestamp}</span>
                         </div>
 
                         <span
-                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                          className={`text-xs font-mono font-bold px-2 py-1 rounded ${
                             rec.status === 'ODOL_VIOLATION'
                               ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
                               : rec.status === 'WARNING'
@@ -646,7 +646,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                       </div>
 
                       {/* CCTV ANPR Snapshot & Vehicle Info */}
-                      <div className="flex items-start space-x-3 mt-2.5">
+                      <div className="flex items-start space-x-3 mt-3">
                         <div
                           className="relative w-20 h-16 rounded-lg overflow-hidden border border-slate-700 shrink-0 cursor-pointer group"
                           onClick={() => {
@@ -662,23 +662,23 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                           <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <Eye className="w-4 h-4 text-white" />
                           </div>
-                          <span className="absolute bottom-0.5 right-0.5 text-[8px] bg-slate-950/90 font-mono text-cyan-300 px-1 rounded">
+                          <span className="absolute bottom-0.5 right-0.5 text-xs bg-slate-950/90 font-mono text-cyan-300 px-1 rounded">
                             ANPR
                           </span>
                         </div>
 
-                        <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <p className="text-xs font-bold text-white truncate">{rec.vehicleClass}</p>
-                          <p className="text-[11px] text-slate-400 truncate">{rec.stationName}</p>
-                          <p className="text-[11px] text-slate-400 truncate">Sopir: {rec.driverName}</p>
-                          <p className="text-[10px] text-slate-500 truncate">{rec.companyName}</p>
+                          <p className="text-xs text-slate-400 truncate">{rec.stationName}</p>
+                          <p className="text-xs text-slate-400 truncate">Sopir: {rec.driverName}</p>
+                          <p className="text-xs text-slate-500 truncate">{rec.companyName}</p>
                         </div>
                       </div>
 
                       {/* Weight & Speed Metric Badges */}
-                      <div className="grid grid-cols-3 gap-2 mt-2.5 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                      <div className="grid grid-cols-3 gap-2 mt-3 bg-slate-950 p-2 rounded-lg border border-slate-800">
                         <div>
-                          <p className="text-[9px] font-mono text-slate-400 uppercase">Beban Sumbu</p>
+                          <p className="text-xs text-slate-400">Beban Sumbu</p>
                           <p
                             className={`text-xs font-mono font-bold ${
                               rec.axleLoadTon > 18 ? 'text-rose-400' : 'text-emerald-400'
@@ -688,11 +688,11 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-mono text-slate-400 uppercase">Batas Izin</p>
+                          <p className="text-xs text-slate-400">Batas Izin</p>
                           <p className="text-xs font-mono text-slate-300">{rec.legalLimitTon} Ton</p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-mono text-slate-400 uppercase">Overload</p>
+                          <p className="text-xs text-slate-400">Overload</p>
                           <p
                             className={`text-xs font-mono font-bold ${
                               rec.overloadPercent > 50 ? 'text-rose-400' : 'text-amber-400'
@@ -705,15 +705,15 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                     </div>
 
                     {/* Action buttons */}
-                    <div className="pt-2 border-t border-slate-800 flex items-center gap-1.5">
+                    <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
                       <button
                         onClick={() => {
                           setSelectedTruckForAction(rec);
                           setActiveModalType('BATM_MODAL');
                         }}
-                        className="flex-1 bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white font-semibold text-xs py-1.5 rounded-lg border border-rose-500/30 transition-colors cursor-pointer flex items-center justify-center space-x-1"
+                        className="flex-1 bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white font-semibold text-xs py-2 rounded-lg border border-rose-500/30 transition-colors cursor-pointer flex items-center justify-center space-x-1"
                       >
-                        <ShieldAlert className="w-3.5 h-3.5" />
+                        <ShieldAlert className="w-4 h-4" />
                         <span>BATM</span>
                       </button>
 
@@ -722,9 +722,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                           setSelectedTruckForAction(rec);
                           setActiveModalType('REROUTE_MODAL');
                         }}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer flex items-center justify-center space-x-1"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs py-2 rounded-lg border border-slate-700 transition-colors cursor-pointer flex items-center justify-center space-x-1"
                       >
-                        <Compass className="w-3.5 h-3.5 text-slate-400" />
+                        <Compass className="w-4 h-4 text-slate-400" />
                         <span>Reroute</span>
                       </button>
 
@@ -733,10 +733,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                           setSelectedTruckForAction(rec);
                           setActiveModalType('ETLE_MODAL');
                         }}
-                        className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-200 hover:text-white font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-indigo-500/30 transition-colors cursor-pointer"
+                        className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-200 hover:text-white font-semibold text-xs px-3 py-2 rounded-lg border border-indigo-500/30 transition-colors cursor-pointer"
                         title="Terbitkan Tilang ETLE"
                       >
-                        <FileText className="w-3.5 h-3.5" />
+                        <FileText className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -761,7 +761,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   </p>
                 </div>
 
-                <span className="text-xs font-mono font-semibold bg-rose-500/10 text-rose-300 px-2.5 py-1 rounded border border-rose-500/20 flex items-center gap-1.5">
+                <span className="text-xs font-mono font-semibold bg-rose-500/10 text-rose-300 px-3 py-1 rounded border border-rose-500/20 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
                   Pos Jembatan Timbang Aktif
                 </span>
@@ -769,26 +769,26 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
               {/* Protocol Flowchart */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">Tahap 1: Deteksi WIM</span>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <span className="text-xs text-amber-400 font-bold">Tahap 1: Deteksi WIM</span>
                   <h4 className="text-xs font-bold text-white">Sensor WIM Menangkap Overload</h4>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-slate-400">
                     Kendaraan melebihi JBI &gt;20% otomatis memicu sinyal RED pada display gate jembatan timbang.
                   </p>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono text-rose-400 font-bold uppercase">Tahap 2: Penerbitan BATM</span>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <span className="text-xs text-rose-400 font-bold">Tahap 2: Penerbitan BATM</span>
                   <h4 className="text-xs font-bold text-white">Transfer Muatan Wajib</h4>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-slate-400">
                     Penerbitan surat perintah pemindahan muatan berlebih ke truk kedua di kantong parkir resmi BPTD.
                   </p>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">Tahap 3: ETLE & Kliring</span>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <span className="text-xs text-cyan-400 font-bold">Tahap 3: ETLE & Kliring</span>
                   <h4 className="text-xs font-bold text-white">Tilang Elektronik & Izin Jalan</h4>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-slate-400">
                     Setelah muatan ditimbang ulang dan sesuai batas dinamis, kendaraan diterbitkan Surat Izin Lanjut.
                   </p>
                 </div>
@@ -797,42 +797,42 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
               {/* Pending Enforcement Queue Table */}
               <div className="overflow-x-auto pt-2">
                 <table className="w-full text-xs text-left text-slate-300">
-                  <thead className="text-[10px] font-mono text-slate-400 uppercase bg-slate-950 border-b border-slate-800">
+                  <thead className="text-xs text-slate-400 bg-slate-950 border-b border-slate-800">
                     <tr>
-                      <th className="p-2.5">ID Berkas</th>
-                      <th className="p-2.5">Plat & Golongan</th>
-                      <th className="p-2.5">Beban / Izin</th>
-                      <th className="p-2.5">Kelebihan (Ton)</th>
-                      <th className="p-2.5">Status Penindakan</th>
-                      <th className="p-2.5 text-right">Aksi Petugas</th>
+                      <th className="p-3">ID Berkas</th>
+                      <th className="p-3">Plat & Golongan</th>
+                      <th className="p-3">Beban / Izin</th>
+                      <th className="p-3">Kelebihan (Ton)</th>
+                      <th className="p-3">Status Penindakan</th>
+                      <th className="p-3 text-right">Aksi Petugas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800 font-sans">
                     {wimStream.filter((r) => r.status === 'ODOL_VIOLATION').map((truck) => (
                       <tr key={truck.id} className="hover:bg-slate-800/50 transition-colors">
-                        <td className="p-2.5 font-mono font-semibold text-slate-400">{truck.id}</td>
-                        <td className="p-2.5">
+                        <td className="p-3 font-mono font-semibold text-slate-400">{truck.id}</td>
+                        <td className="p-3">
                           <p className="font-mono font-bold text-white">{truck.plate}</p>
-                          <p className="text-[10px] text-slate-400">{truck.vehicleClass}</p>
+                          <p className="text-xs text-slate-400">{truck.vehicleClass}</p>
                         </td>
-                        <td className="p-2.5 font-mono">
+                        <td className="p-3 font-mono">
                           <span className="text-rose-400 font-bold">{truck.axleLoadTon} Ton</span> / {truck.legalLimitTon} Ton
                         </td>
-                        <td className="p-2.5 font-mono text-rose-400 font-bold">
+                        <td className="p-3 font-mono text-rose-400 font-bold">
                           +{(truck.axleLoadTon - truck.legalLimitTon).toFixed(1)} Ton (+{truck.overloadPercent}%)
                         </td>
-                        <td className="p-2.5">
-                          <span className="bg-rose-500/10 text-rose-300 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border border-rose-500/20">
+                        <td className="p-3">
+                          <span className="bg-rose-500/10 text-rose-300 px-2 py-1 rounded text-xs font-mono font-semibold border border-rose-500/20">
                             MENUNGGU TRANSFER MUATAN
                           </span>
                         </td>
-                        <td className="p-2.5 text-right">
+                        <td className="p-3 text-right">
                           <button
                             onClick={() => {
                               setSelectedTruckForAction(truck);
                               setActiveModalType('BATM_MODAL');
                             }}
-                            className="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer"
+                            className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer"
                           >
                             Proses BATM
                           </button>
@@ -855,7 +855,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   <Sliders className="w-4 h-4 text-amber-400" />
                   Kalkulator Ambang Batas Tonase Dinamis (Dynamic Seasonal Tonnage)
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 mt-1">
                   Infiltrasi air hujan ke lapisan pondasi aspal menurunkan daya dukung tanah dasar (CBR). Sistem PINN
                   mengestimasi batas tonase yang diperbolehkan secara dinamis untuk mencegah keruntuhan struktur.
                 </p>
@@ -864,7 +864,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
               {/* Interactive Sliders */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Slider 1: Curah Hujan */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-200">Intensitas Hujan (DEMO)</span>
                     <span className="font-mono font-bold text-cyan-300">{simRainMmHr} mm/jam</span>
@@ -877,7 +877,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                     onChange={(e) => setSimRainMmHr(Number(e.target.value))}
                     className="w-full accent-cyan-500 cursor-pointer"
                   />
-                  <div className="flex justify-between text-[9px] font-mono text-slate-500">
+                  <div className="flex justify-between text-xs font-mono text-slate-500">
                     <span>0 (Kering)</span>
                     <span>50 (Lebat)</span>
                     <span>100 (Ekstrem)</span>
@@ -885,7 +885,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 </div>
 
                 {/* Slider 2: Nilai CBR Tanah Dasar */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-200">CBR Tanah Dasar</span>
                     <span className="font-mono font-bold text-amber-300">{simCbrPercent}%</span>
@@ -899,7 +899,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                     onChange={(e) => setSimCbrPercent(Number(e.target.value))}
                     className="w-full accent-amber-500 cursor-pointer"
                   />
-                  <div className="flex justify-between text-[9px] font-mono text-slate-500">
+                  <div className="flex justify-between text-xs font-mono text-slate-500">
                     <span>2% (Rawa)</span>
                     <span>6% (Standar)</span>
                     <span>12% (Keras)</span>
@@ -907,7 +907,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 </div>
 
                 {/* Slider 3: Durasi Genangan Air */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-200">Durasi Genangan Air</span>
                     <span className="font-mono font-bold text-indigo-300">{simFloodDurationHours} Jam</span>
@@ -920,7 +920,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                     onChange={(e) => setSimFloodDurationHours(Number(e.target.value))}
                     className="w-full accent-indigo-500 cursor-pointer"
                   />
-                  <div className="flex justify-between text-[9px] font-mono text-slate-500">
+                  <div className="flex justify-between text-xs font-mono text-slate-500">
                     <span>0 Jam</span>
                     <span>12 Jam</span>
                     <span>24 Jam</span>
@@ -931,14 +931,14 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
               {/* Dynamic Output Comparison Box */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
-                  <span className="text-[10px] font-mono uppercase text-amber-400 font-bold">
+                  <span className="text-xs text-amber-400 font-bold">
                     Rekomendasi Ambang Batas Real-Time:
                   </span>
-                  <h4 className="text-base font-bold text-white mt-0.5">
+                  <h4 className="text-base font-bold text-white mt-1">
                     Batas Beban Sumbu Diizinkan Saat Ini:{' '}
                     <span className="text-amber-300 font-mono text-lg font-bold">{dynamicAllowedTonnage} Ton</span>
                   </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-400 mt-1">
                     {simRainMmHr > 40
                       ? '⚠️ Hujan lebat memicu penurunan daya dukung struktural sebesar 35%. Truk dengan beban >' +
                         dynamicAllowedTonnage +
@@ -953,7 +953,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                       `Ambang Batas Tonase Dinamis Baru Diberlakukan: ${dynamicAllowedTonnage} Ton di Ruas ${selectedSegment.name}`
                     );
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-indigo-500 shrink-0 transition-colors cursor-pointer"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-3 rounded-xl border border-indigo-500 shrink-0 transition-colors cursor-pointer"
                 >
                   Terapkan Batas ke Sensor WIM
                 </button>
@@ -978,14 +978,14 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
               <button
                 onClick={onOpenCreateReport}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg border border-amber-400 flex items-center space-x-1.5 transition-colors cursor-pointer shrink-0"
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg border border-amber-400 flex items-center space-x-2 transition-colors cursor-pointer shrink-0"
               >
-                <Plus className="w-3.5 h-3.5 text-slate-950" />
+                <Plus className="w-4 h-4 text-slate-950" />
                 <span>Input Laporan Baru</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {communityReports.map((report) => {
                 return (
                   <div
@@ -1003,12 +1003,12 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                           />
                           <div>
                             <p className="text-xs font-bold text-white">{report.reporterName}</p>
-                            <p className="text-[10px] text-slate-400 font-mono">{report.timestamp}</p>
+                            <p className="text-xs text-slate-400 font-mono">{report.timestamp}</p>
                           </div>
                         </div>
 
                         <span
-                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                          className={`text-xs font-mono font-bold px-2 py-1 rounded ${
                             report.severity === 'CRITICAL'
                               ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
                               : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
@@ -1019,29 +1019,29 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                       </div>
 
                       {/* Photo and description */}
-                      <div className="flex items-start space-x-3 mt-2.5">
+                      <div className="flex items-start space-x-3 mt-3">
                         <img
                           src={report.photoUrl}
                           alt={report.damageTypeLabel}
                           className="w-20 h-16 rounded-lg object-cover border border-slate-700 shrink-0"
                         />
-                        <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <h4 className="text-xs font-bold text-white">{report.damageTypeLabel}</h4>
-                          <p className="text-[11px] text-amber-400 font-medium">{report.segmentName}</p>
+                          <p className="text-xs text-amber-400 font-medium">{report.segmentName}</p>
                           <p className="text-xs text-slate-300 line-clamp-2">{report.description}</p>
                         </div>
                       </div>
 
                       {/* WIM Correlation Box */}
                       {report.wimCorrelation && (
-                        <div className="mt-2.5 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs space-y-0.5">
-                          <div className="flex items-center justify-between text-[10px] font-mono">
+                        <div className="mt-3 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs space-y-1">
+                          <div className="flex items-center justify-between text-xs font-mono">
                             <span className="text-slate-400 flex items-center gap-1 font-semibold">
                               <Truck className="w-3 h-3 text-rose-400" /> Truk Terkorelasi:
                             </span>
                             <span className="text-cyan-300 font-bold">{report.wimCorrelation.recentTruckPlate}</span>
                           </div>
-                          <p className="text-[11px] text-slate-300">
+                          <p className="text-xs text-slate-300">
                             Beban As: <strong>{report.wimCorrelation.maxAxleLoadTon} Ton</strong> (+
                             {report.wimCorrelation.overloadPercent}% Overload).
                           </p>
@@ -1053,22 +1053,22 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
                       <button
                         onClick={() => onUpvoteReport && onUpvoteReport(report.id)}
-                        className={`px-2.5 py-1 rounded-lg font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg font-semibold transition-colors flex items-center space-x-2 cursor-pointer ${
                           report.userUpvoted
                             ? 'bg-slate-800 text-white border border-slate-700'
                             : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800'
                         }`}
                       >
-                        <ThumbsUp className="w-3.5 h-3.5 text-slate-400" />
+                        <ThumbsUp className="w-4 h-4 text-slate-400" />
                         <span>{report.upvotesCount} Dukungan</span>
                       </button>
 
                       {onEditReport && (
                         <button
                           onClick={() => onEditReport(report)}
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-2.5 py-1 rounded-lg border border-slate-700 flex items-center space-x-1 transition-colors cursor-pointer"
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-3 py-1 rounded-lg border border-slate-700 flex items-center space-x-1 transition-colors cursor-pointer"
                         >
-                          <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                          <Edit3 className="w-4 h-4 text-amber-400" />
                           <span>Edit Laporan</span>
                         </button>
                       )}
@@ -1095,16 +1095,16 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                 {/* Dispatch Option 1: Bina Marga Overlay Urgensi */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2.5">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center space-x-2">
                     <span className="p-2 rounded-lg bg-slate-800 text-indigo-400 border border-slate-700">
                       <Building2 className="w-4 h-4" />
                     </span>
                     <div>
                       <h4 className="text-xs font-bold text-white">Disposisi Preservasi ke Ditjen Bina Marga</h4>
-                      <p className="text-[10px] text-slate-400">BBPJN DKI-Jawa Barat / Balai Pelaksanaan Jalan</p>
+                      <p className="text-xs text-slate-400">BBPJN DKI-Jawa Barat / Balai Pelaksanaan Jalan</p>
                     </div>
                   </div>
                   <p className="text-xs text-slate-300">
@@ -1120,14 +1120,14 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 </div>
 
                 {/* Dispatch Option 2: Korlantas Polri Tilang ETLE */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2.5">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center space-x-2">
                     <span className="p-2 rounded-lg bg-slate-800 text-rose-400 border border-slate-700">
                       <Car className="w-4 h-4" />
                     </span>
                     <div>
                       <h4 className="text-xs font-bold text-white">Integrasi ETLE WIM ke Korlantas Polri</h4>
-                      <p className="text-[10px] text-slate-400">Pusat Penegakan Hukum Lalu Lintas Elektronik</p>
+                      <p className="text-xs text-slate-400">Pusat Penegakan Hukum Lalu Lintas Elektronik</p>
                     </div>
                   </div>
                   <p className="text-xs text-slate-300">
@@ -1150,16 +1150,16 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
       {/* 3. MODALS (BATM, REROUTE, ETLE, ANPR) */}
       {/* 3.1 BATM (BERITA ACARA TRANSFER MUATAN) MODAL */}
       {activeModalType === 'BATM_MODAL' && selectedTruckForAction && (
-        <div className="fixed inset-0 z-[1200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[1200] bg-slate-950/80 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-5 shadow-xl space-y-4 text-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-3">
                 <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white">Berita Acara Transfer Muatan (BATM)</h3>
-                  <p className="text-[11px] text-slate-400 font-mono">Nomor: BATM/BPTD-VIII/ODOL/2026/0882</p>
+                  <p className="text-xs text-slate-400 font-mono">Nomor: BATM/BPTD-VIII/ODOL/2026/0882</p>
                 </div>
               </div>
               <button
@@ -1171,44 +1171,44 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             </div>
 
             {/* Official Document Details */}
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5 text-xs">
-              <div className="grid grid-cols-2 gap-2.5 border-b border-slate-800 pb-2.5">
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 border-b border-slate-800 pb-3">
                 <div>
-                  <span className="text-slate-400 font-mono text-[10px]">Plat Nomor Truk:</span>
+                  <span className="text-slate-400 font-mono text-xs">Plat Nomor Truk:</span>
                   <p className="font-mono font-bold text-white">{selectedTruckForAction.plate}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-mono text-[10px]">Golongan Kendaraan:</span>
+                  <span className="text-slate-400 font-mono text-xs">Golongan Kendaraan:</span>
                   <p className="font-semibold text-white">{selectedTruckForAction.vehicleClass}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-mono text-[10px]">Nama Pengemudi:</span>
+                  <span className="text-slate-400 font-mono text-xs">Nama Pengemudi:</span>
                   <p className="font-semibold text-white">{selectedTruckForAction.driverName || 'Rahmat Hidayat'}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-mono text-[10px]">Perusahaan Logistik:</span>
+                  <span className="text-slate-400 font-mono text-xs">Perusahaan Logistik:</span>
                   <p className="font-semibold text-white">{selectedTruckForAction.companyName || 'PT. Logistik Prima'}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+              <div className="grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-lg border border-slate-800">
                 <div>
-                  <span className="text-slate-400 text-[10px]">Total Muatan WIM:</span>
+                  <span className="text-slate-400 text-xs">Total Muatan WIM:</span>
                   <p className="font-mono font-bold text-rose-400 text-xs">{selectedTruckForAction.axleLoadTon} Ton</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px]">Batas Dinamis:</span>
+                  <span className="text-slate-400 text-xs">Batas Dinamis:</span>
                   <p className="font-mono font-bold text-amber-300 text-xs">{dynamicAllowedTonnage} Ton</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px]">Wajib Ditransfer:</span>
+                  <span className="text-slate-400 text-xs">Wajib Ditransfer:</span>
                   <p className="font-mono font-bold text-rose-400 text-xs">
                     {(selectedTruckForAction.axleLoadTon - dynamicAllowedTonnage).toFixed(1)} Ton
                   </p>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Berdasarkan hasil penimbangan sensor WIM di {selectedTruckForAction.stationName}, kendaraan
                 tersebut melanggar batas tonase. Pengemudi diperintahkan memindahkan muatan berlebih ke kendaraan
                 pendukung di kantong parkir jembatan timbang sebelum diizinkan melanjutkan perjalanan.
@@ -1218,7 +1218,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 onClick={() => setActiveModalType(null)}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -1230,9 +1230,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                     ).toFixed(1)} Ton Transfer) Resmi Diterbitkan`
                   )
                 }
-                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center space-x-2 transition-colors cursor-pointer"
               >
-                <Printer className="w-3.5 h-3.5" />
+                <Printer className="w-4 h-4" />
                 <span>Terbitkan & Cetak BATM</span>
               </button>
             </div>
@@ -1242,9 +1242,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
       {/* 3.2 REROUTE MODAL */}
       {activeModalType === 'REROUTE_MODAL' && selectedTruckForAction && (
-        <div className="fixed inset-0 z-[1200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-xl space-y-3.5 text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div className="fixed inset-0 z-[1200] bg-slate-950/80 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Compass className="w-4 h-4 text-cyan-400" />
                 Surat Perintah Pengalihan Rute
@@ -1266,13 +1266,13 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
               <p className="font-semibold text-cyan-300">Jalur Alternatif Berdaya Dukung Tinggi:</p>
               <p className="text-white font-medium">&bull; Masuk Gerbang Tol Terdekat &rarr; Koridor Tol Trans-Jawa</p>
-              <p className="text-slate-400 text-[10px]">Kecepatan maksimum 60 km/jam pada lajur kiri khusus kendaraan berat.</p>
+              <p className="text-slate-400 text-xs">Kecepatan maksimum 60 km/jam pada lajur kiri khusus kendaraan berat.</p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 onClick={() => setActiveModalType(null)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
+                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
               >
                 Batal
               </button>
@@ -1280,7 +1280,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 onClick={() =>
                   handleExecuteAction(`Perintah Pengalihan Rute Truk ${selectedTruckForAction.plate} Berhasil Diterbitkan`)
                 }
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
               >
                 Kirim Perintah Reroute
               </button>
@@ -1291,9 +1291,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
       {/* 3.3 ETLE MODAL */}
       {activeModalType === 'ETLE_MODAL' && selectedTruckForAction && (
-        <div className="fixed inset-0 z-[1200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-xl space-y-3.5 text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div className="fixed inset-0 z-[1200] bg-slate-950/80 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <FileText className="w-4 h-4 text-indigo-400" />
                 Penilangan Elektronik ETLE WIM
@@ -1306,7 +1306,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs">
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400">Plat Nomor:</span>
                 <span className="font-mono font-bold text-white">{selectedTruckForAction.plate}</span>
@@ -1324,7 +1324,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 onClick={() => setActiveModalType(null)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
+                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
               >
                 Batal
               </button>
@@ -1332,7 +1332,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 onClick={() =>
                   handleExecuteAction(`Surat Tilang ETLE WIM Terbit untuk ${selectedTruckForAction.plate}`)
                 }
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
               >
                 Terbitkan Tilang ETLE
               </button>
@@ -1343,9 +1343,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
       {/* 3.4 ANPR CCTV PREVIEW MODAL */}
       {activeModalType === 'ANPR_PREVIEW' && selectedTruckForAction && (
-        <div className="fixed inset-0 z-[1200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-4.5 shadow-xl space-y-3.5 text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div className="fixed inset-0 z-[1200] bg-slate-950/80 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-xl space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Camera className="w-4 h-4 text-cyan-400" />
                 Pemindaian CCTV ANPR: {selectedTruckForAction.plate}
@@ -1364,7 +1364,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                 alt={selectedTruckForAction.plate}
                 className="w-full h-56 object-cover"
               />
-              <div className="absolute top-2 left-2 bg-slate-950/90 font-mono text-[10px] text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+              <div className="absolute top-2 left-2 bg-slate-950/90 font-mono text-xs text-emerald-400 px-2 py-1 rounded border border-emerald-500/30">
                 ANPR MATCH: 99.4%
               </div>
             </div>
@@ -1372,7 +1372,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             <div className="flex justify-end pt-1">
               <button
                 onClick={() => setActiveModalType(null)}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs font-semibold"
               >
                 Tutup
               </button>

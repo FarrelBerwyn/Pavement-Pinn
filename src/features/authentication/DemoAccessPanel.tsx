@@ -74,7 +74,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
               <h2 id="demo-access-title" className="text-base font-semibold">
                 Akses akun demo
               </h2>
-              <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-amber-800">DEMO</span>
+              <span className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-bold tracking-wide text-amber-800">DEMO</span>
             </div>
             <p id="demo-access-note" className="mt-1 text-xs leading-relaxed text-slate-600">
               Akun di bawah ini fiktif dan hanya untuk demonstrasi. Bukan akun, pegawai, atau identitas instansi yang sebenarnya.
@@ -86,7 +86,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
             type="button"
             onClick={onClose}
             aria-label="Tutup akses akun demo"
-            className="shrink-0 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+            className="shrink-0 rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -103,12 +103,12 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
             {credentials.map((credential) => {
               const account = USER_ACCOUNTS.find((a) => a.id === credential.accounts.MODERN_APP);
               return (
-                <li key={credential.username} className="px-5 py-3.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                <li key={credential.username} className="px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#1d4ed8]">{ROLE_LABELS[credential.role]}</p>
+                      <p className="text-xs font-semibold text-[#1d4ed8]">{ROLE_LABELS[credential.role]}</p>
                       <p className="text-sm font-semibold">{account?.name ?? credential.username}</p>
-                      <p className="mt-0.5 font-mono text-xs text-slate-600">
+                      <p className="mt-1 font-mono text-xs text-slate-600">
                         {credential.username} · {credential.password}
                       </p>
                     </div>
@@ -117,7 +117,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
                         type="button"
                         disabled={busy}
                         onClick={() => onUseAccount({ username: credential.username, password: credential.password, layout: 'MODERN_APP' })}
-                        className="rounded-md bg-[#0b1f3a] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#13305a] disabled:opacity-60 cursor-pointer"
+                        className="rounded-md bg-surface px-3 py-2 text-xs font-semibold text-white hover:bg-[#13305a] disabled:opacity-60 cursor-pointer"
                         aria-label={`Masuk sebagai ${account?.name ?? credential.username} (${ROLE_LABELS[credential.role]})`}
                       >
                         Masuk
@@ -127,7 +127,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
                           type="button"
                           disabled={busy}
                           onClick={() => onUseAccount({ username: credential.username, password: credential.password, layout: 'CLASSIC_PORTAL' })}
-                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 cursor-pointer"
+                          className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 cursor-pointer"
                           aria-label={`Masuk sebagai ${account?.name ?? credential.username} di portal klasik`}
                         >
                           Portal klasik
