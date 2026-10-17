@@ -193,7 +193,7 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
 
   switch (command.action) {
     case 'BEGIN_SCREENING':
-      autoReason = 'Automated screening started.';
+      autoReason = 'Penyaringan otomatis dimulai.';
       break;
     case 'SCREENING_PASSED':
     case 'SCREENING_NEEDS_REVIEW': {
@@ -248,7 +248,7 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
         notes,
         dataStatus: 'OBSERVED'
       };
-      autoReason = `Inspection ${command.verdict}.`;
+      autoReason = command.verdict === 'CONFIRMED' ? 'Hasil inspeksi: kerusakan terkonfirmasi.' : 'Hasil inspeksi: kerusakan tidak terkonfirmasi.';
       break;
     }
     case 'RECOMMEND_ACTION': {
@@ -267,7 +267,7 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
         assessmentId: typeof command.assessmentId === 'string' ? command.assessmentId : null,
         assessment: validSnapshot(command.assessment) ? { ...command.assessment! } : null
       };
-      autoReason = `Recommended: ${treatment}.`;
+      autoReason = `Dikirim untuk verifikasi M.O: rekomendasi ${treatment}.`;
       break;
     }
     case 'APPROVE_ACTION':
@@ -336,7 +336,7 @@ export function createReportCase(
     from: null,
     to: 'SUBMITTED',
     actor: { ...actor },
-    reason: 'Citizen report submitted.',
+    reason: 'Laporan warga dikirim.',
     publicNote: rule.publicNote
   };
   const next: ReportCase = {

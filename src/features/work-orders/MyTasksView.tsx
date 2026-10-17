@@ -126,7 +126,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
   const chips: { key: Filter; label: string; dot: string }[] = [
     { key: 'ALL', label: 'Semua', dot: '' },
     { key: 'TODO', label: 'Perlu dikerjakan', dot: 'bg-amber-500' },
-    { key: 'WAITING', label: 'Menunggu M.O', dot: 'bg-slate-400' },
+    { key: 'WAITING', label: 'Menunggu verifikasi M.O', dot: 'bg-slate-400' },
     { key: 'HIGH', label: 'Prioritas tinggi', dot: 'bg-rose-500' },
     { key: 'DONE', label: 'Selesai', dot: 'bg-emerald-500' }
   ];
@@ -236,7 +236,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${PRIORITY_CLASS[t.priority]}`}>{PRIORITY_LABEL[t.priority]}</span>
-                        <StateBadge state={t.c.state} tone="light" />
+                        <StateBadge state={t.c.state} tone="dark" />
                         {t.overdue && <span className="text-xs font-semibold px-2 py-0.5 rounded-md border bg-rose-500/10 text-rose-300 border-rose-500/30">Lewat batas waktu</span>}
                         {t.c.dataStatus === 'SYNTHETIC' && <span className="text-xs font-semibold px-2 py-0.5 rounded-md border bg-elevated text-slate-300 border-line">Data contoh</span>}
                       </div>
@@ -255,7 +255,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
                       <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-xs">
                         <div>
                           <dt className="text-slate-400">ID laporan</dt>
-                          <dd className="font-mono text-slate-100">{t.c.id}</dd>
+                          <dd className="font-mono text-slate-100 whitespace-nowrap truncate" title={t.c.id}>{t.c.id}</dd>
                         </div>
                         <div>
                           <dt className="text-slate-400">Ditugaskan oleh</dt>
@@ -301,6 +301,12 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
                   <div className="mt-4 pt-3 border-t border-line flex flex-wrap items-center justify-between gap-2">
                     <FlowTrack c={t.c} />
                     <p className="text-xs text-slate-400">{t.next}</p>
+                    {t.returned && (
+                      <div role="note" className="mt-2 rounded-lg border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-200">
+                        <p className="font-medium text-orange-100">Catatan perbaikan dari M.O ({t.returned.by}, {new Date(t.returned.at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })})</p>
+                        <p className="mt-1">{t.returned.reason}</p>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
@@ -313,7 +319,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
               <dl className="mt-3 space-y-2 text-xs">
                 {[
                   { label: 'Perlu dikerjakan', value: counts.TODO, dot: 'bg-amber-500' },
-                  { label: 'Menunggu keputusan M.O', value: counts.WAITING, dot: 'bg-slate-400' },
+                  { label: 'Menunggu verifikasi M.O', value: counts.WAITING, dot: 'bg-slate-400' },
                   { label: 'Selesai', value: counts.DONE, dot: 'bg-emerald-500' },
                   { label: 'Lewat batas waktu', value: counts.overdue, dot: 'bg-rose-500' }
                 ].map((row) => (
@@ -384,7 +390,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
                 view={openView}
                 mode={workflow.mode}
                 engineers={workflow.engineers}
-                tone="light"
+                tone="dark"
                 initialAction={open.action}
                 onRun={(command) => workflow.runTransition(openCase.id, command)}
                 onShowOnMap={() => showOnMap(openCase)}

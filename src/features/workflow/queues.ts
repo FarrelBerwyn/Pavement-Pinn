@@ -37,7 +37,7 @@ export function operationsQueue(cases: ReportCase[]): QueueBucket[] {
     bucket('review', 'Perlu ditinjau', 'Laporan baru yang belum diperiksa petugas', cases, ['NEEDS_REVIEW']),
     bucket('assign', 'Siap ditugaskan', 'Tugaskan insinyur untuk inspeksi lapangan', cases, ['VERIFIED']),
     bucket('inspecting', 'Menunggu inspeksi', 'Sudah ditugaskan; perhatikan batas waktu', cases, ['FIELD_INSPECTION_REQUESTED']),
-    bucket('decide', 'Perlu keputusan', 'Rekomendasi menunggu persetujuan, atau inspeksi tidak terkonfirmasi', cases, ['ACTION_RECOMMENDED', 'INSPECTED'], (c) => c.state === 'ACTION_RECOMMENDED' || c.inspection?.verdict === 'NOT_CONFIRMED'),
+    bucket('decide', 'Perlu verifikasi hasil F.E', 'Hasil inspeksi dan rekomendasi F.E menunggu verifikasi, atau inspeksi tidak terkonfirmasi', cases, ['ACTION_RECOMMENDED', 'INSPECTED'], (c) => c.state === 'ACTION_RECOMMENDED' || c.inspection?.verdict === 'NOT_CONFIRMED'),
     bucket('ready', 'Siap dikerjakan', 'Penanganan disetujui, terbitkan perintah kerja', cases, ['ACTION_APPROVED']),
     bucket('work', 'Dalam pengerjaan', 'Pantau perintah kerja yang berjalan', cases, ['IN_PROGRESS']),
     bucket('close', 'Siap ditutup', 'Perbaikan sudah diverifikasi insinyur', cases, ['RESOLVED'])

@@ -176,6 +176,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const { workflow } = useAppState();
   const { navigateTo } = useRouter();
   // Sidebar badge: assigned cases where the engineer can act now (inspect, recommend, verify).
+  // M.O badge: cases where an operations action is available now (same server views as the queue).
+  const operationsDue = Object.values(workflow.views).filter((v) => v.audience === 'STAFF' && v.availableActions.length > 0).length;
   const fieldTasksDue = tasksDue(fieldTasks(Object.values(workflow.views), workflow.actor?.id ?? currentAccount.id));
 
   // Navigation tab in Public User interface (defaults to DASHBOARD for Operations Manager, Field Engineer and Policy Maker, MAP for public users)
@@ -1171,9 +1173,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   {!isSidebarCollapsed && (
                     <div className="flex items-center justify-between w-full min-w-0">
                       <span className="truncate">Tim & Tugas</span>
-                      <span className="text-xs font-bold bg-[#dcfce7] text-[#15803d] dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-1 rounded-full shrink-0 ml-1">
-                        7
-                      </span>
+                      {operationsDue > 0 && (
+                        <span className="text-xs font-semibold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-md shrink-0 ml-1" title="Laporan yang menunggu tindakan Anda">
+                          {operationsDue}
+                        </span>
+                      )}
                     </div>
                   )}
                 </button>

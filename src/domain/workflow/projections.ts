@@ -37,7 +37,7 @@ export const WORKFLOW_STATE_LABEL: Record<WorkflowState, string> = {
   VERIFIED: 'Siap ditindaklanjuti',
   FIELD_INSPECTION_REQUESTED: 'Inspeksi dijadwalkan',
   INSPECTED: 'Sudah diinspeksi',
-  ACTION_RECOMMENDED: 'Rekomendasi diajukan',
+  ACTION_RECOMMENDED: 'Menunggu verifikasi M.O',
   ACTION_APPROVED: 'Penanganan disetujui',
   IN_PROGRESS: 'Sedang dikerjakan',
   RESOLVED: 'Perbaikan terverifikasi',

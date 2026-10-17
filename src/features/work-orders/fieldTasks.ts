@@ -19,6 +19,8 @@ export interface FieldTask {
   /** The transition the main button opens, when this engineer may take it now. */
   cta: { action: WorkflowAction; label: string } | null;
   overdue: boolean;
+  /** Set when M.O sent the result back: the reason and instructions F.E must act on. */
+  returned: { reason: string; at: string; by: string } | null;
 }
 
 export const PRIORITY_OF: Record<string, Priority> = { CRITICAL: 'HIGH', SEVERE: 'HIGH', MODERATE: 'MEDIUM', LIGHT: 'LOW' };
@@ -30,17 +32,23 @@ export function toTask(c: ReportCase, allowed: WorkflowAction[]): FieldTask {
   const priority = PRIORITY_OF[c.inspection?.severity ?? c.report.severity] ?? 'MEDIUM';
   const can = (action: WorkflowAction) => allowed.includes(action);
   const overdue = c.state === 'FIELD_INSPECTION_REQUESTED' && !!c.assignment && Date.parse(c.assignment.dueAt) < Date.now();
-  const base = { c, priority, overdue };
+  const last = c.history[c.history.length - 1];
+  const returned = c.state === 'INSPECTED' && last?.action === 'REJECT_ACTION'
+    ? { reason: last.reason, at: last.at, by: 'Manajer Operasional' }
+    : null;
+  const base = { c, priority, overdue, returned };
 
   switch (c.state) {
     case 'FIELD_INSPECTION_REQUESTED':
       return { ...base, stage: 'TODO', title: 'Inspeksi lapangan', next: 'Periksa lokasi, ukur kerusakan, kirim hasil ke M.O.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Tugas' } : null };
     case 'INSPECTED':
       return c.inspection?.verdict === 'CONFIRMED'
-        ? { ...base, stage: 'TODO', title: 'Susun rekomendasi penanganan', next: 'Kerusakan terkonfirmasi. Ajukan penanganan untuk diputuskan M.O.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Susun Rekomendasi' } : null }
+        ? returned
+          ? { ...base, stage: 'TODO', title: 'Perbaikan diminta M.O', next: 'Perbaiki hasil sesuai catatan M.O, lalu kirim ulang.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Kirim Ulang untuk Verifikasi M.O' } : null }
+          : { ...base, stage: 'TODO', title: 'Susun rekomendasi penanganan', next: 'Kerusakan terkonfirmasi. Lengkapi rekomendasi, lalu kirim ke M.O untuk diverifikasi.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Kirim untuk Verifikasi M.O' } : null }
         : { ...base, stage: 'WAITING', title: 'Inspeksi selesai', next: 'Tidak terkonfirmasi. Menunggu M.O menutup laporan.', cta: null };
     case 'ACTION_RECOMMENDED':
-      return { ...base, stage: 'WAITING', title: 'Rekomendasi diajukan', next: 'Menunggu persetujuan M.O; terlihat di prioritas D.M.', cta: null };
+      return { ...base, stage: 'WAITING', title: 'Menunggu verifikasi M.O', next: 'Hasil terkirim. M.O memverifikasi atau meminta perbaikan; D.M melihatnya di prioritas.', cta: null };
     case 'ACTION_APPROVED':
       return { ...base, stage: 'WAITING', title: 'Penanganan disetujui', next: 'Menunggu M.O menerbitkan perintah kerja.', cta: null };
     case 'IN_PROGRESS':

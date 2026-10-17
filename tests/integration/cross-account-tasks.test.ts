@@ -59,8 +59,19 @@ async function call(method: string, p: string, body?: unknown, token?: string) {
   return { status: res.status, body: (await res.json()) as any };
 }
 
-/** A fresh login each time: nothing is carried over in the client between steps. */
-const login = async (accountId: string) => (await call('POST', '/api/auth/login', demoLoginFor(accountId))).body.token as string;
+/**
+ * One server session per account (the login endpoint allows 20 attempts a minute); every read
+ * still goes back to the server. A forced re-login at the end proves nothing lives in the client.
+ */
+const tokens = new Map<string, string>();
+const login = async (accountId: string, fresh = false) => {
+  if (fresh || !tokens.has(accountId)) {
+    const r = await call('POST', '/api/auth/login', demoLoginFor(accountId));
+    assert.equal(r.status, 200, `login ${accountId}: ${JSON.stringify(r.body)}`);
+    tokens.set(accountId, r.body.token);
+  }
+  return tokens.get(accountId)!;
+};
 /** What this account's screens would load: its own server read of all reports. */
 const viewsOf = async (accountId: string): Promise<ReportView[]> => (await call('GET', '/api/workflow/reports', undefined, await login(accountId))).body.items;
 
@@ -134,6 +145,31 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
   assert.ok(workflowNotifications(dm, { id: DM, role: 'POLICY_MAKER' }).some((n) => n.caseId === id && n.title === 'Rekomendasi penanganan baru'));
   assert.deepEqual(dm.find((v) => v.case.id === id)!.availableActions, [], 'D.M reads; approval stays with M.O');
 
+  // M.O asks for a fix: a reason is mandatory, and only M.O may decide.
+  const noReason = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'REJECT_ACTION', reason: '' }, expectedVersion: version }, await login(MO));
+  assert.ok(noReason.status >= 400 && noReason.status < 500, 'request-fix without a reason is refused');
+  for (const outsider of [RE, FE_OTHER, DM]) {
+    const r = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'REJECT_ACTION', reason: 'x' }, expectedVersion: version }, await login(outsider));
+    assert.ok(r.status === 403 || r.status === 404, `${outsider} may not decide (got ${r.status})`);
+  }
+  await act(MO, { action: 'REJECT_ACTION', reason: 'Foto kurang jelas; ukur ulang luas kerusakan.' });
+
+  // The task returns to the same F.E with the reason, a resubmit button and the badge back on.
+  tasks = fieldTasks(await viewsOf(FE), FE);
+  const back = tasks.find((t) => t.c.id === id)!;
+  assert.equal(back.c.state, 'INSPECTED');
+  assert.equal(back.title, 'Perbaikan diminta M.O');
+  assert.equal(back.returned?.reason, 'Foto kurang jelas; ukur ulang luas kerusakan.');
+  assert.deepEqual(back.cta, { action: 'RECOMMEND_ACTION', label: 'Kirim Ulang untuk Verifikasi M.O' });
+  assert.equal(tasksDue(tasks), 1);
+  assert.equal(fieldTasks(await viewsOf(FE_OTHER), FE_OTHER).some((t) => t.c.id === id), false);
+
+  // F.E resubmits; M.O sees it waiting for verification again.
+  await act(FE, { action: 'RECOMMEND_ACTION', treatment: 'Patching', urgency: 'PRIORITY', rationale: 'Lajur berat; luas diukur ulang 2,4 m².', assessmentId: null });
+  tasks = fieldTasks(await viewsOf(FE), FE);
+  assert.equal(tasks.find((t) => t.c.id === id)!.title, 'Menunggu verifikasi M.O');
+  assert.equal((await viewsOf(MO)).find((v) => v.case.id === id)!.case.state, 'ACTION_RECOMMENDED');
+
   // The human decision returns to F.E and D.M.
   await act(MO, { action: 'APPROVE_ACTION', reason: 'Sesuai prioritas.' });
   fe = await viewsOf(FE);
@@ -149,6 +185,19 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
   assert.equal((mine.case.report as any).repairDetails, undefined, 'client-sent repair evidence is not stored');
   assert.equal(mine.case.report.upvotesCount, 0);
   assert.ok(workflowNotifications(re, { id: RE, role: 'PUBLIC_REPORTER' }).some((n) => n.caseId === id));
+
+  // Log in again as each role: the state, history and decision reasons are still there.
+  for (const acc of [MO, FE, DM]) {
+    const again = (await call('GET', '/api/workflow/reports', undefined, await login(acc, true))).body.items as ReportView[];
+    const c = again.find((v) => v.case.id === id)!.case as any;
+    assert.equal(c.state, 'ACTION_APPROVED');
+    const actions = c.history.map((h: any) => h.action);
+    assert.deepEqual(actions.slice(-4), ['RECOMMEND_ACTION', 'REJECT_ACTION', 'RECOMMEND_ACTION', 'APPROVE_ACTION']);
+    const rejected = c.history.find((h: any) => h.action === 'REJECT_ACTION');
+    assert.equal(rejected.actor.id, MO);
+    assert.equal(rejected.reason, 'Foto kurang jelas; ukur ulang luas kerusakan.');
+    assert.ok(Date.parse(rejected.at) > 0);
+  }
 });
 
 test('offline demo gateway attaches the segment assessment to a recommendation, like the server', async () => {
