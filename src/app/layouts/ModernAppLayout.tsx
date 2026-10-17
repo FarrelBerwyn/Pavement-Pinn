@@ -96,6 +96,7 @@ import { DEMO_DATA_LABEL } from '../../data/provenance';
 import { LatLngBounds, itemsInBounds } from '../../components/maps/mapDetail';
 import { MapSheet } from '../../components/maps/MapSheet';
 import { useSheetDrag } from '../../components/ui/useSheetDrag';
+import { useThemePreference } from '../themePreference';
 import { MapSheetState, sheetInsetPx } from '../../components/maps/sheetState';
 import { DemoTag, ReportList, RoadSegmentSheet } from '../../features/road-health/RoadSegmentSheet';
 import type { PolicyTabType } from '../../features/policy-analysis/ExecutivePolicyView';
@@ -109,6 +110,8 @@ import { PolicyPage } from '../../pages/policy/PolicyPage';
 import { OperationsPage, OPERATIONS_WORKSPACE_NAVS } from '../../pages/operations/OperationsPage';
 import { EngineeringPage } from '../../pages/engineering/EngineeringPage';
 import { WorkOrdersPage } from '../../pages/engineering/WorkOrdersPage';
+import { relativeTime, workflowNotifications } from '../../features/workflow/notifications';
+import { fieldTasks, tasksDue } from '../../features/work-orders/fieldTasks';
 
 interface ModernAppLayoutProps {
   currentAccount: UserAccount;
@@ -173,9 +176,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const { workflow } = useAppState();
   const { navigateTo } = useRouter();
   // Sidebar badge: assigned cases where the engineer can act now (inspect, recommend, verify).
-  const fieldTasksDue = Object.values(workflow.views).filter(
-    (v) => v.audience === 'STAFF' && (v.case as { assignment?: { engineerId: string } | null }).assignment?.engineerId === workflow.actor?.id && v.availableActions.length > 0
-  ).length;
+  const fieldTasksDue = tasksDue(fieldTasks(Object.values(workflow.views), workflow.actor?.id ?? currentAccount.id));
 
   // Navigation tab in Public User interface (defaults to DASHBOARD for Operations Manager, Field Engineer and Policy Maker, MAP for public users)
   const setActiveNav = onNavigate;
@@ -200,67 +201,63 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const t = TRANSLATIONS[language];
 
   // Theme state (Light vs Dark) - Default to Dark Mode as requested
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // Theme is chosen in Settings (dark by default); see app/themePreference.ts.
+  const [theme] = useThemePreference();
 
   // Notifications dropdown state
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'notif-1',
-      titleId: 'Laporan Diverifikasi Petugas',
-      titleEn: 'Report Verified by Agency',
-      descId: 'Laporan lubang di Ruas Cikarang Raya telah diverifikasi oleh tim teknis.',
-      descEn: 'Pothole report at Cikarang Raya has been verified by the engineering team.',
-      time: '10 min ago',
-      type: 'VERIFIED',
-      isUnread: true,
-      icon: 'check'
-    },
-    {
-      id: 'notif-2',
-      titleId: '5 Warga Mendukung Laporan Anda',
-      titleEn: '5 Citizens Upvoted Your Report',
-      descId: 'Laporan kerusakan di Tol Cikampek KM 31 menerima perhatian komunitas.',
-      descEn: 'Your road damage report on Tol Cikampek KM 31 gained community traction.',
-      time: '45 min ago',
-      type: 'UPVOTE',
-      isUnread: true,
-      icon: 'thumb'
-    },
-    {
-      id: 'notif-3',
-      titleId: 'Peringatan Titik Kritis Baru',
-      titleEn: 'New Critical Hotspot Alert',
-      descId: 'Terdeteksi akumulasi lubang parah di Kawasan Industri MM2100.',
-      descEn: 'High concentration of severe potholes detected at MM2100 Industrial Area.',
-      time: '2 hours ago',
-      type: 'ALERT',
-      isUnread: true,
-      icon: 'alert'
-    },
-    {
-      id: 'notif-4',
-      titleId: 'Penambalan Jalan Selesai',
-      titleEn: 'Road Patching Completed',
-      descId: 'Perbaikan jalan di Jl. Raya Lemahabang telah rampung dilaksanakan.',
-      descEn: 'Asphalt resurfacing at Jl. Raya Lemahabang has been completed.',
-      time: '1 day ago',
-      type: 'REPAIR',
-      isUnread: false,
-      icon: 'repair'
+  // Notifications come from the shared workflow history (who handed what to whom).
+  // Read marks are kept per account in this browser only; they are not workflow data.
+  const readKey = `pinn.notif.read.${currentAccount.id}`;
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    try {
+      return new Set<string>(JSON.parse(localStorage.getItem(readKey) ?? '[]'));
+    } catch {
+      return new Set<string>();
     }
-  ]);
+  });
+  useEffect(() => {
+    try {
+      setReadIds(new Set<string>(JSON.parse(localStorage.getItem(readKey) ?? '[]')));
+    } catch {
+      setReadIds(new Set<string>());
+    }
+  }, [readKey]);
+  const saveRead = (next: Set<string>) => {
+    setReadIds(next);
+    try {
+      localStorage.setItem(readKey, JSON.stringify([...next].slice(-500)));
+    } catch {
+      /* storage unavailable: marks last for this page only */
+    }
+  };
+  const notifications = useMemo(
+    () =>
+      workflowNotifications(Object.values(workflow.views), { id: workflow.actor?.id ?? currentAccount.id, role: currentAccount.role }).map((n) => ({
+        id: n.id,
+        titleId: n.title,
+        titleEn: n.title,
+        descId: n.description,
+        descEn: n.description,
+        time: relativeTime(n.at),
+        type: n.kind === 'DONE' ? 'REPAIR' : n.kind === 'DECISION' || n.kind === 'PROGRESS' ? 'VERIFIED' : 'ALERT',
+        isUnread: !readIds.has(n.id),
+        icon: n.kind
+      })),
+    [workflow.views, workflow.actor, currentAccount.id, currentAccount.role, readIds]
+  );
 
   const unreadNotificationsCount = notifications.filter((n) => n.isUnread).length;
 
   const handleMarkAllNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isUnread: false })));
+    saveRead(new Set([...readIds, ...notifications.map((n) => n.id)]));
   };
 
   const handleToggleNotificationRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isUnread: !n.isUnread } : n))
-    );
+    const next = new Set(readIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    saveRead(next);
   };
 
   // Filter state for Map overlay pills
@@ -1557,18 +1554,6 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
               </button>
             </div>
 
-            {/* Dark / Light Toggle */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-sm ${
-                theme === 'dark'
-                  ? 'bg-elevated hover:bg-elevated border-white/10 text-amber-400'
-                  : 'bg-white hover:bg-slate-50 border-slate-200 text-indigo-600'
-              }`}
-              title={theme === 'dark' ? t.lightMode : t.darkMode}
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-            </button>
 
             {/* Unduh Laporan Button (Policy Maker / Executive Fast Access) */}
             {isPolicyMaker && (
@@ -1646,6 +1631,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   </div>
 
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
+                    {notifications.length === 0 && (
+                      <p className="text-xs text-slate-400 px-1 py-2">Belum ada pembaruan alur kerja untuk akun ini.</p>
+                    )}
                     {notifications.map((notif) => (
                       <div
                         key={notif.id}
@@ -2801,11 +2789,14 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 <span>{language === 'id' ? '🇮🇩 Bahasa' : '🇺🇸 English'}</span>
               </button>
               <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                onClick={() => {
+                  setIsProfileModalOpen(false);
+                  onOpenSettings();
+                }}
                 className="flex items-center justify-center space-x-2 py-3 px-3 rounded-2xl bg-slate-100 dark:bg-elevated border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white cursor-pointer active:scale-98 transition-all"
               >
-                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-                <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                <Sliders className="w-4 h-4 text-amber-400" />
+                <span>{language === 'id' ? 'Pengaturan' : 'Settings'}</span>
               </button>
             </div>
 

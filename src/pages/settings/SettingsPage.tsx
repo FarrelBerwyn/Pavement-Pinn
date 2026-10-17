@@ -1,6 +1,7 @@
 import React from 'react';
-import { Settings, X } from 'lucide-react';
+import { Moon, Settings, Sun, X } from 'lucide-react';
 import { usePageContext } from '../../app/pageContext';
+import { useThemePreference, type ThemeMode } from '../../app/themePreference';
 
 /**
  * Route: /settings/ — account summary and the entry point to switch demo account.
@@ -10,6 +11,11 @@ import { usePageContext } from '../../app/pageContext';
  */
 export const SettingsPage: React.FC = () => {
   const { currentAccount, closePage, openLogin } = usePageContext();
+  const [theme, setTheme] = useThemePreference();
+  const themes: Array<{ id: ThemeMode; label: string; hint: string; Icon: typeof Moon }> = [
+    { id: 'dark', label: 'Gelap', hint: 'Bawaan', Icon: Moon },
+    { id: 'light', label: 'Terang', hint: 'Uji coba', Icon: Sun }
+  ];
 
   return (
     <div className="fixed inset-0 z-[1500] bg-slate-950/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -43,6 +49,32 @@ export const SettingsPage: React.FC = () => {
             <span className="text-slate-400 text-xs font-bold">Agency / Organization:</span>
             <p className="font-bold text-white">{currentAccount.agency}</p>
           </div>
+
+          <fieldset className="bg-elevated p-3 rounded-xl border border-line space-y-2">
+            <legend className="sr-only">Tampilan</legend>
+            <p className="text-sm font-medium text-white">Tampilan</p>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Mode tampilan">
+              {themes.map(({ id, label, hint, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === id}
+                  onClick={() => setTheme(id)}
+                  className={`h-12 px-3 rounded-lg border text-sm flex items-center gap-2 transition-colors cursor-pointer ${
+                    theme === id ? 'border-amber-400 bg-amber-400/10 text-white' : 'border-line text-slate-300 hover:bg-surface'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${theme === id ? 'text-amber-400' : 'text-slate-400'}`} />
+                  <span className="font-medium">{label}</span>
+                  <span className="ml-auto text-xs text-slate-400">{hint}</span>
+                </button>
+              ))}
+            </div>
+            {theme === 'light' && (
+              <p className="text-xs text-slate-400">Mode terang masih uji coba: bilah atas dan menu ikut terang, sebagian halaman kerja tetap gelap.</p>
+            )}
+          </fieldset>
 
           <div className="flex items-center justify-between pt-2">
             <button
