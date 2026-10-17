@@ -82,6 +82,8 @@ export type WorkflowCommand =
       measuredAreaM2: number | null;
       severity: InspectionRecord['severity'];
       notes: string;
+      /** Optional field photo; the server checks the image bytes (photoValidation.ts). */
+      evidencePhotoUrl?: string | null;
     }
   | { action: 'RECOMMEND_ACTION'; treatment: string; urgency: 'ROUTINE' | 'PRIORITY' | 'URGENT'; rationale: string; assessmentId: string | null; assessment?: AssessmentSnapshot | null }
   | { action: 'START_WORK'; reason: string; contractorNote: string };
@@ -241,6 +243,10 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
       if (isResult(area)) return area;
       const notes = cleanText(command.notes, 'notes', true);
       if (isResult(notes)) return notes;
+      const evidence = command.evidencePhotoUrl ?? null;
+      if (evidence !== null && (typeof evidence !== 'string' || !/^(data:image\/(jpeg|png|webp);base64,|https?:\/\/)/i.test(evidence))) {
+        return fail('VALIDATION', 'evidencePhotoUrl must be a JPEG, PNG or WebP image.');
+      }
       const review = command.cvReview ?? { accepted: true, correctedClass: null };
       const corrected = review.accepted ? null : cleanText(review.correctedClass, 'correctedClass', true);
       if (isResult(corrected)) return corrected;
@@ -254,6 +260,7 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
         measuredAreaM2: area,
         severity: command.severity,
         notes,
+        evidencePhotoUrl: evidence,
         dataStatus: 'OBSERVED'
       };
       autoReason = command.verdict === 'CONFIRMED' ? 'Hasil inspeksi: kerusakan terkonfirmasi.' : 'Hasil inspeksi: kerusakan tidak terkonfirmasi.';

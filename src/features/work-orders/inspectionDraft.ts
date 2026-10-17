@@ -15,6 +15,8 @@ export interface InspectionDraft {
   area: string;
   severity: 'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
   notes: string;
+  /** Kept when storage allows; large photos may not fit, the text fields still do. */
+  evidencePhotoUrl?: string | null;
 }
 
 const key = (caseId: string) => `pavement-pinn.inspection-draft.${caseId}`;
@@ -39,7 +41,12 @@ export function saveDraft(caseId: string, draft: InspectionDraft): void {
   try {
     localStorage.setItem(key(caseId), JSON.stringify(draft));
   } catch {
-    // Storage unavailable: the form still works, the draft just is not kept.
+    try {
+      // Probably over quota because of the photo: keep the typed fields at least.
+      localStorage.setItem(key(caseId), JSON.stringify({ ...draft, evidencePhotoUrl: null }));
+    } catch {
+      // Storage unavailable: the form still works, the draft just is not kept.
+    }
   }
 }
 

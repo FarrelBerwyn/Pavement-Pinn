@@ -240,7 +240,13 @@ test('an assignment to the classic-portal account of an engineer reaches the sam
   const task = fieldTasks(await viewsOf(FE), FE).find((t) => t.c.id === caseId);
   assert.ok(task, 'USR-006 sees the task assigned to USR-001');
   assert.equal(task!.cta?.action, 'SUBMIT_INSPECTION');
-  await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 3, measuredAreaM2: 1, severity: 'MODERATE', notes: 'ok' });
+  // Evidence photo: fake image bytes are refused by the server; a real image is stored with the inspection.
+  const fake = await call('POST', `/api/workflow/reports/${caseId}/transitions`, { command: { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 3, measuredAreaM2: 1, severity: 'MODERATE', notes: 'ok', evidencePhotoUrl: 'data:image/png;base64,QUFBQQ==' }, expectedVersion: version }, await login(FE));
+  assert.equal(fake.status, 400, JSON.stringify(fake.body));
+  await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 3, measuredAreaM2: 1, severity: 'MODERATE', notes: 'ok', evidencePhotoUrl: PNG });
+  const mo = (await call('GET', `/api/workflow/reports/${caseId}`, undefined, await login(MO))).body.report.case;
+  assert.equal(mo.state, 'INSPECTED');
+  assert.equal(mo.inspection.evidencePhotoUrl, PNG, 'M.O reads the same evidence photo');
 });
 
 test('offline demo gateway attaches the segment assessment to a recommendation, like the server', async () => {

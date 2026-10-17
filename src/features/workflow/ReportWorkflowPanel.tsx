@@ -143,15 +143,27 @@ const ActionForm: React.FC<{
   const [area, setArea] = useState(draft?.area ?? '');
   const [severity, setSeverity] = useState<'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL'>(draft?.severity ?? caseData.inspection?.severity ?? caseData.report.severity);
   const [notes, setNotes] = useState(draft?.notes ?? '');
+  const [evidence, setEvidence] = useState<string | null>(draft?.evidencePhotoUrl ?? null);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const pickEvidence = (file: File | undefined) => {
+    setEvidenceError(null);
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return setEvidenceError('Gunakan foto JPEG, PNG atau WebP.');
+    if (file.size > 5 * 1024 * 1024) return setEvidenceError('Foto lebih dari 5 MB.');
+    const reader = new FileReader();
+    reader.onload = () => setEvidence(String(reader.result));
+    reader.onerror = () => setEvidenceError('Foto tidak dapat dibaca.');
+    reader.readAsDataURL(file);
+  };
   const [savedAt, setSavedAt] = useState<string | null>(draft?.savedAt ?? null);
   useEffect(() => {
     if (action !== 'SUBMIT_INSPECTION' || caseData.state !== 'FIELD_INSPECTION_REQUESTED') return;
-    const touched = depth || area || notes || correctedClass || verdict !== 'CONFIRMED' || !cvAccepted;
+    const touched = depth || area || notes || correctedClass || evidence || verdict !== 'CONFIRMED' || !cvAccepted;
     if (!touched) return;
     const at = new Date().toISOString();
-    saveDraft(caseData.id, { version: caseData.version, savedAt: at, verdict, cvAccepted, correctedClass, depth, area, severity, notes });
+    saveDraft(caseData.id, { version: caseData.version, savedAt: at, verdict, cvAccepted, correctedClass, depth, area, severity, notes, evidencePhotoUrl: evidence });
     setSavedAt(at);
-  }, [action, caseData.id, caseData.version, caseData.state, verdict, cvAccepted, correctedClass, depth, area, severity, notes]);
+  }, [action, caseData.id, caseData.version, caseData.state, verdict, cvAccepted, correctedClass, depth, area, severity, notes, evidence]);
   const [treatment, setTreatment] = useState('');
   const [urgency, setUrgency] = useState<'ROUTINE' | 'PRIORITY' | 'URGENT'>('PRIORITY');
   const [rationale, setRationale] = useState('');
@@ -172,7 +184,8 @@ const ActionForm: React.FC<{
           measuredDepthCm: num(depth),
           measuredAreaM2: num(area),
           severity,
-          notes
+          notes,
+          evidencePhotoUrl: evidence
         });
       case 'RECOMMEND_ACTION':
         return onSubmit({ action, treatment, urgency, rationale, assessmentId: null });
@@ -247,6 +260,18 @@ const ActionForm: React.FC<{
           <Field skin={skin} label="Catatan inspeksi" htmlFor={id('notes')}>
             <textarea id={id('notes')} className={inputClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} required placeholder="Kondisi yang diamati di lapangan" />
           </Field>
+          <Field skin={skin} label="Foto bukti inspeksi (opsional)" htmlFor={id('evidence')}>
+            <input id={id('evidence')} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className={inputClass} onChange={(e) => pickEvidence(e.target.files?.[0])} />
+          </Field>
+          {evidenceError && <p role="alert" className="text-xs text-red-300">{evidenceError}</p>}
+          {evidence && (
+            <div className="flex items-start gap-2">
+              <img src={evidence} alt="Pratinjau foto bukti inspeksi" className="w-32 h-24 object-cover rounded-lg border border-line" />
+              <button type="button" onClick={() => setEvidence(null)} className={`text-xs underline ${skin.muted}`}>
+                Hapus foto
+              </button>
+            </div>
+          )}
           <p className={`text-xs ${skin.muted}`} role="status">
             {savedAt
               ? `Draf tersimpan di perangkat ini · ${new Date(savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}. Belum terkirim ke M.O.`
@@ -362,6 +387,16 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
               {staffCase.report.damageTypeLabel} · {staffCase.report.segmentName} · estimasi {staffCase.report.estimatedDepthCm} cm / {staffCase.report.estimatedAreaM2} m²
             </p>
             {staffCase.report.description && <p className={skin.muted}>{staffCase.report.description}</p>}
+            <p className={skin.muted}>
+              Lokasi: {staffCase.report.coordinates[0].toFixed(5)}, {staffCase.report.coordinates[1].toFixed(5)}
+            </p>
+            {staffCase.report.photoUrl && (
+              <img
+                src={staffCase.report.photoUrl}
+                alt="Foto laporan warga (R.E)"
+                className="mt-2 w-full max-h-72 object-contain rounded-lg border border-line bg-canvas"
+              />
+            )}
           </div>
           {staffCase.screening && (
             <div className={`${card} space-y-1`}>
@@ -409,6 +444,16 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
               <p className={skin.muted}>
                 Klasifikasi laporan {staffCase.inspection.cvReview.accepted ? 'diterima' : `dikoreksi menjadi ${staffCase.inspection.cvReview.correctedClass}`}. {staffCase.inspection.notes}
               </p>
+            </div>
+          )}
+          {staffCase.inspection && (
+            <div className={card}>
+              <span className={`font-semibold ${skin.strong}`}>Foto bukti inspeksi (F.E)</span>
+              {staffCase.inspection.evidencePhotoUrl ? (
+                <img src={staffCase.inspection.evidencePhotoUrl} alt="Foto bukti inspeksi (F.E)" className="mt-2 w-full max-h-72 object-contain rounded-lg border border-line bg-canvas" />
+              ) : (
+                <p className={skin.muted}>Belum ada foto bukti dari F.E.</p>
+              )}
             </div>
           )}
           {(staffCase.inspectionReviews ?? []).length > 0 && (

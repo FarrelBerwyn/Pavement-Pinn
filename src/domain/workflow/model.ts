@@ -89,6 +89,8 @@ export interface InspectionRecord {
   measuredAreaM2: number | null;
   severity: 'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
   notes: string;
+  /** Field photo taken by the engineer (data URL in the demo store). Optional: older records have none. */
+  evidencePhotoUrl?: string | null;
   /** Provenance of the measurements: observed in the field by a person. */
   dataStatus: 'OBSERVED';
 }
