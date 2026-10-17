@@ -31,12 +31,14 @@ const STAFF_RULES: Record<string, Partial<Record<WorkflowAction, Rule & { mine?:
     SUBMIT: { kind: 'REVIEW', title: 'Laporan warga baru' },
     SCREENING_NEEDS_REVIEW: { kind: 'REVIEW', title: 'Laporan perlu ditinjau' },
     SCREENING_PASSED: { kind: 'REVIEW', title: 'Laporan lolos penyaringan, siap ditugaskan' },
-    SUBMIT_INSPECTION: { kind: 'PROGRESS', title: 'Hasil inspeksi F.E masuk' },
+    SUBMIT_INSPECTION: { kind: 'DECISION', title: 'Hasil inspeksi F.E menunggu verifikasi Anda' },
     RECOMMEND_ACTION: { kind: 'DECISION', title: 'Rekomendasi menunggu persetujuan Anda' },
     RESOLVE: { kind: 'DONE', title: 'Perbaikan terverifikasi F.E, siap ditutup' }
   },
   FIELD_ENGINEER: {
     REQUEST_INSPECTION: { kind: 'ASSIGNED', title: 'Tugas inspeksi baru untuk Anda', mine: true },
+    VERIFY_INSPECTION: { kind: 'DECISION', title: 'Inspeksi Anda diverifikasi M.O', mine: true },
+    REQUEST_REINSPECTION: { kind: 'ASSIGNED', title: 'M.O meminta inspeksi ulang', mine: true },
     APPROVE_ACTION: { kind: 'DECISION', title: 'Rekomendasi Anda disetujui M.O', mine: true },
     REJECT_ACTION: { kind: 'DECISION', title: 'Rekomendasi Anda dikembalikan M.O', mine: true },
     COMPLETE_WORK_ORDER: { kind: 'ASSIGNED', title: 'Pekerjaan selesai, perlu verifikasi Anda', mine: true },

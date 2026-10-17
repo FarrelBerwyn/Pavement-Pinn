@@ -20,6 +20,8 @@ export const WORKFLOW_STATES = [
   'VERIFIED',
   'FIELD_INSPECTION_REQUESTED',
   'INSPECTED',
+  /** M.O verified the F.E inspection (independent of approving any treatment). */
+  'INSPECTION_VERIFIED',
   'ACTION_RECOMMENDED',
   'ACTION_APPROVED',
   'IN_PROGRESS',
@@ -104,6 +106,16 @@ export interface MaintenanceRecommendation {
   assessment: AssessmentSnapshot | null;
 }
 
+/** M.O's verification of an F.E inspection, audited separately from treatment approvals. */
+export interface InspectionReviewRecord {
+  id: string;
+  inspectionId: string | null;
+  decidedBy: string;
+  decidedAt: string;
+  decision: 'VERIFIED' | 'REINSPECTION_REQUESTED';
+  reason: string;
+}
+
 export interface ApprovalRecord {
   id: string;
   decidedBy: string;
@@ -156,6 +168,8 @@ export interface ReportCase {
   inspection: InspectionRecord | null;
   recommendation: MaintenanceRecommendation | null;
   approvals: ApprovalRecord[];
+  /** Optional so cases stored before HD-WS-1 still load; read with `?? []`. */
+  inspectionReviews?: InspectionReviewRecord[];
   workOrder: WorkOrder | null;
   history: TransitionRecord[];
 }
@@ -169,6 +183,8 @@ export const WORKFLOW_ACTIONS = [
   'CLOSE_INVALID',
   'REQUEST_INSPECTION',
   'SUBMIT_INSPECTION',
+  'VERIFY_INSPECTION',
+  'REQUEST_REINSPECTION',
   'RECOMMEND_ACTION',
   'CLOSE_NO_ACTION',
   'APPROVE_ACTION',

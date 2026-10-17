@@ -62,7 +62,7 @@ v3 decisions use the prefix `V3-D-` to avoid colliding with the three-digit IDs 
 ## D-010 Report lifecycle exactly as spec §24, with SEED_IMPORT for demo data
 
 - States `SUBMITTED → AI_SCREENING → VERIFIED | NEEDS_REVIEW → FIELD_INSPECTION_REQUESTED →
-  INSPECTED → ACTION_RECOMMENDED → ACTION_APPROVED → IN_PROGRESS → RESOLVED | CLOSED`.
+  INSPECTED → INSPECTION_VERIFIED (D-039) → ACTION_RECOMMENDED → ACTION_APPROVED → IN_PROGRESS → RESOLVED | CLOSED`.
 - Bundled demo reports are imported once with a single `SEED_IMPORT` record saying they
   are SYNTHETIC and their earlier history is unknown — no screening or repair steps are
   invented. Display status gains `CLOSED`.
@@ -256,3 +256,22 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
 - **Not served.** INT8 (10.9 % deviation) and FP16 (3.5 %); see `models/MODEL_CARD.md`.
 - **Hardware.** Dev laptop i5-12450H + UHD iGPU (+ RTX 4050); no NPU, no Intel XPU for training.
   The Core Ultra requirement for M4–M5 (D-21) is still open.
+
+## D-039 HD-WS-1: M.O verifies the inspection and approves the operational treatment, separately
+
+- **Decided by the team (2026-10-17).** For the MVP the Operations Manager (M.O) approves operational
+  treatment. The Policy Maker (D.M) reviews policy priority and budget within their authority and has
+  no workflow transitions. Supersedes the open question HD-WS-1 (docs/audit/workflow-sync-2026-10-17.md).
+- **Two independent decisions.** (1) Inspection verification: `VERIFY_INSPECTION` (INSPECTED →
+  INSPECTION_VERIFIED) or `REQUEST_REINSPECTION` (back to FIELD_INSPECTION_REQUESTED, same engineer),
+  recorded in `inspectionReviews`. (2) Treatment approval: `APPROVE_ACTION` / `REJECT_ACTION`
+  (back to INSPECTION_VERIFIED, inspection stays verified), recorded in `approvals`. Each has its own
+  state, its own record (actor, time, reason) and its own transition in the audit log.
+- **Rules.** Every M.O decision needs a reason. F.E can recommend or close-no-action only after the
+  inspection is verified; F.E never reaches RESOLVED/CLOSED from the inspection stage. Separation of
+  duties unchanged (the recommending engineer cannot approve).
+- **Deviation from v2.2 §19 (recorded):** §19 lists "Approve/request verification" for the Field
+  Engineer; the MVP keeps approval with M.O (D-012) so the person who inspects does not approve.
+- **Compatibility.** `inspectionReviews` is optional on stored cases (older cases load unchanged).
+- **Tests.** `tests/integration/cross-account-tasks.test.ts` (both loops, refusals, independent
+  audit after re-login), `tests/unit/workflow.test.ts`, `tests/integration/workflow-api.test.ts`.

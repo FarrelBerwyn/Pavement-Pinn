@@ -124,6 +124,10 @@ test('cross-role golden path: review → assign → inspect → recommend → ap
   await step(ENG, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: false, correctedClass: 'ALLIGATOR_CRACK' }, measuredDepthCm: 9, measuredAreaM2: 3.2, severity: 'SEVERE', notes: 'Retak buaya meluas di lajur kiri.' });
   assert.equal(c.inspection?.dataStatus, 'OBSERVED');
   assert.equal(c.report.status, 'VERIFIED_BY_ENGINEER');
+  assert.equal(c.state, 'INSPECTED');
+  await step(OPS, { action: 'VERIFY_INSPECTION', reason: 'Temuan dan foto sesuai.' });
+  assert.equal(c.state, 'INSPECTION_VERIFIED');
+  assert.equal(c.inspectionReviews?.[0].decision, 'VERIFIED');
   await step(ENG, { action: 'RECOMMEND_ACTION', treatment: 'Patching + overlay AC-WC', urgency: 'PRIORITY', rationale: 'Inspeksi mengonfirmasi kerusakan struktural.', assessmentId: 'ASM-1' });
   await step(OPS, { action: 'APPROVE_ACTION', reason: 'Sesuai prioritas koridor.' });
   assert.equal(c.report.status, 'SCHEDULED_FOR_REPAIR');
@@ -181,11 +185,12 @@ test('the recommending engineer cannot approve; an operations manager must', asy
   c = ok(await service.transition(c.id, { action: 'REVIEW_ACCEPT', reason: 'ok' }, OPS, c.version));
   c = ok(await service.transition(c.id, { action: 'REQUEST_INSPECTION', reason: 'ok', engineerId: ENG.id, dueAt: DUE, instructions: '' }, OPS, c.version));
   c = ok(await service.transition(c.id, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 5, measuredAreaM2: 1, severity: 'MODERATE', notes: 'Lubang aktif' }, ENG, c.version));
+  c = ok(await service.transition(c.id, { action: 'VERIFY_INSPECTION', reason: 'ok' }, OPS, c.version));
   c = ok(await service.transition(c.id, { action: 'RECOMMEND_ACTION', treatment: 'Patching', urgency: 'ROUTINE', rationale: 'Lubang lokal', assessmentId: null }, ENG, c.version));
   const engApproves = await service.transition(c.id, { action: 'APPROVE_ACTION', reason: 'x' }, ENG, c.version);
   assert.equal(codeOf(engApproves), 'FORBIDDEN');
   const reject = ok(await service.transition(c.id, { action: 'REJECT_ACTION', reason: 'Perlu opsi overlay' }, OPS2, c.version));
-  assert.equal(reject.state, 'INSPECTED');
+  assert.equal(reject.state, 'INSPECTION_VERIFIED', 'returning a recommendation keeps the inspection verified');
   assert.equal(reject.recommendation, null);
   assert.equal(reject.approvals[0].decision, 'REJECTED');
 });
@@ -196,6 +201,7 @@ test('a not-confirmed inspection cannot get a maintenance recommendation; ops cl
   c = ok(await service.transition(c.id, { action: 'REVIEW_ACCEPT', reason: 'ok' }, OPS, c.version));
   c = ok(await service.transition(c.id, { action: 'REQUEST_INSPECTION', reason: 'ok', engineerId: ENG.id, dueAt: DUE, instructions: '' }, OPS, c.version));
   c = ok(await service.transition(c.id, { action: 'SUBMIT_INSPECTION', verdict: 'NOT_CONFIRMED', cvReview: { accepted: false, correctedClass: 'NONE' }, measuredDepthCm: null, measuredAreaM2: null, severity: 'LIGHT', notes: 'Tidak ditemukan kerusakan di titik laporan.' }, ENG, c.version));
+  c = ok(await service.transition(c.id, { action: 'VERIFY_INSPECTION', reason: 'ok' }, OPS, c.version));
   const rec = await service.transition(c.id, { action: 'RECOMMEND_ACTION', treatment: 'x', urgency: 'ROUTINE', rationale: 'x', assessmentId: null }, ENG, c.version);
   assert.equal(codeOf(rec), 'FORBIDDEN');
   c = ok(await service.transition(c.id, { action: 'CLOSE_NO_ACTION', reason: 'Tidak terkonfirmasi' }, OPS, c.version));
@@ -210,6 +216,7 @@ test('repair cannot be verified before the work order is completed', async () =>
     [OPS, { action: 'REVIEW_ACCEPT', reason: 'ok' }],
     [OPS, { action: 'REQUEST_INSPECTION', reason: 'ok', engineerId: ENG.id, dueAt: DUE, instructions: '' }],
     [ENG, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 5, measuredAreaM2: 1, severity: 'MODERATE', notes: 'ok' }],
+    [OPS, { action: 'VERIFY_INSPECTION', reason: 'ok' }],
     [ENG, { action: 'RECOMMEND_ACTION', treatment: 'Patching', urgency: 'ROUTINE', rationale: 'ok', assessmentId: null }],
     [OPS, { action: 'APPROVE_ACTION', reason: 'ok' }],
     [OPS, { action: 'START_WORK', reason: 'ok', contractorNote: '' }]

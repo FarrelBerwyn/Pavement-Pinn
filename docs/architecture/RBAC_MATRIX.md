@@ -104,7 +104,8 @@ Each row mirrors a gate that exists in the UI code (`ACTION_RULES` in `accessPol
 | Issue ODOL enforcement (BATM, ETLE) | no | yes | no | no | no | `OperationsManagerAppView` under `/operations/monitoring/` |
 | View policy analysis | no | no | yes | no | no | route `/policy/` |
 | Triage reports (review, close, assign inspection) | no | yes | no | no | no | workflow actions, enforced by the API |
-| Approve/reject maintenance, start and complete work orders | no | yes | no | no | no | workflow actions; the recommender cannot approve |
+| Verify an inspection or request a re-inspection (HD-WS-1, D-039) | no | yes | no | no | no | `VERIFY_INSPECTION` / `REQUEST_REINSPECTION`, reason required, audited in `inspectionReviews` |
+| Approve/reject maintenance, start and complete work orders | no | yes | no | no | no | `APPROVE_ACTION` / `REJECT_ACTION` (audited in `approvals`), `START_WORK`, `COMPLETE_WORK_ORDER`; the recommender cannot approve; D.M reviews priority and budget only |
 | View the audit trail | yes | yes | yes | no | no | `GET /api/workflow/audit` (403 otherwise); UI entry points hidden |
 
 ### Report creation and ownership (M1a)

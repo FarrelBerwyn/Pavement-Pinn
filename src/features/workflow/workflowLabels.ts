@@ -11,11 +11,13 @@ export const ACTION_LABEL: Record<WorkflowAction, string> = {
   REVIEW_ACCEPT: 'Terima untuk ditindaklanjuti',
   CLOSE_INVALID: 'Tutup: tidak valid / duplikat',
   REQUEST_INSPECTION: 'Tugaskan inspeksi lapangan',
-  SUBMIT_INSPECTION: 'Kirim hasil inspeksi',
-  RECOMMEND_ACTION: 'Kirim untuk Verifikasi M.O',
+  SUBMIT_INSPECTION: 'Kirim hasil inspeksi untuk verifikasi M.O',
+  VERIFY_INSPECTION: 'Verifikasi hasil inspeksi',
+  REQUEST_REINSPECTION: 'Minta inspeksi ulang ke F.E',
+  RECOMMEND_ACTION: 'Ajukan penanganan ke M.O',
   CLOSE_NO_ACTION: 'Tutup tanpa penanganan',
-  APPROVE_ACTION: 'Verifikasi hasil & setujui penanganan',
-  REJECT_ACTION: 'Minta perbaikan ke F.E',
+  APPROVE_ACTION: 'Setujui penanganan',
+  REJECT_ACTION: 'Kembalikan rekomendasi ke F.E',
   START_WORK: 'Terbitkan perintah kerja internal',
   COMPLETE_WORK_ORDER: 'Tandai pekerjaan selesai',
   RESOLVE: 'Verifikasi hasil perbaikan',
@@ -33,6 +35,7 @@ export function stateTone(state: WorkflowState | string): 'neutral' | 'review' |
     case 'VERIFIED':
     case 'FIELD_INSPECTION_REQUESTED':
     case 'INSPECTED':
+    case 'INSPECTION_VERIFIED':
     case 'ACTION_RECOMMENDED':
     case 'ACTION_APPROVED':
     case 'IN_PROGRESS':

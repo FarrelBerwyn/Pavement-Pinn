@@ -54,10 +54,12 @@ bodies never carry identity. Demo tokens are *not* authentication (see RBAC_MATR
 | `CLOSE_INVALID` | NEEDS_REVIEW, VERIFIED → CLOSED | OPERATIONS_MANAGER | `reason` |
 | `REQUEST_INSPECTION` | VERIFIED → FIELD_INSPECTION_REQUESTED | OPERATIONS_MANAGER | `reason, engineerId` (must be an engineer), `dueAt` (future), `instructions` |
 | `SUBMIT_INSPECTION` | FIELD_INSPECTION_REQUESTED → INSPECTED | FIELD_ENGINEER (assigned) | `verdict, cvReview{accepted, correctedClass}, measuredDepthCm, measuredAreaM2, severity, notes` |
-| `RECOMMEND_ACTION` | INSPECTED → ACTION_RECOMMENDED | FIELD_ENGINEER (assigned, verdict CONFIRMED) | `treatment, urgency, rationale` (server attaches its assessment snapshot) |
-| `CLOSE_NO_ACTION` | INSPECTED → CLOSED | OPERATIONS_MANAGER | `reason` |
+| `VERIFY_INSPECTION` | INSPECTED → INSPECTION_VERIFIED | OPERATIONS_MANAGER | `reason` (recorded in `inspectionReviews`, HD-WS-1) |
+| `REQUEST_REINSPECTION` | INSPECTED → FIELD_INSPECTION_REQUESTED (same engineer) | OPERATIONS_MANAGER | `reason` (recorded in `inspectionReviews`) |
+| `RECOMMEND_ACTION` | INSPECTION_VERIFIED → ACTION_RECOMMENDED | FIELD_ENGINEER (assigned, verdict CONFIRMED) | `treatment, urgency, rationale` (server attaches its assessment snapshot) |
+| `CLOSE_NO_ACTION` | INSPECTION_VERIFIED → CLOSED | OPERATIONS_MANAGER | `reason` |
 | `APPROVE_ACTION` | ACTION_RECOMMENDED → ACTION_APPROVED | OPERATIONS_MANAGER (not the recommender) | `reason` |
-| `REJECT_ACTION` | ACTION_RECOMMENDED → INSPECTED | OPERATIONS_MANAGER | `reason` |
+| `REJECT_ACTION` | ACTION_RECOMMENDED → INSPECTION_VERIFIED (inspection stays verified) | OPERATIONS_MANAGER | `reason` |
 | `START_WORK` | ACTION_APPROVED → IN_PROGRESS | OPERATIONS_MANAGER | `reason, contractorNote` (internal work order, not an SPK) |
 | `COMPLETE_WORK_ORDER` | IN_PROGRESS (stays) | OPERATIONS_MANAGER | `reason` |
 | `RESOLVE` | IN_PROGRESS → RESOLVED | FIELD_ENGINEER (work order completed) | `reason` |

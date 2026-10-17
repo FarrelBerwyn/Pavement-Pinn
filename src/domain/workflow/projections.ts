@@ -15,6 +15,7 @@ import type { ReportCase, WorkflowState } from './model';
 export function legacyStatusFor(c: Pick<ReportCase, 'state' | 'history'>): ReportStatus {
   switch (c.state) {
     case 'INSPECTED':
+    case 'INSPECTION_VERIFIED':
     case 'ACTION_RECOMMENDED':
       return 'VERIFIED_BY_ENGINEER';
     case 'ACTION_APPROVED':
@@ -36,8 +37,9 @@ export const WORKFLOW_STATE_LABEL: Record<WorkflowState, string> = {
   NEEDS_REVIEW: 'Menunggu peninjauan',
   VERIFIED: 'Siap ditindaklanjuti',
   FIELD_INSPECTION_REQUESTED: 'Inspeksi dijadwalkan',
-  INSPECTED: 'Sudah diinspeksi',
-  ACTION_RECOMMENDED: 'Menunggu verifikasi M.O',
+  INSPECTED: 'Inspeksi menunggu verifikasi M.O',
+  INSPECTION_VERIFIED: 'Inspeksi terverifikasi',
+  ACTION_RECOMMENDED: 'Menunggu persetujuan penanganan',
   ACTION_APPROVED: 'Penanganan disetujui',
   IN_PROGRESS: 'Sedang dikerjakan',
   RESOLVED: 'Perbaikan terverifikasi',

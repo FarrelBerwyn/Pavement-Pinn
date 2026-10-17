@@ -394,6 +394,18 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
               </p>
             </div>
           )}
+          {(staffCase.inspectionReviews ?? []).length > 0 && (
+            <div className={card}>
+              <span className={`font-semibold ${skin.strong}`}>Verifikasi inspeksi (M.O)</span>
+              <ul className="mt-1 space-y-1">
+                {(staffCase.inspectionReviews ?? []).map((r) => (
+                  <li key={r.id} className={skin.body}>
+                    {r.decision === 'VERIFIED' ? 'Diverifikasi' : 'Inspeksi ulang diminta'} oleh {actorName(r.decidedBy)} · {fmt(r.decidedAt)} — <span className={skin.muted}>{r.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {staffCase.recommendation && (
             <div className={`${card} space-y-1`}>
               <span className={`font-semibold ${skin.strong}`}>Rekomendasi penanganan (F.E)</span>
@@ -416,7 +428,7 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
           )}
           {staffCase.approvals.length > 0 && (
             <div className={card}>
-              <span className={`font-semibold ${skin.strong}`}>Keputusan (M.O)</span>
+              <span className={`font-semibold ${skin.strong}`}>Keputusan penanganan (M.O)</span>
               <ul className="mt-1 space-y-1">
                 {staffCase.approvals.map((a) => (
                   <li key={a.id} className={skin.body}>

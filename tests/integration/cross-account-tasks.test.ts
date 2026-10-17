@@ -122,55 +122,76 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
   assert.equal(fieldTasks(other, FE_OTHER).some((t) => t.c.id === id), false);
   assert.equal(workflowNotifications(other, { id: FE_OTHER, role: 'FIELD_ENGINEER' }).some((n) => n.caseId === id), false);
 
-  // F.E inspects → next own step is the recommendation; after recommending it waits on M.O.
+
+  // Only M.O decides; a reason is mandatory for every M.O decision.
+  const refuse = async (action: string) => {
+    const noReason = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action, reason: '' }, expectedVersion: version }, await login(MO));
+    assert.ok(noReason.status >= 400 && noReason.status < 500, `${action} without a reason is refused`);
+    for (const outsider of [RE, FE, FE_OTHER, DM]) {
+      const r = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action, reason: 'x' }, expectedVersion: version }, await login(outsider));
+      assert.ok(r.status === 403 || r.status === 404, `${outsider} may not ${action} (got ${r.status})`);
+    }
+  };
+
+  // 1) F.E submits the inspection → it waits on M.O verification (no recommendation yet).
   await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 9, measuredAreaM2: 2, severity: 'SEVERE', notes: 'Terkonfirmasi.' });
   tasks = fieldTasks(await viewsOf(FE), FE);
-  assert.equal(tasks.find((t) => t.c.id === id)!.cta?.action, 'RECOMMEND_ACTION');
+  assert.equal(tasks.find((t) => t.c.id === id)!.title, 'Menunggu verifikasi inspeksi');
+  assert.equal(tasksDue(tasks), 0);
+  assert.ok(workflowNotifications(await viewsOf(MO), { id: MO, role: 'OPERATIONS_MANAGER' }).some((n) => n.caseId === id && n.title === 'Hasil inspeksi F.E menunggu verifikasi Anda'));
+  const early = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'RECOMMEND_ACTION', treatment: 'x', urgency: 'ROUTINE', rationale: 'x', assessmentId: null }, expectedVersion: version }, await login(FE));
+  assert.ok(early.status >= 400, 'no recommendation before the inspection is verified');
+
+  // 2) M.O asks for a re-inspection: back to the same F.E with the reason.
+  await refuse('REQUEST_REINSPECTION');
+  await act(MO, { action: 'REQUEST_REINSPECTION', reason: 'Foto kurang jelas; ukur ulang luas kerusakan.' });
+  tasks = fieldTasks(await viewsOf(FE), FE);
+  let back = tasks.find((t) => t.c.id === id)!;
+  assert.equal(back.c.state, 'FIELD_INSPECTION_REQUESTED');
+  assert.equal(back.title, 'Inspeksi ulang diminta M.O');
+  assert.equal(back.returned?.reason, 'Foto kurang jelas; ukur ulang luas kerusakan.');
+  assert.deepEqual(back.cta, { action: 'SUBMIT_INSPECTION', label: 'Mulai Inspeksi Ulang' });
+  assert.equal(tasksDue(tasks), 1);
+  assert.equal(fieldTasks(await viewsOf(FE_OTHER), FE_OTHER).some((t) => t.c.id === id), false);
+
+  // 3) F.E re-inspects; M.O verifies the inspection (its own audited decision).
+  await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 9, measuredAreaM2: 2.4, severity: 'SEVERE', notes: 'Diukur ulang, foto jarak dekat.' });
+  await refuse('VERIFY_INSPECTION');
+  await act(MO, { action: 'VERIFY_INSPECTION', reason: 'Ukuran dan foto sesuai.' });
+  tasks = fieldTasks(await viewsOf(FE), FE);
+  assert.deepEqual(tasks.find((t) => t.c.id === id)!.cta, { action: 'RECOMMEND_ACTION', label: 'Ajukan Penanganan' });
+
+  // 4) F.E recommends; M.O and D.M read the same verified inspection and recommendation.
   await act(FE, { action: 'RECOMMEND_ACTION', treatment: 'Patching', urgency: 'PRIORITY', rationale: 'Lajur berat.', assessmentId: null });
   tasks = fieldTasks(await viewsOf(FE), FE);
-  assert.equal(tasks.find((t) => t.c.id === id)!.stage, 'WAITING');
+  assert.equal(tasks.find((t) => t.c.id === id)!.title, 'Menunggu persetujuan penanganan');
   assert.equal(tasksDue(tasks), 0, 'badge clears when it is not the engineer’s turn');
-
-  // M.O and D.M read the same inspection and recommendation; both are notified.
   mo = await viewsOf(MO);
   const dm = await viewsOf(DM);
   for (const views of [mo, dm]) {
     const c = views.find((v) => v.case.id === id)!.case as any;
     assert.equal(c.state, 'ACTION_RECOMMENDED');
-    assert.equal(c.inspection.measuredDepthCm, 9);
+    assert.equal(c.inspection.measuredAreaM2, 2.4);
     assert.equal(c.recommendation.treatment, 'Patching');
     assert.equal(c.recommendation.assessment.engine, 'RULE_BASED');
   }
-  assert.ok(workflowNotifications(mo, { id: MO, role: 'OPERATIONS_MANAGER' }).some((n) => n.caseId === id && n.kind === 'DECISION'));
+  assert.ok(workflowNotifications(mo, { id: MO, role: 'OPERATIONS_MANAGER' }).some((n) => n.caseId === id && n.title === 'Rekomendasi menunggu persetujuan Anda'));
   assert.ok(workflowNotifications(dm, { id: DM, role: 'POLICY_MAKER' }).some((n) => n.caseId === id && n.title === 'Rekomendasi penanganan baru'));
-  assert.deepEqual(dm.find((v) => v.case.id === id)!.availableActions, [], 'D.M reads; approval stays with M.O');
+  assert.deepEqual(dm.find((v) => v.case.id === id)!.availableActions, [], 'D.M reviews priority; approval stays with M.O');
 
-  // M.O asks for a fix: a reason is mandatory, and only M.O may decide.
-  const noReason = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'REJECT_ACTION', reason: '' }, expectedVersion: version }, await login(MO));
-  assert.ok(noReason.status >= 400 && noReason.status < 500, 'request-fix without a reason is refused');
-  for (const outsider of [RE, FE_OTHER, DM]) {
-    const r = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'REJECT_ACTION', reason: 'x' }, expectedVersion: version }, await login(outsider));
-    assert.ok(r.status === 403 || r.status === 404, `${outsider} may not decide (got ${r.status})`);
-  }
-  await act(MO, { action: 'REJECT_ACTION', reason: 'Foto kurang jelas; ukur ulang luas kerusakan.' });
-
-  // The task returns to the same F.E with the reason, a resubmit button and the badge back on.
+  // 5) M.O returns the recommendation; the inspection stays verified.
+  await refuse('REJECT_ACTION');
+  await act(MO, { action: 'REJECT_ACTION', reason: 'Tambahkan opsi overlay.' });
   tasks = fieldTasks(await viewsOf(FE), FE);
-  const back = tasks.find((t) => t.c.id === id)!;
-  assert.equal(back.c.state, 'INSPECTED');
-  assert.equal(back.title, 'Perbaikan diminta M.O');
-  assert.equal(back.returned?.reason, 'Foto kurang jelas; ukur ulang luas kerusakan.');
-  assert.deepEqual(back.cta, { action: 'RECOMMEND_ACTION', label: 'Kirim Ulang untuk Verifikasi M.O' });
-  assert.equal(tasksDue(tasks), 1);
-  assert.equal(fieldTasks(await viewsOf(FE_OTHER), FE_OTHER).some((t) => t.c.id === id), false);
+  back = tasks.find((t) => t.c.id === id)!;
+  assert.equal(back.c.state, 'INSPECTION_VERIFIED');
+  assert.equal(back.title, 'Rekomendasi dikembalikan M.O');
+  assert.equal(back.returned?.reason, 'Tambahkan opsi overlay.');
+  assert.deepEqual(back.cta, { action: 'RECOMMEND_ACTION', label: 'Ajukan Ulang Penanganan' });
 
-  // F.E resubmits; M.O sees it waiting for verification again.
-  await act(FE, { action: 'RECOMMEND_ACTION', treatment: 'Patching', urgency: 'PRIORITY', rationale: 'Lajur berat; luas diukur ulang 2,4 m².', assessmentId: null });
-  tasks = fieldTasks(await viewsOf(FE), FE);
-  assert.equal(tasks.find((t) => t.c.id === id)!.title, 'Menunggu verifikasi M.O');
-  assert.equal((await viewsOf(MO)).find((v) => v.case.id === id)!.case.state, 'ACTION_RECOMMENDED');
-
-  // The human decision returns to F.E and D.M.
+  // 6) F.E resubmits; M.O approves the operational treatment.
+  await act(FE, { action: 'RECOMMEND_ACTION', treatment: 'Patching + overlay', urgency: 'PRIORITY', rationale: 'Lajur berat; opsi overlay ditambahkan.', assessmentId: null });
+  await refuse('APPROVE_ACTION');
   await act(MO, { action: 'APPROVE_ACTION', reason: 'Sesuai prioritas.' });
   fe = await viewsOf(FE);
   assert.ok(workflowNotifications(fe, { id: FE, role: 'FIELD_ENGINEER' }).some((n) => n.caseId === id && n.title.includes('disetujui')));
@@ -192,11 +213,11 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
     const c = again.find((v) => v.case.id === id)!.case as any;
     assert.equal(c.state, 'ACTION_APPROVED');
     const actions = c.history.map((h: any) => h.action);
-    assert.deepEqual(actions.slice(-4), ['RECOMMEND_ACTION', 'REJECT_ACTION', 'RECOMMEND_ACTION', 'APPROVE_ACTION']);
-    const rejected = c.history.find((h: any) => h.action === 'REJECT_ACTION');
-    assert.equal(rejected.actor.id, MO);
-    assert.equal(rejected.reason, 'Foto kurang jelas; ukur ulang luas kerusakan.');
-    assert.ok(Date.parse(rejected.at) > 0);
+    assert.deepEqual(actions.slice(-8), ['SUBMIT_INSPECTION', 'REQUEST_REINSPECTION', 'SUBMIT_INSPECTION', 'VERIFY_INSPECTION', 'RECOMMEND_ACTION', 'REJECT_ACTION', 'RECOMMEND_ACTION', 'APPROVE_ACTION']);
+    // The two M.O decisions are audited independently, each with actor, time and reason.
+    assert.deepEqual(c.inspectionReviews.map((r: any) => [r.decision, r.decidedBy, r.reason]), [['REINSPECTION_REQUESTED', MO, 'Foto kurang jelas; ukur ulang luas kerusakan.'], ['VERIFIED', MO, 'Ukuran dan foto sesuai.']]);
+    assert.deepEqual(c.approvals.map((a: any) => [a.decision, a.decidedBy, a.reason]), [['REJECTED', MO, 'Tambahkan opsi overlay.'], ['APPROVED', MO, 'Sesuai prioritas.']]);
+    for (const r of [...c.inspectionReviews, ...c.approvals]) assert.ok(Date.parse(r.decidedAt) > 0);
   }
 });
 
@@ -214,6 +235,9 @@ test('offline demo gateway attaches the segment assessment to a recommendation, 
   v = await gw.transition(target.case.id, { action: 'REQUEST_INSPECTION', reason: 'ok', engineerId: 'USR-006', dueAt: DUE, instructions: '' }, v.case.version);
   await gw.login({ username: 'eng', password: 'x' });
   v = await gw.transition(target.case.id, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 5, measuredAreaM2: 1, severity: 'MODERATE', notes: 'ok' }, v.case.version);
+  await gw.login({ username: 'ops', password: 'x' });
+  v = await gw.transition(target.case.id, { action: 'VERIFY_INSPECTION', reason: 'ok' }, v.case.version);
+  await gw.login({ username: 'eng', password: 'x' });
   v = await gw.transition(target.case.id, { action: 'RECOMMEND_ACTION', treatment: 'Patching', urgency: 'ROUTINE', rationale: 'ok', assessmentId: null }, v.case.version);
   const rec = (v.case as any).recommendation;
   assert.equal(rec.assessment.engine, 'RULE_BASED');

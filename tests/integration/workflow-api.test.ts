@@ -119,6 +119,7 @@ test('cross-role golden path over HTTP, with public tracking and audit', async (
   assert.equal(wrongEngineer.status, 403);
 
   await act(eng, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 8, measuredAreaM2: 2.4, severity: 'SEVERE', notes: 'Lubang aktif, tepi retak.' });
+  await act(ops, { action: 'VERIFY_INSPECTION', reason: 'Bukti inspeksi sesuai.' });
   // A client-sent "PINN" assessment is ignored: the server attaches its own RULE_BASED snapshot.
   const recommended = await act(eng, {
     action: 'RECOMMEND_ACTION',
@@ -160,7 +161,7 @@ test('cross-role golden path over HTTP, with public tracking and audit', async (
   const audit = await call('GET', `/api/workflow/audit?entityId=${id}`, undefined, ops);
   assert.equal(audit.status, 200);
   const actions = audit.body.items.map((e: any) => e.action).reverse();
-  assert.deepEqual(actions, ['SUBMIT', 'BEGIN_SCREENING', 'SCREENING_NEEDS_REVIEW', 'REVIEW_ACCEPT', 'REQUEST_INSPECTION', 'SUBMIT_INSPECTION', 'RECOMMEND_ACTION', 'APPROVE_ACTION', 'START_WORK', 'COMPLETE_WORK_ORDER', 'RESOLVE', 'CLOSE_RESOLVED']);
+  assert.deepEqual(actions, ['SUBMIT', 'BEGIN_SCREENING', 'SCREENING_NEEDS_REVIEW', 'REVIEW_ACCEPT', 'REQUEST_INSPECTION', 'SUBMIT_INSPECTION', 'VERIFY_INSPECTION', 'RECOMMEND_ACTION', 'APPROVE_ACTION', 'START_WORK', 'COMPLETE_WORK_ORDER', 'RESOLVE', 'CLOSE_RESOLVED']);
   for (const e of audit.body.items) assert.ok(e.actor.id && e.at && e.reason);
 });
 

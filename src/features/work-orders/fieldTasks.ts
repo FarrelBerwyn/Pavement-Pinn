@@ -33,22 +33,29 @@ export function toTask(c: ReportCase, allowed: WorkflowAction[]): FieldTask {
   const can = (action: WorkflowAction) => allowed.includes(action);
   const overdue = c.state === 'FIELD_INSPECTION_REQUESTED' && !!c.assignment && Date.parse(c.assignment.dueAt) < Date.now();
   const last = c.history[c.history.length - 1];
-  const returned = c.state === 'INSPECTED' && last?.action === 'REJECT_ACTION'
-    ? { reason: last.reason, at: last.at, by: 'Manajer Operasional' }
-    : null;
+  // M.O sent work back: a re-inspection, or a recommendation returned for revision.
+  const returned =
+    (c.state === 'FIELD_INSPECTION_REQUESTED' && last?.action === 'REQUEST_REINSPECTION') ||
+    (c.state === 'INSPECTION_VERIFIED' && last?.action === 'REJECT_ACTION')
+      ? { reason: last.reason, at: last.at, by: 'Manajer Operasional' }
+      : null;
   const base = { c, priority, overdue, returned };
 
   switch (c.state) {
     case 'FIELD_INSPECTION_REQUESTED':
-      return { ...base, stage: 'TODO', title: 'Inspeksi lapangan', next: 'Periksa lokasi, ukur kerusakan, kirim hasil ke M.O.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Tugas' } : null };
+      return returned
+        ? { ...base, stage: 'TODO', title: 'Inspeksi ulang diminta M.O', next: 'Ulangi inspeksi sesuai catatan M.O, lalu kirim untuk verifikasi.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Inspeksi Ulang' } : null }
+        : { ...base, stage: 'TODO', title: 'Inspeksi lapangan', next: 'Periksa lokasi, ukur kerusakan, kirim hasil untuk verifikasi M.O.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Tugas' } : null };
     case 'INSPECTED':
+      return { ...base, stage: 'WAITING', title: 'Menunggu verifikasi inspeksi', next: 'Hasil inspeksi terkirim. M.O memverifikasi atau meminta inspeksi ulang.', cta: null };
+    case 'INSPECTION_VERIFIED':
       return c.inspection?.verdict === 'CONFIRMED'
         ? returned
-          ? { ...base, stage: 'TODO', title: 'Perbaikan diminta M.O', next: 'Perbaiki hasil sesuai catatan M.O, lalu kirim ulang.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Kirim Ulang untuk Verifikasi M.O' } : null }
-          : { ...base, stage: 'TODO', title: 'Susun rekomendasi penanganan', next: 'Kerusakan terkonfirmasi. Lengkapi rekomendasi, lalu kirim ke M.O untuk diverifikasi.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Kirim untuk Verifikasi M.O' } : null }
-        : { ...base, stage: 'WAITING', title: 'Inspeksi selesai', next: 'Tidak terkonfirmasi. Menunggu M.O menutup laporan.', cta: null };
+          ? { ...base, stage: 'TODO', title: 'Rekomendasi dikembalikan M.O', next: 'Perbaiki rekomendasi sesuai catatan M.O, lalu ajukan ulang.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Ajukan Ulang Penanganan' } : null }
+          : { ...base, stage: 'TODO', title: 'Susun rekomendasi penanganan', next: 'Inspeksi terverifikasi M.O. Ajukan penanganan untuk disetujui M.O.', cta: can('RECOMMEND_ACTION') ? { action: 'RECOMMEND_ACTION', label: 'Ajukan Penanganan' } : null }
+        : { ...base, stage: 'WAITING', title: 'Inspeksi terverifikasi', next: 'Tidak terkonfirmasi. Menunggu M.O menutup laporan.', cta: null };
     case 'ACTION_RECOMMENDED':
-      return { ...base, stage: 'WAITING', title: 'Menunggu verifikasi M.O', next: 'Hasil terkirim. M.O memverifikasi atau meminta perbaikan; D.M melihatnya di prioritas.', cta: null };
+      return { ...base, stage: 'WAITING', title: 'Menunggu persetujuan penanganan', next: 'Rekomendasi terkirim. M.O menyetujui atau mengembalikannya; D.M melihatnya di prioritas.', cta: null };
     case 'ACTION_APPROVED':
       return { ...base, stage: 'WAITING', title: 'Penanganan disetujui', next: 'Menunggu M.O menerbitkan perintah kerja.', cta: null };
     case 'IN_PROGRESS':
@@ -65,7 +72,7 @@ export function toTask(c: ReportCase, allowed: WorkflowAction[]): FieldTask {
 /** R.E → M.O → F.E → D.M, as the four hand-offs of one report. */
 export function flowStep(c: ReportCase): number {
   if (c.state === 'RESOLVED' || c.state === 'CLOSED') return 4;
-  if (['ACTION_RECOMMENDED', 'ACTION_APPROVED', 'IN_PROGRESS'].includes(c.state)) return 3;
+  if (['INSPECTION_VERIFIED', 'ACTION_RECOMMENDED', 'ACTION_APPROVED', 'IN_PROGRESS'].includes(c.state)) return 3;
   if (c.assignment) return 2;
   return 1;
 }

@@ -9,8 +9,12 @@
  *   to VERIFIED when a real trained model ran with sufficient confidence; the demo
  *   classifier and an unavailable model always route to NEEDS_REVIEW.
  * - Human verification of damage is the Field Engineer's inspection (INSPECTED).
- * - Separation of duties: the Operations Manager approves; the engineer who recommended
- *   an action cannot approve it. The Policy Maker has no workflow transitions.
+ * - HD-WS-1 (MVP): the Operations Manager first verifies the inspection
+ *   (VERIFY_INSPECTION / REQUEST_REINSPECTION -> INSPECTION_VERIFIED or back to the same
+ *   engineer), then separately approves the operational treatment (APPROVE_ACTION /
+ *   REJECT_ACTION). Each decision has its own state and audit record (inspectionReviews,
+ *   approvals). The Policy Maker reviews policy priority and budget and has no workflow
+ *   transitions; the engineer who recommended an action cannot approve it.
  * - The work order is an internal record, explicitly not an official SPK document.
  */
 import type { UserRole } from '../../types';
@@ -51,10 +55,12 @@ export const TRANSITIONS: Readonly<Record<WorkflowAction, TransitionRule>> = {
   CLOSE_INVALID: { from: ['NEEDS_REVIEW', 'VERIFIED'], to: 'CLOSED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Laporan ditutup: tidak dapat ditindaklanjuti' },
   REQUEST_INSPECTION: { from: ['VERIFIED'], to: 'FIELD_INSPECTION_REQUESTED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Inspeksi lapangan dijadwalkan' },
   SUBMIT_INSPECTION: { from: ['FIELD_INSPECTION_REQUESTED'], to: 'INSPECTED', roles: ['FIELD_ENGINEER'], reasonRequired: false, publicNote: 'Inspeksi lapangan selesai' },
-  RECOMMEND_ACTION: { from: ['INSPECTED'], to: 'ACTION_RECOMMENDED', roles: ['FIELD_ENGINEER'], reasonRequired: false, publicNote: 'Rekomendasi penanganan disusun' },
-  CLOSE_NO_ACTION: { from: ['INSPECTED'], to: 'CLOSED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Ditutup: tidak memerlukan penanganan' },
+  VERIFY_INSPECTION: { from: ['INSPECTED'], to: 'INSPECTION_VERIFIED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Hasil inspeksi diverifikasi petugas' },
+  REQUEST_REINSPECTION: { from: ['INSPECTED'], to: 'FIELD_INSPECTION_REQUESTED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Inspeksi lapangan diulang' },
+  RECOMMEND_ACTION: { from: ['INSPECTION_VERIFIED'], to: 'ACTION_RECOMMENDED', roles: ['FIELD_ENGINEER'], reasonRequired: false, publicNote: 'Rekomendasi penanganan disusun' },
+  CLOSE_NO_ACTION: { from: ['INSPECTION_VERIFIED'], to: 'CLOSED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Ditutup: tidak memerlukan penanganan' },
   APPROVE_ACTION: { from: ['ACTION_RECOMMENDED'], to: 'ACTION_APPROVED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Penanganan disetujui' },
-  REJECT_ACTION: { from: ['ACTION_RECOMMENDED'], to: 'INSPECTED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Rekomendasi dikaji ulang' },
+  REJECT_ACTION: { from: ['ACTION_RECOMMENDED'], to: 'INSPECTION_VERIFIED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Rekomendasi dikaji ulang' },
   START_WORK: { from: ['ACTION_APPROVED'], to: 'IN_PROGRESS', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Pekerjaan perbaikan dimulai' },
   COMPLETE_WORK_ORDER: { from: ['IN_PROGRESS'], to: 'SAME', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Pekerjaan lapangan selesai, menunggu verifikasi' },
   RESOLVE: { from: ['IN_PROGRESS'], to: 'RESOLVED', roles: ['FIELD_ENGINEER'], reasonRequired: true, publicNote: 'Perbaikan terverifikasi di lapangan' },
@@ -65,7 +71,7 @@ export const TRANSITIONS: Readonly<Record<WorkflowAction, TransitionRule>> = {
 export type WorkflowCommand =
   | { action: 'BEGIN_SCREENING' }
   | { action: 'SCREENING_PASSED' | 'SCREENING_NEEDS_REVIEW'; screening: ScreeningResult }
-  | { action: 'REVIEW_ACCEPT' | 'CLOSE_INVALID' | 'CLOSE_NO_ACTION' | 'APPROVE_ACTION' | 'REJECT_ACTION' | 'COMPLETE_WORK_ORDER' | 'RESOLVE' | 'CLOSE_RESOLVED'; reason: string }
+  | { action: 'REVIEW_ACCEPT' | 'CLOSE_INVALID' | 'VERIFY_INSPECTION' | 'REQUEST_REINSPECTION' | 'CLOSE_NO_ACTION' | 'APPROVE_ACTION' | 'REJECT_ACTION' | 'COMPLETE_WORK_ORDER' | 'RESOLVE' | 'CLOSE_RESOLVED'; reason: string }
   | { action: 'REQUEST_INSPECTION'; reason: string; engineerId: string; dueAt: string; instructions: string }
   | {
       action: 'SUBMIT_INSPECTION';
@@ -187,6 +193,7 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
   const next: ReportCase = {
     ...c,
     approvals: [...c.approvals],
+    inspectionReviews: [...(c.inspectionReviews ?? [])],
     history: [...c.history]
   };
   let autoReason = '';
@@ -268,6 +275,18 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
         assessment: validSnapshot(command.assessment) ? { ...command.assessment! } : null
       };
       autoReason = `Dikirim untuk verifikasi M.O: rekomendasi ${treatment}.`;
+      break;
+    }
+    case 'VERIFY_INSPECTION':
+    case 'REQUEST_REINSPECTION': {
+      next.inspectionReviews!.push({
+        id: ctx.newId('IRV'),
+        inspectionId: next.inspection?.id ?? null,
+        decidedBy: ctx.actor.id,
+        decidedAt: ctx.now,
+        decision: command.action === 'VERIFY_INSPECTION' ? 'VERIFIED' : 'REINSPECTION_REQUESTED',
+        reason: reason as string
+      });
       break;
     }
     case 'APPROVE_ACTION':
@@ -355,6 +374,7 @@ export function createReportCase(
     inspection: null,
     recommendation: null,
     approvals: [],
+    inspectionReviews: [],
     workOrder: null,
     history: [record]
   };
