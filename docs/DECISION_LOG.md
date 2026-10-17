@@ -275,3 +275,21 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
 - **Compatibility.** `inspectionReviews` is optional on stored cases (older cases load unchanged).
 - **Tests.** `tests/integration/cross-account-tasks.test.ts` (both loops, refusals, independent
   audit after re-login), `tests/unit/workflow.test.ts`, `tests/integration/workflow-api.test.ts`.
+
+## D-040 Workflow ownership is per person, not per account id
+
+- **Root cause (2026-10-17, localhost:3001).** Ir. Ahmad Subagyo has two demo accounts: USR-006
+  (modern app, `field.ahmad`) and USR-001 (classic portal). The engineers endpoint listed both with the
+  same name; M.O picked USR-001 for REP-KRW-002, while Tugas Saya, notifications and the
+  "assigned engineer only" rule compared the raw account id, so the task never showed for USR-006.
+- **Decision.** `src/domain/identity/people.ts` links the accounts of one person (mirrors
+  `demoCredentials.ts`, checked by `tests/unit/people.test.ts`). Assignment checks, task lists, queues,
+  notifications and the separation-of-duties rule compare people (`samePerson`); the engineers endpoint
+  offers one canonical account per person. Existing assignments to USR-001 work without migration.
+- **Tests.** A different engineer (USR-099) cannot see or submit an assigned inspection; an assignment
+  to the classic account reaches the modern account; tests that used USR-001 as "another engineer"
+  were wrong (same person) and were corrected.
+- **Storage and sessions (as used locally).** `FileCaseStore` writes `.data/workflow.json` on this
+  machine only — not a shared or cloud database; one server per data directory (WS-13). Data survives
+  refresh, re-login and server restart (verified). `SESSION_SECRET` is unset, so sessions end on restart
+  and users log in again (HD-WS-2, not changed).

@@ -78,7 +78,8 @@ const viewsOf = async (accountId: string): Promise<ReportView[]> => (await call(
 const RE = 'USR-004';
 const MO = 'USR-008';
 const FE = 'USR-006';
-const FE_OTHER = 'USR-001';
+/** Same person as FE (classic-portal account); another engineer is covered in tests/unit/people.test.ts. */
+const FE_CLASSIC = 'USR-001';
 const DM = 'USR-007';
 
 test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, badges and notifications', async () => {
@@ -117,17 +118,17 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
   assert.equal(tasksDue(tasks), 1);
   assert.ok(workflowNotifications(fe, { id: FE, role: 'FIELD_ENGINEER' }).some((n) => n.caseId === id && n.kind === 'ASSIGNED'));
 
-  // Another engineer has no task and no notification for it.
-  const other = await viewsOf(FE_OTHER);
-  assert.equal(fieldTasks(other, FE_OTHER).some((t) => t.c.id === id), false);
-  assert.equal(workflowNotifications(other, { id: FE_OTHER, role: 'FIELD_ENGINEER' }).some((n) => n.caseId === id), false);
+  // The same engineer on the classic portal sees the same task and notification (one person, two accounts).
+  const classic = await viewsOf(FE_CLASSIC);
+  assert.equal(fieldTasks(classic, FE_CLASSIC).some((t) => t.c.id === id), true);
+  assert.ok(workflowNotifications(classic, { id: FE_CLASSIC, role: 'FIELD_ENGINEER' }).some((n) => n.caseId === id));
 
 
   // Only M.O decides; a reason is mandatory for every M.O decision.
   const refuse = async (action: string) => {
     const noReason = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action, reason: '' }, expectedVersion: version }, await login(MO));
     assert.ok(noReason.status >= 400 && noReason.status < 500, `${action} without a reason is refused`);
-    for (const outsider of [RE, FE, FE_OTHER, DM]) {
+    for (const outsider of [RE, FE, FE_CLASSIC, DM]) {
       const r = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action, reason: 'x' }, expectedVersion: version }, await login(outsider));
       assert.ok(r.status === 403 || r.status === 404, `${outsider} may not ${action} (got ${r.status})`);
     }
@@ -136,7 +137,7 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
   // 1) F.E submits the inspection → it waits on M.O verification (no recommendation yet).
   await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 9, measuredAreaM2: 2, severity: 'SEVERE', notes: 'Terkonfirmasi.' });
   tasks = fieldTasks(await viewsOf(FE), FE);
-  assert.equal(tasks.find((t) => t.c.id === id)!.title, 'Menunggu verifikasi inspeksi');
+  assert.equal(tasks.find((t) => t.c.id === id)!.title, 'Menunggu Verifikasi M.O');
   assert.equal(tasksDue(tasks), 0);
   assert.ok(workflowNotifications(await viewsOf(MO), { id: MO, role: 'OPERATIONS_MANAGER' }).some((n) => n.caseId === id && n.title === 'Hasil inspeksi F.E menunggu verifikasi Anda'));
   const early = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'RECOMMEND_ACTION', treatment: 'x', urgency: 'ROUTINE', rationale: 'x', assessmentId: null }, expectedVersion: version }, await login(FE));
@@ -150,9 +151,8 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
   assert.equal(back.c.state, 'FIELD_INSPECTION_REQUESTED');
   assert.equal(back.title, 'Inspeksi ulang diminta M.O');
   assert.equal(back.returned?.reason, 'Foto kurang jelas; ukur ulang luas kerusakan.');
-  assert.deepEqual(back.cta, { action: 'SUBMIT_INSPECTION', label: 'Mulai Inspeksi Ulang' });
+  assert.deepEqual(back.cta, { action: 'SUBMIT_INSPECTION', label: 'Perbaiki Inspeksi' });
   assert.equal(tasksDue(tasks), 1);
-  assert.equal(fieldTasks(await viewsOf(FE_OTHER), FE_OTHER).some((t) => t.c.id === id), false);
 
   // 3) F.E re-inspects; M.O verifies the inspection (its own audited decision).
   await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 9, measuredAreaM2: 2.4, severity: 'SEVERE', notes: 'Diukur ulang, foto jarak dekat.' });
@@ -219,6 +219,28 @@ test('one report id travels R.E → M.O → F.E → D.M with consistent tasks, b
     assert.deepEqual(c.approvals.map((a: any) => [a.decision, a.decidedBy, a.reason]), [['REJECTED', MO, 'Tambahkan opsi overlay.'], ['APPROVED', MO, 'Sesuai prioritas.']]);
     for (const r of [...c.inspectionReviews, ...c.approvals]) assert.ok(Date.parse(r.decidedAt) > 0);
   }
+});
+
+test('an assignment to the classic-portal account of an engineer reaches the same person on the modern app', async () => {
+  // Reproduces the bug seen on localhost:3001: M.O picked USR-001, field.ahmad logs in as USR-006.
+  const engineers = (await call('GET', '/api/workflow/engineers', undefined, await login(MO))).body.items as Array<{ id: string; name: string }>;
+  assert.deepEqual(engineers.map((e) => e.id), [FE], 'one entry per person (canonical account)');
+  const { id: _i, status: _s, creatorAccountId: _c, creatorRole: _r, origin: _o, createdAt: _t, ...content } = INITIAL_COMMUNITY_REPORTS[1];
+  void _i; void _s; void _c; void _r; void _o; void _t;
+  const created = await call('POST', '/api/workflow/reports', { report: { ...content, photoUrl: PNG, description: 'Penugasan ke akun klasik' } }, await login(RE));
+  const caseId = created.body.report.case.id as string;
+  let version = created.body.report.case.version;
+  const act = async (accountId: string, command: object) => {
+    const r = await call('POST', `/api/workflow/reports/${caseId}/transitions`, { command, expectedVersion: version }, await login(accountId));
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    version = r.body.report.case.version;
+  };
+  await act(MO, { action: 'REVIEW_ACCEPT', reason: 'ok' });
+  await act(MO, { action: 'REQUEST_INSPECTION', reason: 'ok', engineerId: FE_CLASSIC, dueAt: DUE, instructions: '' });
+  const task = fieldTasks(await viewsOf(FE), FE).find((t) => t.c.id === caseId);
+  assert.ok(task, 'USR-006 sees the task assigned to USR-001');
+  assert.equal(task!.cta?.action, 'SUBMIT_INSPECTION');
+  await act(FE, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 3, measuredAreaM2: 1, severity: 'MODERATE', notes: 'ok' });
 });
 
 test('offline demo gateway attaches the segment assessment to a recommendation, like the server', async () => {

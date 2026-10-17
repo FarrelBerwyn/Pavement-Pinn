@@ -18,7 +18,8 @@ const ANON: Actor = { id: 'anon-1f2e', role: 'PUBLIC_VIEWER', kind: 'ANONYMOUS' 
 const OPS: Actor = { id: 'USR-008', role: 'OPERATIONS_MANAGER', kind: 'DEMO_ACCOUNT' };
 const OPS2: Actor = { id: 'USR-002', role: 'OPERATIONS_MANAGER', kind: 'DEMO_ACCOUNT' };
 const ENG: Actor = { id: 'USR-006', role: 'FIELD_ENGINEER', kind: 'DEMO_ACCOUNT' };
-const ENG_OTHER: Actor = { id: 'USR-001', role: 'FIELD_ENGINEER', kind: 'DEMO_ACCOUNT' };
+// A different engineer (person). USR-001 is the same person as USR-006 (classic portal), see domain/identity/people.ts.
+const ENG_OTHER: Actor = { id: 'USR-099', role: 'FIELD_ENGINEER', kind: 'DEMO_ACCOUNT' };
 const POLICY: Actor = { id: 'USR-007', role: 'POLICY_MAKER', kind: 'DEMO_ACCOUNT' };
 
 const ROLES: Record<string, UserRole> = { 'USR-004': 'PUBLIC_REPORTER', 'USR-008': 'OPERATIONS_MANAGER', 'USR-002': 'OPERATIONS_MANAGER', 'USR-006': 'FIELD_ENGINEER', 'USR-001': 'FIELD_ENGINEER', 'USR-007': 'POLICY_MAKER' };

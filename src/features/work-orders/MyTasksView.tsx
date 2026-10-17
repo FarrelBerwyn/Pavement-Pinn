@@ -12,6 +12,7 @@ import type { WorkflowCommand } from '../../domain/workflow/stateMachine';
 import type { EngineerSummary, GatewayMode, ReportView } from '../../services/api/workflowClient';
 import type { ReportMutationOutcome } from '../../types';
 import { ReportWorkflowPanel, StateBadge, actorName } from '../workflow/ReportWorkflowPanel';
+import { loadDraft } from './inspectionDraft';
 import { fieldTasks, flowStep, RANK, type FieldTask, type Filter, type Priority, type Stage } from './fieldTasks';
 
 const PRIORITY_LABEL: Record<Priority, string> = { HIGH: 'Prioritas tinggi', MEDIUM: 'Prioritas sedang', LOW: 'Prioritas rendah' };
@@ -179,8 +180,8 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
               );
             })}
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <label className="relative flex-1 sm:w-64">
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+            <label className="relative flex-1 sm:flex-none sm:w-48 2xl:w-64">
               <span className="sr-only">Cari tugas</span>
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
               <input
@@ -286,7 +287,7 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
                           className={`flex-1 lg:flex-none inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-brand text-navy text-sm font-semibold hover:bg-brand-hover active:bg-brand-press transition-colors ${FOCUS}`}
                         >
                           <Play className="w-4 h-4" aria-hidden="true" />
-                          {t.cta.label}
+                          {t.cta.action === 'SUBMIT_INSPECTION' && loadDraft(t.c) ? 'Lanjutkan Inspeksi' : t.cta.label}
                         </button>
                       ) : null}
                       <button

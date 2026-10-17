@@ -18,6 +18,7 @@
  * - The work order is an internal record, explicitly not an official SPK document.
  */
 import type { UserRole } from '../../types';
+import { samePerson } from '../identity/people';
 import type { AssessmentSnapshot } from '../intelligence/assessment';
 import {
   Actor,
@@ -153,11 +154,11 @@ function assignmentGuard(action: WorkflowAction, c: ReportCase, actor: Actor): s
   switch (action) {
     case 'SUBMIT_INSPECTION':
     case 'RECOMMEND_ACTION':
-      if (!c.assignment || c.assignment.engineerId !== actor.id) return 'Only the assigned field engineer may do this.';
+      if (!c.assignment || !samePerson(c.assignment.engineerId, actor.id)) return 'Only the assigned field engineer may do this.';
       if (action === 'RECOMMEND_ACTION' && c.inspection?.verdict !== 'CONFIRMED') return 'An action can only be recommended after damage is confirmed.';
       return null;
     case 'APPROVE_ACTION':
-      if (c.recommendation && c.recommendation.recommendedBy === actor.id) return 'The person who recommended an action cannot approve it.';
+      if (c.recommendation && samePerson(c.recommendation.recommendedBy, actor.id)) return 'The person who recommended an action cannot approve it.';
       return null;
     case 'RESOLVE':
       if (!c.workOrder || c.workOrder.status !== 'COMPLETED') return 'The work order must be completed before the repair is verified.';

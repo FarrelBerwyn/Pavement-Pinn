@@ -4,6 +4,7 @@
  */
 import type { ReportCase, WorkflowAction } from '../../domain/workflow/model';
 import type { ReportView } from '../../services/api/workflowClient';
+import { samePerson } from '../../domain/identity/people';
 
 export type Stage = 'TODO' | 'WAITING' | 'DONE';
 export type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -44,10 +45,10 @@ export function toTask(c: ReportCase, allowed: WorkflowAction[]): FieldTask {
   switch (c.state) {
     case 'FIELD_INSPECTION_REQUESTED':
       return returned
-        ? { ...base, stage: 'TODO', title: 'Inspeksi ulang diminta M.O', next: 'Ulangi inspeksi sesuai catatan M.O, lalu kirim untuk verifikasi.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Inspeksi Ulang' } : null }
+        ? { ...base, stage: 'TODO', title: 'Inspeksi ulang diminta M.O', next: 'Ulangi inspeksi sesuai catatan M.O, lalu kirim untuk verifikasi.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Perbaiki Inspeksi' } : null }
         : { ...base, stage: 'TODO', title: 'Inspeksi lapangan', next: 'Periksa lokasi, ukur kerusakan, kirim hasil untuk verifikasi M.O.', cta: can('SUBMIT_INSPECTION') ? { action: 'SUBMIT_INSPECTION', label: 'Mulai Tugas' } : null };
     case 'INSPECTED':
-      return { ...base, stage: 'WAITING', title: 'Menunggu verifikasi inspeksi', next: 'Hasil inspeksi terkirim. M.O memverifikasi atau meminta inspeksi ulang.', cta: null };
+      return { ...base, stage: 'WAITING', title: 'Menunggu Verifikasi M.O', next: 'Hasil inspeksi terkirim. M.O memverifikasi atau meminta inspeksi ulang.', cta: null };
     case 'INSPECTION_VERIFIED':
       return c.inspection?.verdict === 'CONFIRMED'
         ? returned
@@ -79,7 +80,7 @@ export function flowStep(c: ReportCase): number {
 
 /** Tasks of one engineer: cases assigned to them, in any state. */
 export function fieldTasks(views: ReportView[], engineerId: string): FieldTask[] {
-  return views.filter((v) => v.audience === 'STAFF' && (v.case as ReportCase).assignment?.engineerId === engineerId).map((v) => toTask(v.case as ReportCase, v.availableActions));
+  return views.filter((v) => v.audience === 'STAFF' && samePerson((v.case as ReportCase).assignment?.engineerId, engineerId)).map((v) => toTask(v.case as ReportCase, v.availableActions));
 }
 
 /** Tasks where it is the engineer's turn and the action is allowed now (sidebar badge). */

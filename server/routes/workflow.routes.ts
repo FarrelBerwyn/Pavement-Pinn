@@ -16,6 +16,7 @@ import { actorFrom } from "../auth/actor";
 import { verifyDemoLogin } from "../auth/demoLogin";
 import { segmentById } from "../services/segments";
 import { assessSegment, snapshotOf } from "../../src/domain/intelligence/assessment";
+import { personOf } from "../../src/domain/identity/people";
 
 /**
  * Workflow API (docs/api/WORKFLOW_API.md). The server decides the actor from its own
@@ -230,7 +231,8 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
     if (!isOfficial(actor)) return sendError(res, actor ? "FORBIDDEN" : "UNAUTHENTICATED", "Official session required.");
     res.json({
       success: true,
-      items: USER_ACCOUNTS.filter((a) => a.role === "FIELD_ENGINEER").map((a) => ({ id: a.id, name: a.name, title: a.title, agencyCode: a.agencyCode }))
+      // One entry per person (canonical account), so M.O cannot pick a duplicate account by mistake.
+      items: USER_ACCOUNTS.filter((a) => a.role === "FIELD_ENGINEER" && personOf(a.id) === a.id).map((a) => ({ id: a.id, name: a.name, title: a.title, agencyCode: a.agencyCode }))
     });
   });
 }

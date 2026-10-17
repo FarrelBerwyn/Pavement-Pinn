@@ -3,6 +3,7 @@ import { PavementPinnDashboard } from '../../features/engineering-dashboard/Pave
 import { usePageContext } from '../../app/pageContext';
 import { useAppState } from '../../app/providers/AppStateProvider';
 import type { ReportCase } from '../../domain/workflow/model';
+import { samePerson } from '../../domain/identity/people';
 
 interface EngineeringPageProps {
   /** Header search text (shell state). */
@@ -21,7 +22,7 @@ export const EngineeringPage: React.FC<EngineeringPageProps> = ({ searchQuery, s
   const me = workflow.actor?.id ?? currentAccount.id;
   // Open cases an Operations Manager assigned to this engineer, soonest deadline first.
   const assignedTasks = Object.values(workflow.views)
-    .filter((v) => v.audience === 'STAFF' && (v.case as ReportCase).assignment?.engineerId === me && v.case.state !== 'RESOLVED' && v.case.state !== 'CLOSED')
+    .filter((v) => v.audience === 'STAFF' && samePerson((v.case as ReportCase).assignment?.engineerId, me) && v.case.state !== 'RESOLVED' && v.case.state !== 'CLOSED')
     .map((v) => v.case as ReportCase)
     .sort((a, b) => Date.parse(a.assignment!.dueAt) - Date.parse(b.assignment!.dueAt));
 

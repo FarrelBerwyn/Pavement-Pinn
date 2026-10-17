@@ -5,6 +5,7 @@
 import type { ReportCase, WorkflowState } from '../../domain/workflow/model';
 import type { RoadSegment } from '../../types';
 import { assessSegment, RiskLevel } from '../../domain/intelligence/assessment';
+import { samePerson } from '../../domain/identity/people';
 
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 4, SEVERE: 3, MODERATE: 2, LIGHT: 1 };
 
@@ -46,7 +47,7 @@ export function operationsQueue(cases: ReportCase[]): QueueBucket[] {
 }
 
 export function engineerQueue(cases: ReportCase[], engineerId: string): QueueBucket[] {
-  const mine = cases.filter((c) => c.assignment?.engineerId === engineerId);
+  const mine = cases.filter((c) => samePerson(c.assignment?.engineerId, engineerId));
   return [
     bucket('inspect', 'Inspeksi yang ditugaskan', 'Periksa lokasi dan kirim hasil inspeksi', mine, ['FIELD_INSPECTION_REQUESTED']),
     bucket('recommend', 'Susun rekomendasi', 'Inspeksi terverifikasi M.O; ajukan penanganan', mine, ['INSPECTION_VERIFIED'], (c) => c.inspection?.verdict === 'CONFIRMED'),

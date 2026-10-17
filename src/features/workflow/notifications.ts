@@ -7,6 +7,7 @@
 import type { ReportCase, TransitionRecord, WorkflowAction } from '../../domain/workflow/model';
 import type { PublicReportView } from '../../domain/workflow/projections';
 import type { ReportView } from '../../services/api/workflowClient';
+import { samePerson } from '../../domain/identity/people';
 
 export type NotificationKind = 'ASSIGNED' | 'REVIEW' | 'DECISION' | 'PROGRESS' | 'DONE';
 
@@ -52,7 +53,7 @@ const STAFF_RULES: Record<string, Partial<Record<WorkflowAction, Rule & { mine?:
   }
 };
 
-const isMineAsEngineer = (c: ReportCase, accountId: string) => c.assignment?.engineerId === accountId || c.recommendation?.recommendedBy === accountId;
+const isMineAsEngineer = (c: ReportCase, accountId: string) => samePerson(c.assignment?.engineerId, accountId) || samePerson(c.recommendation?.recommendedBy, accountId);
 
 function describe(c: ReportCase | PublicReportView, extra = ''): string {
   return `${c.id} · ${c.report.damageTypeLabel} · ${c.report.segmentName}${extra ? ` — ${extra}` : ''}`;

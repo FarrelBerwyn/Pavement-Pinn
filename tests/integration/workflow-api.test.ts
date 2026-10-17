@@ -112,11 +112,13 @@ test('cross-role golden path over HTTP, with public tracking and audit', async (
   assert.ok(engineers.body.items.some((e: any) => e.id === 'USR-006'));
   await act(ops, { action: 'REQUEST_INSPECTION', reason: 'Prioritas koridor pilot', engineerId: 'USR-006', dueAt: DUE, instructions: 'Ukur kedalaman dan luas.' });
 
-  // The engineer's queue shows the assignment; another engineer cannot act on it.
+  // The engineer's queue shows the assignment; the same person's classic account sees it too.
   const engView = await call('GET', `/api/workflow/reports/${id}`, undefined, eng);
   assert.deepEqual(engView.body.report.availableActions, ['SUBMIT_INSPECTION']);
-  const wrongEngineer = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 8, measuredAreaM2: 2, severity: 'SEVERE', notes: 'x' }, expectedVersion: version }, engOther);
-  assert.equal(wrongEngineer.status, 403);
+  // USR-001 is the same engineer on the classic portal (domain/identity/people.ts): same task, same rights.
+  // A different engineer is refused in tests/unit/people.test.ts.
+  const classicView = await call('GET', `/api/workflow/reports/${id}`, undefined, engOther);
+  assert.deepEqual(classicView.body.report.availableActions, ['SUBMIT_INSPECTION']);
 
   await act(eng, { action: 'SUBMIT_INSPECTION', verdict: 'CONFIRMED', cvReview: { accepted: true, correctedClass: null }, measuredDepthCm: 8, measuredAreaM2: 2.4, severity: 'SEVERE', notes: 'Lubang aktif, tepi retak.' });
   await act(ops, { action: 'VERIFY_INSPECTION', reason: 'Bukti inspeksi sesuai.' });

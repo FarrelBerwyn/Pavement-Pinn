@@ -4,7 +4,8 @@
  * Every action goes to the workflow store and the panel shows success only after the
  * store saved it. Staff see the full case; citizens see public notes only.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { loadDraft, saveDraft } from '../work-orders/inspectionDraft';
 import type { WorkflowAction, WorkflowState, ReportCase } from '../../domain/workflow/model';
 import type { PublicReportView } from '../../domain/workflow/projections';
 import type { WorkflowCommand } from '../../domain/workflow/stateMachine';
@@ -133,13 +134,24 @@ const ActionForm: React.FC<{
   const [engineerId, setEngineerId] = useState(engineers[0]?.id ?? '');
   const [dueAt, setDueAt] = useState(inDays(3));
   const [instructions, setInstructions] = useState('');
-  const [verdict, setVerdict] = useState<'CONFIRMED' | 'NOT_CONFIRMED'>('CONFIRMED');
-  const [cvAccepted, setCvAccepted] = useState(true);
-  const [correctedClass, setCorrectedClass] = useState('');
-  const [depth, setDepth] = useState('');
-  const [area, setArea] = useState('');
-  const [severity, setSeverity] = useState<'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL'>(caseData.inspection?.severity ?? caseData.report.severity);
-  const [notes, setNotes] = useState('');
+  // Inspection progress is restored from this browser after a refresh (see inspectionDraft.ts).
+  const [draft] = useState(() => (action === 'SUBMIT_INSPECTION' ? loadDraft(caseData) : null));
+  const [verdict, setVerdict] = useState<'CONFIRMED' | 'NOT_CONFIRMED'>(draft?.verdict ?? 'CONFIRMED');
+  const [cvAccepted, setCvAccepted] = useState(draft?.cvAccepted ?? true);
+  const [correctedClass, setCorrectedClass] = useState(draft?.correctedClass ?? '');
+  const [depth, setDepth] = useState(draft?.depth ?? '');
+  const [area, setArea] = useState(draft?.area ?? '');
+  const [severity, setSeverity] = useState<'LIGHT' | 'MODERATE' | 'SEVERE' | 'CRITICAL'>(draft?.severity ?? caseData.inspection?.severity ?? caseData.report.severity);
+  const [notes, setNotes] = useState(draft?.notes ?? '');
+  const [savedAt, setSavedAt] = useState<string | null>(draft?.savedAt ?? null);
+  useEffect(() => {
+    if (action !== 'SUBMIT_INSPECTION' || caseData.state !== 'FIELD_INSPECTION_REQUESTED') return;
+    const touched = depth || area || notes || correctedClass || verdict !== 'CONFIRMED' || !cvAccepted;
+    if (!touched) return;
+    const at = new Date().toISOString();
+    saveDraft(caseData.id, { version: caseData.version, savedAt: at, verdict, cvAccepted, correctedClass, depth, area, severity, notes });
+    setSavedAt(at);
+  }, [action, caseData.id, caseData.version, caseData.state, verdict, cvAccepted, correctedClass, depth, area, severity, notes]);
   const [treatment, setTreatment] = useState('');
   const [urgency, setUrgency] = useState<'ROUTINE' | 'PRIORITY' | 'URGENT'>('PRIORITY');
   const [rationale, setRationale] = useState('');
@@ -235,6 +247,11 @@ const ActionForm: React.FC<{
           <Field skin={skin} label="Catatan inspeksi" htmlFor={id('notes')}>
             <textarea id={id('notes')} className={inputClass} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} required placeholder="Kondisi yang diamati di lapangan" />
           </Field>
+          <p className={`text-xs ${skin.muted}`} role="status">
+            {savedAt
+              ? `Draf tersimpan di perangkat ini · ${new Date(savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}. Belum terkirim ke M.O.`
+              : 'Isian disimpan otomatis sebagai draf di perangkat ini sampai Anda mengirimnya.'}
+          </p>
         </>
       )}
 
