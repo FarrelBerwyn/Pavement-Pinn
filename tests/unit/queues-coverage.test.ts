@@ -17,3 +17,17 @@ test('every open state, for both inspection verdicts, lands in an operations buc
     }
   }
 });
+
+test('a fresh citizen report is listed before seeded sample cases, whatever their severity', () => {
+  // Live incident REP-F35AF0965161FCA8: a MODERATE real report sat below 15 SYNTHETIC samples.
+  const mk = (id: string, severity: string, dataStatus: string, createdAt: string) =>
+    ({ id, state: 'NEEDS_REVIEW', dataStatus, report: { severity }, createdAt, updatedAt: createdAt }) as any;
+  const cases = [
+    mk('SAMPLE-CRIT', 'CRITICAL', 'SYNTHETIC', '2026-10-16T00:00:00Z'),
+    mk('SAMPLE-SEV', 'SEVERE', 'SYNTHETIC', '2026-10-16T00:00:00Z'),
+    mk('REAL-NEW', 'MODERATE', 'OBSERVED', '2026-10-17T14:23:00Z'),
+    mk('REAL-CRIT', 'CRITICAL', 'OBSERVED', '2026-10-17T10:00:00Z')
+  ];
+  const review = operationsQueue(cases).find((b) => b.items.some((i) => i.id === 'REAL-NEW'))!;
+  assert.deepEqual(review.items.map((i) => i.id), ['REAL-CRIT', 'REAL-NEW', 'SAMPLE-CRIT', 'SAMPLE-SEV']);
+});

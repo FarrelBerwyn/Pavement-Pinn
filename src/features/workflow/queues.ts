@@ -30,7 +30,9 @@ export function byUrgency(a: ReportCase, b: ReportCase, nowMs = Date.now()): num
 }
 
 function bucket(key: string, title: string, hint: string, cases: ReportCase[], states: WorkflowState[], extra?: (c: ReportCase) => boolean): QueueBucket {
-  return { key, title, hint, items: cases.filter((c) => states.includes(c.state) && (!extra || extra(c))).sort((a, b) => byUrgency(a, b)) };
+  // Real reports before sample data: a fresh citizen report must not sink under seeded CRITICAL samples.
+  const sample = (c: ReportCase) => Number(c.dataStatus === 'SYNTHETIC');
+  return { key, title, hint, items: cases.filter((c) => states.includes(c.state) && (!extra || extra(c))).sort((a, b) => sample(a) - sample(b) || byUrgency(a, b)) };
 }
 
 export function operationsQueue(cases: ReportCase[]): QueueBucket[] {
