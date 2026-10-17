@@ -662,7 +662,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             gap: 4px;
             color: white;
             font-size: 10px;
-            font-weight: 800;
+            font-weight: 600;
             white-space: nowrap;
             cursor: pointer;
           ">
@@ -692,27 +692,27 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <!-- Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; border-b: 1px solid #e2e8f0; padding-bottom: 6px;">
               <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="background-color: #3b82f615; color: #1d4ed8; font-weight: 800; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
+                <span style="background-color: #f5bc2426; color: #141a35; font-weight: 600; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
                   ${wim.stationId}
                 </span>
                 <span style="font-size: 10px; font-weight: 700; color: #64748b;">STASIUN SENSOR WIM</span>
               </div>
-              <span style="background-color: ${wimAlertColor}20; color: ${wimAlertColor}; border: 1px solid ${wimAlertColor}50; font-size: 9.5px; font-weight: 800; padding: 2px 8px; border-radius: 12px;">
+              <span style="background-color: ${wimAlertColor}20; color: ${wimAlertColor}; border: 1px solid ${wimAlertColor}50; font-size: 9.5px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">
                 ${wim.alertSeverity === 'RED' ? '🔴 RED ALERT (ODOL)' : wim.alertSeverity === 'YELLOW' ? '🟡 WARNING' : '🟢 NORMAL PASS'}
               </span>
             </div>
 
             <!-- Station Title & Location -->
-            <h4 style="font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0;">${wim.stationName}</h4>
+            <h4 style="font-size: 13px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0;">${wim.stationName}</h4>
             <p style="font-size: 10.5px; color: #475569; margin: 0 0 8px 0; font-family: monospace;">
-              📍 GPS: <strong style="color: #0284c7;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
+              📍 GPS: <strong style="color: #141a35;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
             </p>
 
             <!-- ANPR & Vehicle Load Telemetry -->
             <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; font-size: 11px; margin-bottom: 8px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">
                 <span style="color: #64748b;">Truk / ANPR:</span>
-                <span style="font-weight: 800; color: #0f172a; font-family: monospace;">${wim.licensePlate} (${wim.speedKmh} km/h)</span>
+                <span style="font-weight: 600; color: #0f172a; font-family: monospace;">${wim.licensePlate} (${wim.speedKmh} km/h)</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                 <span style="color: #64748b;">Golongan:</span>
@@ -720,7 +720,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                 <span style="color: #64748b;">Beban Sumbu Maks:</span>
-                <span style="font-weight: 800; color: ${wim.maxAxleLoadTon > 10 ? '#d9655d' : '#57ae78'};">
+                <span style="font-weight: 600; color: ${wim.maxAxleLoadTon > 10 ? '#d9655d' : '#57ae78'};">
                   ${wim.maxAxleLoadTon} Ton ${wim.maxAxleLoadTon > 10 ? `(+${wim.overloadPercent}% ODOL)` : ''}
                 </span>
               </div>
@@ -731,8 +731,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
 
             <!-- PINN Engineering Impact Correlation -->
-            <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #1e40af; margin-bottom: 8px;">
-              <div style="font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="background-color: #f7f8fa; border: 1px solid #e3e6eb; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #141a35; margin-bottom: 8px;">
+              <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧠 KORELASI PINN FISIKA PERKERASAN</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -787,9 +787,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               PCI: ${segment.currentPci} (${segment.conditionCategory})
             </span>
           </div>
-          <h4 style="font-size: 14px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0;">${segment.name}</h4>
+          <h4 style="font-size: 14px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0;">${segment.name}</h4>
           <p style="font-size: 10.5px; color: #475569; margin: 0 0 8px 0; font-family: monospace;">
-            📍 Koordinat GPS: <strong style="color: #2563eb;">${segment.coordinates[0].toFixed(4)}, ${segment.coordinates[1].toFixed(4)}</strong> | ${segment.kmPost}
+            📍 Koordinat GPS: <strong style="color: #141a35;">${segment.coordinates[0].toFixed(4)}, ${segment.coordinates[1].toFixed(4)}</strong> | ${segment.kmPost}
           </p>
           
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; font-size: 11px; margin-bottom: 8px;">
@@ -803,7 +803,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span style="color: #64748b;">Beban Sumbu Rata-rata:</span>
-              <span style="font-weight: 700; color: ${segment.defaultAxleLoadTon > 18 ? '#d9655d' : '#2563eb'};">
+              <span style="font-weight: 700; color: ${segment.defaultAxleLoadTon > 18 ? '#d9655d' : '#141a35'};">
                 ${segment.defaultAxleLoadTon} Ton ${segment.defaultAxleLoadTon > 10 ? '(ODOL)' : ''}
               </span>
             </div>
@@ -813,7 +813,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             !isRegularUser && segment.hasWimStation && segment.wimDetails
               ? `<div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 6px 8px; font-size: 10.5px; color: #991b1b; margin-bottom: 8px;">
                   <div style="display: flex; items-center; justify-content: space-between; margin-bottom: 2px;">
-                    <span style="font-weight: 800;">⚖️ ${segment.wimDetails.stationName}</span>
+                    <span style="font-weight: 600;">⚖️ ${segment.wimDetails.stationName}</span>
                     <span style="background-color: #d9655d; color: white; padding: 1px 5px; border-radius: 8px; font-weight: bold; font-size: 8.5px;">WIM ACTIVE</span>
                   </div>
                   <div style="font-size: 9.5px; color: #7f1d1d; font-family: monospace;">
@@ -921,28 +921,28 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <!-- Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
               <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="background-color: #3b82f615; color: #1d4ed8; font-weight: 800; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
+                <span style="background-color: #f5bc2426; color: #141a35; font-weight: 600; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
                   ${wim.stationId}
                 </span>
                 <span style="font-size: 10px; font-weight: 700; color: #64748b;">STASIUN WIM BINA MARGA</span>
               </div>
-              <span style="background-color: ${pinColor}20; color: ${pinColor}; border: 1px solid ${pinColor}50; font-size: 9.5px; font-weight: 800; padding: 2px 8px; border-radius: 12px;">
+              <span style="background-color: ${pinColor}20; color: ${pinColor}; border: 1px solid ${pinColor}50; font-size: 9.5px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">
                 ${pinCategoryText}
               </span>
             </div>
 
             <!-- Station Name & Corridor -->
-            <h4 style="font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0;">${wim.stationName}</h4>
+            <h4 style="font-size: 13px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0;">${wim.stationName}</h4>
             <p style="font-size: 10px; color: #64748b; font-weight: 600; margin: 0 0 4px 0;">${wim.corridor}</p>
             <p style="font-size: 10.5px; color: #475569; margin: 0 0 8px 0; font-family: monospace;">
-              📍 GPS: <strong style="color: #0284c7;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
+              📍 GPS: <strong style="color: #141a35;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
             </p>
 
             <!-- Telemetry -->
             <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; font-size: 11px; margin-bottom: 8px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">
                 <span style="color: #64748b;">Truk / ANPR:</span>
-                <span style="font-weight: 800; color: #0f172a; font-family: monospace;">${wim.licensePlate} (${wim.speedKmh} km/h)</span>
+                <span style="font-weight: 600; color: #0f172a; font-family: monospace;">${wim.licensePlate} (${wim.speedKmh} km/h)</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                 <span style="color: #64748b;">Kelas Kendaraan:</span>
@@ -950,7 +950,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                 <span style="color: #64748b;">Beban Sumbu Maks:</span>
-                <span style="font-weight: 800; color: ${wim.maxAxleLoadTon > 10 ? '#d9655d' : '#57ae78'};">
+                <span style="font-weight: 600; color: ${wim.maxAxleLoadTon > 10 ? '#d9655d' : '#57ae78'};">
                   ${wim.maxAxleLoadTon} Ton ${wim.overloadPercent > 0 ? `(+${wim.overloadPercent}%)` : ''}
                 </span>
               </div>
@@ -961,8 +961,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
 
             <!-- PINN Physics Impact -->
-            <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #1e40af;">
-              <div style="font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="background-color: #f7f8fa; border: 1px solid #e3e6eb; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #141a35;">
+              <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧠 KORELASI PINN FISIKA PERKERASAN</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -1144,11 +1144,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               border: 2px solid #d9655d;
             " />
             <div style="text-align: left; line-height: 1.2;">
-              <div style="font-size: 11px; font-weight: 800; color: #0f172a; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
+              <div style="font-size: 11px; font-weight: 600; color: #0f172a; max-width: 140px; overflow: hidden; text-overflow: ellipsis;">
                 ${shortTitle}
               </div>
               <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="font-size: 9px; font-weight: 800; color: #d9655d;">🔥 ${cluster.count} ${isEn ? 'REPORTS' : 'LAPORAN'}</span>
+                <span style="font-size: 9px; font-weight: 600; color: #d9655d;">🔥 ${cluster.count} ${isEn ? 'REPORTS' : 'LAPORAN'}</span>
                 <span style="font-size: 8.5px; color: #64748b;">• HOTSPOT</span>
               </div>
             </div>
@@ -1173,10 +1173,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         heatmapPopupContainer.innerHTML = `
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-            <span style="background-color: #fef2f2; color: #d9655d; font-weight: 800; font-size: 10.5px; padding: 2.5px 8px; border-radius: 12px; border: 1px solid #fecaca; display: flex; align-items: center; gap: 4px;">
+            <span style="background-color: #fef2f2; color: #d9655d; font-weight: 600; font-size: 10.5px; padding: 2.5px 8px; border-radius: 12px; border: 1px solid #fecaca; display: flex; align-items: center; gap: 4px;">
               🔥 ${t.heatmapHotspots}
             </span>
-            <span style="font-size: 10px; font-weight: 800; color: #475569; background: #f1f5f9; padding: 2px 7px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 10px; font-weight: 600; color: #475569; background: #f1f5f9; padding: 2px 7px; border-radius: 8px; border: 1px solid #e2e8f0;">
               ${cluster.count} ${isEn ? 'Reports' : 'Laporan'}
             </span>
           </div>
@@ -1184,9 +1184,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
             <img src="${previewPhoto}" alt="${shortTitle}" style="width: 76px; height: 60px; object-fit: cover; border-radius: 8px; border: 1.5px solid #d9655d; flex-shrink: 0;" />
             <div style="flex: 1; min-width: 0;">
-              <h4 style="font-size: 12px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0; line-height: 1.3;">${shortTitle}</h4>
+              <h4 style="font-size: 12px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0; line-height: 1.3;">${shortTitle}</h4>
               <p style="font-size: 10px; color: #64748b; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cluster.areaName}</p>
-              <div style="font-size: 9.5px; font-weight: 800; color: #d9655d; font-family: monospace;">
+              <div style="font-size: 9.5px; font-weight: 600; color: #d9655d; font-family: monospace;">
                 ${cluster.criticalCount} ${isEn ? 'Critical Potholes' : 'Lubang Kritis'}
               </div>
             </div>
@@ -1210,7 +1210,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             border: none;
             padding: 8px 12px;
             border-radius: 8px;
-            font-weight: 800;
+            font-weight: 600;
             font-size: 11px;
             cursor: pointer;
             display: flex;
@@ -1481,7 +1481,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <span style="font-size: 10.5px; font-weight: 900; color: #059669;">📍 ${t.selectedLocation}</span>
           <button id="pop-close-btn" style="background: none; border: none; font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 700; padding: 0 2px;">✕</button>
         </div>
-        <div style="font-size: 9.5px; font-family: monospace; color: #0284c7; background: #f0f9ff; padding: 2px 5px; border-radius: 5px; font-weight: 700; margin-bottom: 5px; border: 1px solid #bae6fd; text-align: center;">
+        <div style="font-size: 9.5px; font-family: monospace; color: #141a35; background: #f0f9ff; padding: 2px 5px; border-radius: 5px; font-weight: 700; margin-bottom: 5px; border: 1px solid #bae6fd; text-align: center;">
           ${mapSelectedPoint.coordinates[0]}, ${mapSelectedPoint.coordinates[1]}
         </div>
         <div style="font-size: 9px; color: #334155; text-align: left; background: #f8fafc; padding: 4px 6px; border-radius: 6px; margin-bottom: 7px; border: 1px solid #e2e8f0;">
@@ -1489,7 +1489,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <strong style="color: #0f172a; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px;">${mapSelectedPoint.nearestSegment.name}</strong>
         </div>
         <div style="display: flex; gap: 4px;">
-          <button id="pop-approve-btn" style="flex: 1; background-color: #57ae78; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-weight: 800; font-size: 9.5px; cursor: pointer; box-shadow: 0 2px 5px rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; gap: 3px;">
+          <button id="pop-approve-btn" style="flex: 1; background-color: #57ae78; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-weight: 600; font-size: 9.5px; cursor: pointer; box-shadow: 0 2px 5px rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; gap: 3px;">
             ✓ ${t.approveLocation}
           </button>
           <button id="pop-cancel-btn" style="background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 5px 7px; border-radius: 6px; font-weight: 700; font-size: 9.5px; cursor: pointer;">
@@ -1588,7 +1588,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const group = L.layerGroup().addTo(map);
     L.circle(userLocation.coordinates, {
       radius: userLocation.accuracyM,
-      color: '#2563eb',
+      color: '#141a35',
       weight: 1,
       fillColor: '#8296b0',
       fillOpacity: 0.12,
@@ -1598,7 +1598,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       radius: 7,
       color: '#ffffff',
       weight: 2.5,
-      fillColor: '#2563eb',
+      fillColor: '#141a35',
       fillOpacity: 1,
       interactive: false
     }).addTo(group);
