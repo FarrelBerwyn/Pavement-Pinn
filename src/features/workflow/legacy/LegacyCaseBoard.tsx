@@ -24,7 +24,19 @@ type Tab = 'TODO' | 'ACTIVE' | 'DONE' | 'ALL';
 
 const TODO_STATES: WorkflowState[] = ['NEEDS_REVIEW', 'VERIFIED'];
 const DONE_STATES: WorkflowState[] = ['RESOLVED', 'CLOSED'];
-const tabOf = (s: WorkflowState): Exclude<Tab, 'ALL'> => (TODO_STATES.includes(s) ? 'TODO' : DONE_STATES.includes(s) ? 'DONE' : 'ACTIVE');
+/**
+ * M.O "Belum Ditugaskan": waiting for review or assignment. F.E "Belum Dimulai": a field task
+ * not yet sent back — a new or re-requested inspection, or repair work not yet evidenced
+ * (issued, or returned for rework). Everything else open is "Sedang Dikerjakan".
+ */
+const tabOf = (c: Pick<ReportCase, 'state' | 'workOrder'>, role: Role): Exclude<Tab, 'ALL'> => {
+  if (DONE_STATES.includes(c.state)) return 'DONE';
+  if (role === 'OPS') return TODO_STATES.includes(c.state) ? 'TODO' : 'ACTIVE';
+  const fieldTodo = c.state === 'FIELD_INSPECTION_REQUESTED' || (c.state === 'IN_PROGRESS' && c.workOrder?.status !== 'COMPLETED');
+  return fieldTodo ? 'TODO' : 'ACTIVE';
+};
+const TAB_LABEL = (t: Tab, role: Role) =>
+  t === 'TODO' ? (role === 'OPS' ? 'Belum Ditugaskan' : 'Belum Dimulai') : t === 'ACTIVE' ? 'Sedang Dikerjakan' : t === 'DONE' ? 'Selesai' : 'Semua';
 
 const BTN = 'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 disabled:opacity-50';
 const BTN_BRAND = `${BTN} bg-brand text-navy hover:bg-brand-hover`;
@@ -57,7 +69,9 @@ export interface LegacyCaseBoardProps {
 type Dialog = { kind: 'SPK' | 'EVIDENCE' | 'VERIFY' | 'WORK_DONE' | 'WORK_VERIFY' | 'NAV'; caseId: string } | { kind: 'PANEL'; caseId: string; action: WorkflowAction | null } | { kind: 'PHOTO'; src: string; alt: string };
 
 export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, roadSegments = [] }) => {
-  const [tab, setTab] = useState<Tab>(role === 'OPS' ? 'TODO' : 'ACTIVE');
+  const [tab, setTab] = useState<Tab>('TODO');
+  // After an action the case may belong to another tab: follow it there and say so.
+  const [moved, setMoved] = useState<{ id: string; to: Tab } | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
 
   const staff = useMemo(() => views.filter((v): v is Extract<ReportView, { audience: 'STAFF' }> => v.audience === 'STAFF'), [views]);
@@ -66,7 +80,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
 
   // M.O keeps the operations buckets (real reports first, then urgency) as group headings.
   const groups = useMemo(() => {
-    const inTab = (c: ReportCase) => tab === 'ALL' || tabOf(c.state) === tab;
+    const inTab = (c: ReportCase) => tab === 'ALL' || tabOf(c, role) === tab;
     if (role === 'OPS') {
       const buckets = operationsQueue(mine.map((v) => v.case))
         .map((b) => ({ title: b.title, hint: b.hint, items: b.items.filter(inTab) }))
@@ -82,7 +96,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
     return items.length ? [{ title: '', hint: '', items }] : [];
   }, [mine, tab, role]);
 
-  const count = (t: Tab) => mine.filter((v) => t === 'ALL' || tabOf(v.case.state) === t).length;
+  const count = (t: Tab) => mine.filter((v) => t === 'ALL' || tabOf(v.case, role) === t).length;
   const tabs: { key: Tab; label: string; dot: string }[] = [
     { key: 'TODO', label: role === 'OPS' ? 'Belum Ditugaskan' : 'Belum Dimulai', dot: 'bg-brand' },
     { key: 'ACTIVE', label: 'Sedang Dikerjakan', dot: 'bg-info' },
@@ -91,7 +105,18 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
   ];
 
   const open = dialog && 'caseId' in dialog ? byId.get(dialog.caseId) ?? null : null;
-  const run = (command: WorkflowCommand) => onRun(open!.case.id, command);
+  const run = async (command: WorkflowCommand) => {
+    const c = open!.case;
+    const out = await onRun(c.id, command);
+    if (out.ok && out.report.workflowState) {
+      const next = tabOf({ state: out.report.workflowState as WorkflowState, workOrder: command.action === 'COMPLETE_WORK_ORDER' ? { ...c.workOrder!, status: 'COMPLETED' } : command.action === 'START_WORK' || command.action === 'REQUEST_REWORK' ? { ...(c.workOrder ?? ({} as NonNullable<ReportCase['workOrder']>)), status: 'ISSUED' } : c.workOrder }, role);
+      if (tab !== 'ALL' && next !== tab) {
+        setTab(next);
+        setMoved({ id: c.id, to: next });
+      }
+    }
+    return out;
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 space-y-5 text-fg">
@@ -143,6 +168,12 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
         ))}
       </nav>
 
+      {moved && (
+        <p role="status" className="flex items-center justify-between gap-3 rounded-lg border border-info/40 bg-info/10 px-4 py-2.5 text-sm text-fg">
+          <span><b className="font-mono">{moved.id}</b> dipindahkan ke tab <b>{TAB_LABEL(moved.to, role)}</b> sesuai status terbarunya.</span>
+          <button type="button" className="text-xs text-fg-muted underline" onClick={() => setMoved(null)}>Tutup</button>
+        </p>
+      )}
       {error && <p role="alert" className="rounded-lg border border-status-heavy/40 bg-status-heavy/10 px-4 py-3 text-sm text-rose-200">Gagal memuat data dari server: {error}</p>}
 
       {groups.length === 0 ? (
@@ -165,7 +196,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
               </div>
             )}
             {g.items.map((c) => (
-              <CaseCard key={c.id} c={c} role={role} actions={byId.get(c.id)?.availableActions ?? []} onDialog={setDialog} onShowOnMap={onShowOnMap} />
+              <CaseCard key={c.id} c={c} role={role} highlight={moved?.id === c.id} actions={byId.get(c.id)?.availableActions ?? []} onDialog={setDialog} onShowOnMap={onShowOnMap} />
             ))}
           </section>
         ))
@@ -199,12 +230,13 @@ const RefreshButton: React.FC<{ loading: boolean; onRefresh: () => void }> = ({ 
 
 /** One report, as on the original cards: photo, status, title, location, citizen text, assignment. */
 const CaseCard: React.FC<{
+  highlight?: boolean;
   c: ReportCase;
   role: Role;
   actions: WorkflowAction[];
   onDialog: (d: Dialog) => void;
   onShowOnMap?: (c: ReportCase) => void;
-}> = ({ c, role, actions, onDialog, onShowOnMap }) => {
+}> = ({ c, role, actions, onDialog, onShowOnMap, highlight }) => {
   const r = c.report;
   const can = (a: WorkflowAction) => actions.includes(a);
   const lastReview = c.inspectionReviews?.at(-1);
@@ -241,11 +273,17 @@ const CaseCard: React.FC<{
           : c.state === 'ACTION_RECOMMENDED'
             ? 'Menunggu keputusan penanganan M.O'
             : 'Menunggu tindakan peran lain'
-        : 'Menunggu tindakan peran lain'
+        : c.state === 'FIELD_INSPECTION_REQUESTED'
+          ? 'Menunggu F.E mengirim hasil inspeksi'
+          : c.state === 'INSPECTION_VERIFIED'
+            ? 'Menunggu rekomendasi F.E'
+            : c.state === 'IN_PROGRESS'
+              ? 'Menunggu bukti perbaikan F.E'
+              : 'Menunggu tindakan peran lain'
       : null;
 
   return (
-    <article className={`rounded-2xl border ${accent} bg-surface p-4 sm:p-5`}>
+    <article className={`rounded-2xl border ${accent} bg-surface p-4 sm:p-5 ${highlight ? 'ring-2 ring-info/60' : ''}`}>
       <div className="flex flex-col gap-4 md:flex-row">
         <button type="button" onClick={() => r.photoUrl && onDialog({ kind: 'PHOTO', src: r.photoUrl, alt: `Foto laporan warga ${c.id}` })} className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl border border-line bg-canvas md:w-32" title="Perbesar foto">
           {r.photoUrl ? <img src={r.photoUrl} alt={`Foto laporan ${c.id}`} className="h-full w-full object-cover" /> : <span className="text-xs text-fg-subtle">Tanpa foto</span>}
