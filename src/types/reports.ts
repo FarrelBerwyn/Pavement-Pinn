@@ -101,7 +101,8 @@ export interface DamageReport {
 
   // Infrastructure Repair & Before/After Comparison Details
   repairDetails?: {
-    afterPhotoUrl: string;
+    /** Repair evidence photo; absent until a field engineer submits one. */
+    afterPhotoUrl?: string;
     repairDate?: string;
     repairMethod?: string;
     repairedPciImprovement?: string;

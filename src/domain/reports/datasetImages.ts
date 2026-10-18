@@ -34,22 +34,32 @@ export type ReferencePhoto =
   | { provenance: 'DATASET_REFERENCE'; asset: DatasetAsset }
   | { provenance: 'NO_DATASET_COVERAGE'; asset: null };
 
+/** Crack photos used for damage types the dataset has no label for (owner decision, 2026-10-18). */
+const SUBSTITUTE_LABELS: readonly string[] = registry.substituteForUncovered.labels;
+const SUBSTITUTE_POOL = DATASET_ASSETS.filter((a) => SUBSTITUTE_LABELS.some((l) => a.originalLabel.startsWith(l)));
+
+/** Assets for a damage type: its own label first; types without one use the crack pool. */
+export function poolFor(damageType: string): readonly DatasetAsset[] {
+  const own = DATASET_ASSETS.filter((a) => a.damageType === damageType);
+  return own.length > 0 ? own : SUBSTITUTE_POOL;
+}
+
 /**
- * Assign reference photos to reports, deterministically: reports in id order, each damage
- * type takes the next unused asset of that type (reused in order only when a type has more
- * reports than assets).
+ * Assign reference photos to reports, deterministically: reports in id order, each pool
+ * hands out its next unused asset (reused in order only when a pool runs out).
  */
 export function assignReferencePhotos(reports: Pick<DamageReport, 'id' | 'damageType'>[]): Map<string, ReferencePhoto> {
   const out = new Map<string, ReferencePhoto>();
   const next = new Map<string, number>();
   for (const r of [...reports].sort((a, b) => a.id.localeCompare(b.id))) {
-    const pool = DATASET_ASSETS.filter((a) => a.damageType === r.damageType);
+    const pool = poolFor(r.damageType);
     if (pool.length === 0) {
       out.set(r.id, { provenance: 'NO_DATASET_COVERAGE', asset: null });
       continue;
     }
-    const i = next.get(r.damageType) ?? 0;
-    next.set(r.damageType, i + 1);
+    const key = pool === SUBSTITUTE_POOL ? '__substitute__' : r.damageType;
+    const i = next.get(key) ?? 0;
+    next.set(key, i + 1);
     out.set(r.id, { provenance: 'DATASET_REFERENCE', asset: pool[i % pool.length] });
   }
   return out;
@@ -63,17 +73,33 @@ export function withReferencePhoto(report: DamageReport, ref: ReferencePhoto, ba
 }
 
 /** Short Indonesian label for where a report's photo comes from. */
-export function photoSourceLabel(report: Pick<DamageReport, 'photoProvenance' | 'datasetAssetId'>): string {
+export function photoSourceLabel(report: Pick<DamageReport, 'photoProvenance' | 'datasetAssetId'> & Partial<Pick<DamageReport, 'damageType'>>): string {
   if (report.photoProvenance === 'DATASET_REFERENCE') {
     const asset = DATASET_ASSETS.find((a) => a.assetId === report.datasetAssetId);
-    return `Referensi dataset ${DATASET_INFO.name}${asset ? ` · ${asset.originalLabel}` : ''} · ${DATASET_INFO.license.split(' (')[0]} — bukan foto lokasi ini`;
+    const otherType = asset && report.damageType && asset.damageType !== report.damageType ? ', contoh retak: jenisnya berbeda dari laporan ini' : '';
+    return `Referensi dataset ${DATASET_INFO.name}${asset ? ` · ${asset.originalLabel}` : ''} · ${DATASET_INFO.license.split(' (')[0]} — bukan foto lokasi ini${otherType}`;
   }
   if (report.photoProvenance === 'NO_DATASET_COVERAGE') return 'Belum ada foto referensi dataset untuk jenis kerusakan ini';
   return 'Foto laporan warga';
 }
 
 /** Caption for a report photo: dataset reference, no coverage, citizen photo, or legacy illustration. */
-export function reportPhotoCaption(report: Pick<DamageReport, 'photoProvenance' | 'datasetAssetId' | 'photoUrl'>, illustrativeLabel: string): string {
+export function reportPhotoCaption(report: Pick<DamageReport, 'photoProvenance' | 'datasetAssetId' | 'photoUrl'> & Partial<Pick<DamageReport, 'damageType'>>, illustrativeLabel: string): string {
   if (report.photoProvenance) return photoSourceLabel(report);
   return report.photoUrl?.startsWith('data:') ? 'Foto laporan warga' : illustrativeLabel;
+}
+
+/** Stock photo hosts used by the old demo data; never evidence of anything. */
+export const isStockPhoto = (url: string | undefined | null) => !!url && url.startsWith('https://images.unsplash.com/');
+
+/**
+ * Drop a stock "after repair" photo. After-repair evidence must come from the field
+ * engineer (verified by M.O); no dataset photo may stand in for it, so a demo report
+ * simply has none and the UI says so.
+ */
+export function withoutStockRepairPhoto(report: DamageReport): DamageReport {
+  if (!report.repairDetails || !isStockPhoto(report.repairDetails.afterPhotoUrl)) return report;
+  const { afterPhotoUrl: _stock, ...repairDetails } = report.repairDetails;
+  void _stock;
+  return { ...report, repairDetails };
 }

@@ -326,6 +326,244 @@
       "verified": true,
       "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
       "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000054-D00",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000054.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000054.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D00/Czech_000054.jpg",
+      "damageType": "LONGITUDINAL_CRACK",
+      "originalLabel": "D00 (Longitudinal crack)",
+      "annotationBox": {
+        "xmin": 29,
+        "ymin": 370,
+        "xmax": 235,
+        "ymax": 517,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 32,
+        "y": 343,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 18615,
+      "mimeType": "image/jpeg",
+      "sha256": "a7d7055ff3e8950f674fde16bf59ea794ac4a1e180d3130c4b9c7cfced0b3707",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000365-D00",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000365.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000365.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D00/Czech_000365.jpg",
+      "damageType": "LONGITUDINAL_CRACK",
+      "originalLabel": "D00 (Longitudinal crack)",
+      "annotationBox": {
+        "xmin": 6,
+        "ymin": 391,
+        "xmax": 222,
+        "ymax": 516,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 14,
+        "y": 353,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 22061,
+      "mimeType": "image/jpeg",
+      "sha256": "fc47fce0e4dd08f6225cbd4ce6caa2945d1a0afc81a1434f4c6db87d1a5b5fea",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000569-D00",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000569.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000569.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D00/Czech_000569.jpg",
+      "damageType": "LONGITUDINAL_CRACK",
+      "originalLabel": "D00 (Longitudinal crack)",
+      "annotationBox": {
+        "xmin": 34,
+        "ymin": 418,
+        "xmax": 178,
+        "ymax": 510,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 6,
+        "y": 364,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 20846,
+      "mimeType": "image/jpeg",
+      "sha256": "a7c3a880f0990e4b772e28834b0eb94e4726273a459049c8f0f8223843aa1717",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000832-D00",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000832.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000832.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D00/Czech_000832.jpg",
+      "damageType": "LONGITUDINAL_CRACK",
+      "originalLabel": "D00 (Longitudinal crack)",
+      "annotationBox": {
+        "xmin": 314,
+        "ymin": 380,
+        "xmax": 418,
+        "ymax": 531,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 266,
+        "y": 355,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 23192,
+      "mimeType": "image/jpeg",
+      "sha256": "c16db1c3af5e136dbb3c55ec213a4600938552f837e794270786479f86261208",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000217-D10",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000217.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000217.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D10/Czech_000217.jpg",
+      "damageType": "TRANSVERSE_CRACK",
+      "originalLabel": "D10 (Transverse crack)",
+      "annotationBox": {
+        "xmin": 43,
+        "ymin": 462,
+        "xmax": 295,
+        "ymax": 496,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 69,
+        "y": 379,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 15928,
+      "mimeType": "image/jpeg",
+      "sha256": "f2b45d4ed680e22eccdba8bc295f809e1604332be4770b40b40be494f6c67b4c",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000236-D10",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000236.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000236.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D10/Czech_000236.jpg",
+      "damageType": "TRANSVERSE_CRACK",
+      "originalLabel": "D10 (Transverse crack)",
+      "annotationBox": {
+        "xmin": 66,
+        "ymin": 462,
+        "xmax": 441,
+        "ymax": 530,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 153,
+        "y": 396,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 20742,
+      "mimeType": "image/jpeg",
+      "sha256": "1d9a5d9aecabbb960c36a4c0f72c81e97419fff5b249e4558d9d8b94e12e1733",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "assetId": "RDD2022-CZ-000456-D10",
+      "datasetName": "RDD2022",
+      "datasetVersion": "CRDDC2022 release (figshare v1)",
+      "sourceImageId": "Czech/train/images/Czech_000456.jpg",
+      "sourceAnnotation": "Czech/train/annotations/xmls/Czech_000456.xml",
+      "sourceUrl": "https://doi.org/10.6084/m9.figshare.21431547.v1",
+      "storagePath": "dataset-reference/rdd2022/D10/Czech_000456.jpg",
+      "damageType": "TRANSVERSE_CRACK",
+      "originalLabel": "D10 (Transverse crack)",
+      "annotationBox": {
+        "xmin": 332,
+        "ymin": 398,
+        "xmax": 431,
+        "ymax": 504,
+        "imageWidth": 600,
+        "imageHeight": 600
+      },
+      "crop": {
+        "x": 281,
+        "y": 351,
+        "size": 200,
+        "outputSize": 360
+      },
+      "imageWidth": 360,
+      "imageHeight": 360,
+      "fileSizeBytes": 12512,
+      "mimeType": "image/jpeg",
+      "sha256": "db7f90f0675939c81bba41826e814ca70a17a3015fb7809c9abadd2feaaf297e",
+      "verified": true,
+      "verifiedBy": "visual review of the cropped annotation area, 2026-10-18",
+      "createdAt": "2026-10-18"
     }
-  ]
+  ],
+  "substituteForUncovered": {
+    "labels": [
+      "D00",
+      "D10"
+    ],
+    "note": "Damage types without an RDD2022 label (rutting, corrugation, subsidence, raveling) show a crack photo on owner request (2026-10-18). The caption states the dataset label and that it is not the reported damage type."
+  }
 }

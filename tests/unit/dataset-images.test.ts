@@ -13,7 +13,7 @@ import { INITIAL_COMMUNITY_REPORTS } from '../../src/data/mock/communityReports'
 import { createSessionReport } from '../../src/domain/reports/reportFactory';
 
 const PUBLIC = path.resolve('public');
-const LABEL_FOR: Record<string, string> = { POTHOLE: 'D40', ALLIGATOR_CRACK: 'D20' };
+const LABEL_FOR: Record<string, string> = { POTHOLE: 'D40', ALLIGATOR_CRACK: 'D20', LONGITUDINAL_CRACK: 'D00', TRANSVERSE_CRACK: 'D10' };
 
 /** Width/height from a baseline or progressive JPEG's SOF marker. */
 function jpegSize(buf: Buffer): { w: number; h: number } | null {
@@ -51,21 +51,24 @@ test('no two assets are the same image, and each carries the dataset label of it
   assert.match(registry.datasets[0].attribution, /Arya/);
 });
 
-test('seed reports: dataset photo of the right type, explicit no-coverage otherwise, no stock photos', () => {
+test('seed reports: dataset photo of the right type, a captioned crack photo otherwise, no stock photos', () => {
   for (const r of INITIAL_COMMUNITY_REPORTS) {
     assert.doesNotMatch(r.photoUrl, /unsplash/, r.id);
+    assert.equal(r.photoProvenance, 'DATASET_REFERENCE', r.id);
+    const asset = DATASET_ASSETS.find((a) => a.assetId === r.datasetAssetId)!;
+    assert.ok(r.photoUrl.endsWith(asset.storagePath), r.id);
+    assert.doesNotMatch(r.repairDetails?.afterPhotoUrl ?? '', /unsplash/, `${r.id} stock after photo`);
     if (LABEL_FOR[r.damageType]) {
-      assert.equal(r.photoProvenance, 'DATASET_REFERENCE', r.id);
-      const asset = DATASET_ASSETS.find((a) => a.assetId === r.datasetAssetId)!;
       assert.equal(asset.damageType, r.damageType, r.id);
-      assert.ok(r.photoUrl.endsWith(asset.storagePath), r.id);
+      assert.doesNotMatch(photoSourceLabel(r), /jenisnya berbeda/);
     } else {
-      assert.equal(r.photoProvenance, 'NO_DATASET_COVERAGE', r.id);
-      assert.ok(r.photoUrl.endsWith(NO_COVERAGE_PATH), r.id);
+      // No dataset label for this type: a crack photo, and the caption says it is another type
+      assert.match(asset.originalLabel, /^D(00|10) /, r.id);
+      assert.match(photoSourceLabel(r), /jenisnya berbeda dari laporan ini/);
     }
-    assert.match(photoSourceLabel(r), r.photoProvenance === 'DATASET_REFERENCE' ? /bukan foto lokasi ini/ : /Belum ada foto/);
+    assert.match(photoSourceLabel(r), /bukan foto lokasi ini/);
   }
-  // Distinct images while a type has enough assets
+  // Distinct images while a pool has enough assets
   const used = INITIAL_COMMUNITY_REPORTS.filter((r) => r.datasetAssetId).map((r) => r.datasetAssetId);
   assert.equal(new Set(used).size, used.length);
 });
