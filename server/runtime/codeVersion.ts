@@ -47,12 +47,15 @@ export interface CodeVersion {
   commit: string | null;
   /** Commit checked out now. */
   currentCommit: string | null;
-  /** True when server/domain code changed (committed or not) after this process started. */
+  /**
+   * True when server/domain source files changed after this process started (an edit, or a
+   * checkout/merge that rewrote them). A commit alone changes no file, so it is not "stale".
+   */
   stale: boolean;
 }
 
 export function codeVersion(): CodeVersion {
   const currentCommit = gitHead();
-  const stale = currentCommit !== started.commit || sourceStamp() > started.sourceStamp;
+  const stale = sourceStamp() > started.sourceStamp;
   return { pid: process.pid, startedAt: started.at, commit: started.commit, currentCommit, stale };
 }

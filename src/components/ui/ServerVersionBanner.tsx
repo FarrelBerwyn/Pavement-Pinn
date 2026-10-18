@@ -33,7 +33,7 @@ export const ServerVersionBanner: React.FC = () => {
     <div role="alert" className="fixed inset-x-0 top-0 z-[2000] flex items-center justify-center gap-2 border-b border-status-heavy/50 bg-[#2a1416] px-4 py-2 text-xs text-rose-100">
       <AlertTriangle className="h-4 w-4 shrink-0 text-rose-300" />
       <span>
-        Server di {window.location.host} menjalankan kode lama{server.commit ? ` (commit ${server.commit}; repositori sekarang ${server.currentCommit ?? '?'})` : ' (versi tidak dilaporkan)'}: data dan aturan alur kerja bisa berbeda dari port lain. Mulai ulang server ini agar aturan dan data sinkron.
+        Server di {window.location.host} menjalankan kode lama{server.commit ? ` (dimulai pada commit ${server.commit}; kode server berubah sesudahnya, repositori sekarang ${server.currentCommit ?? '?'})` : ' (versi tidak dilaporkan)'}: data dan aturan alur kerja bisa berbeda dari port lain. Mulai ulang server ini agar aturan dan data sinkron.
       </span>
     </div>
   );

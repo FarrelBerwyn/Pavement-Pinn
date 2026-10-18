@@ -325,4 +325,7 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
   when a port serves older code. No real-time claim: browsers poll every 15 s.
 - **F.E tabs.** One mapping (`fieldStages.ts`) from state + reviews + work order to tab and stage;
   no new workflow states.
+- **Recovery.** With the owner's approval REP-0D48E30E6358447F was restored unchanged from a
+  read-only export of the :5173 process via `scripts/recovery/restore-case.ts` (store lock + CAS,
+  original audit events plus one `RECORD_RESTORED` event); :5173 was restarted on the new code.
 - **Evidence.** docs/audit/legacy-ux-sync-2026-10-18.md.

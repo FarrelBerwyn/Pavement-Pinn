@@ -74,8 +74,23 @@ version; BELUM DIVERIFIKASI = not enough evidence; GAGAL = tested and failed.
   ports at once → one 200, one 409 `VERSION_CONFLICT`, one history record; double SPK → 200 + 409,
   one assignment; F.E verify / R.E SPK → rejected (422). Test report REP-E8FB41B8788BB50F.
 
-## 5. Open
+## 5. Recovery (approved by the owner, 2026-10-18)
 
-- REP-0D48E30E6358447F: restore from the :5173 export and restart :5173 — awaiting approval.
-- :5173 still runs the old store code; any action there can again overwrite the shared file.
+1. A second read-only export of :5173 was identical to the first (no activity in between).
+2. The old :5173 server tree was stopped (`npm run dev` → tsx → server); :3001/:3002 kept running.
+3. `scripts/recovery/restore-case.ts` put REP-0D48E30E6358447F back through `FileCaseStore`
+   (lock + compare-and-swap; refuses existing ids): record unchanged (`VERIFIED` v4, 4 history
+   entries), its 4 original audit events, and one `RECORD_RESTORED` event with source and reason.
+4. Disk before/after: 30 → 31 cases, added only REP-0D48E30E6358447F, none lost or changed,
+   audit 137 → 142, revision 93 → 94. A copy of the file before the restore was kept.
+5. :5173 was started again on the new code. All three ports return the same state for
+   REP-0D48E30E6358447F, REP-A171A382E0100AB4, REP-A6C1B012808C9D1E and REP-E8FB41B8788BB50F.
+
+The code-version flag first marked :3001/:3002 stale only because a commit happened after they
+started; `stale` now means "server source files changed since start" (a commit alone changes
+no file), and the commit is reported for information.
+
+## 6. Open
+
 - Sessions reset on restart (`SESSION_SECRET` unset); photo EXIF is not stripped.
+- Upload failure is tested at the API only, not in the browser.
