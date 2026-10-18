@@ -73,8 +73,8 @@ export function createSessionReport(draft: ReportDraft, creator: ReportCreator |
   // community upvotes and workflow fields are produced later by the system and staff;
   // values sent by the caller are dropped so they cannot appear as evidence. A client-side
   // classification is never a verified model output.
-  const { repairDetails: _repair, wimCorrelation: _wim, workflowState: _state, caseVersion: _version, upvotesCount: _votes, userUpvoted: _voted, ...content } = draft;
-  void _repair; void _wim; void _state; void _version; void _votes; void _voted;
+  const { repairDetails: _repair, wimCorrelation: _wim, workflowState: _state, caseVersion: _version, upvotesCount: _votes, userUpvoted: _voted, photoProvenance: _prov, datasetAssetId: _asset, ...content } = draft;
+  void _repair; void _wim; void _state; void _version; void _votes; void _voted; void _prov; void _asset;
   const aiAnalysis = content.aiAnalysis ? { ...content.aiAnalysis, confidence: null, modelStatus: 'NOT_CLASSIFIED' as const, modelVersion: undefined, detectionBox: undefined } : undefined;
 
   // Factory-owned fields are written last so caller content can never override them.

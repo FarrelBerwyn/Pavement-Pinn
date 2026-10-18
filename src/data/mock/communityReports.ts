@@ -1,6 +1,8 @@
 import { DamageReport } from '../../types';
+import { normalizeBasePath } from '../../constants/deployment';
+import { assignReferencePhotos, withReferencePhoto } from '../../domain/reports/datasetImages';
 
-export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
+const SEED_REPORTS: DamageReport[] = [
   // ==========================================
   // KARAWANG REGION (INDUSTRIAL & ARTERIAL CORRIDORS)
   // ==========================================
@@ -459,3 +461,15 @@ export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = [
     }
   }
 ];
+
+/** Deployment base path in the browser (Vite) and on the server (env), for asset URLs. */
+const BASE_PATH: string =
+  (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ??
+  normalizeBasePath((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.VITE_BASE_PATH);
+
+/**
+ * Demo reports (SYNTHETIC). They have no citizen photo, so each shows a labelled dataset
+ * reference image for its damage type (RDD2022), or an explicit "no coverage" image.
+ */
+const REFERENCE_PHOTOS = assignReferencePhotos(SEED_REPORTS);
+export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = SEED_REPORTS.map((report) => withReferencePhoto(report, REFERENCE_PHOTOS.get(report.id)!, BASE_PATH));

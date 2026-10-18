@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360" role="img" aria-label="Belum ada foto referensi untuk jenis kerusakan ini">
+  <rect width="360" height="360" fill="#191f2d"/>
+  <rect x="24" y="24" width="312" height="312" rx="16" fill="none" stroke="#525b6e" stroke-width="3" stroke-dasharray="10 8"/>
+  <g fill="none" stroke="#a0a8b8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="110" y="110" width="140" height="110" rx="12"/>
+    <circle cx="150" cy="145" r="12"/>
+    <path d="M110 200l40-36 32 28 22-18 46 38"/>
+    <path d="M96 96l168 168" stroke="#e8b23a"/>
+  </g>
+  <text x="180" y="270" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" font-weight="700" fill="#f4f5f7">Belum ada foto</text>
+  <text x="180" y="298" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#a0a8b8">referensi dataset</text>
+</svg>

@@ -46,6 +46,15 @@ export interface DamageReport {
   estimatedDepthCm: number;
   estimatedAreaM2: number;
   photoUrl: string;
+  /**
+   * Where `photoUrl` comes from. Absent = the photo the reporter sent. DATASET_REFERENCE =
+   * a labelled photo from a public road-damage dataset that illustrates the damage type (not
+   * the pinned location). NO_DATASET_COVERAGE = no dataset photo exists for this damage type.
+   * Set only by the system (seed data / migrations), never by a client.
+   */
+  photoProvenance?: 'REPORT_PHOTO' | 'DATASET_REFERENCE' | 'NO_DATASET_COVERAGE';
+  /** Registry id of the dataset reference image (src/data/reference/datasetImageRegistry.json). */
+  datasetAssetId?: string;
   description: string;
   status: ReportStatus;
   upvotesCount: number;
@@ -100,6 +109,8 @@ export interface DamageReport {
     agencyInCharge?: string;
     /** Real cases: true once M.O verified the repair evidence; false while it awaits verification. */
     verified?: boolean;
+    /** Sample (SYNTHETIC) data: illustrative only, never verified evidence. */
+    illustrative?: boolean;
   };
 }
 
