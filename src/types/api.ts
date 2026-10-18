@@ -46,6 +46,8 @@ export interface HealthResponse {
   status: 'ok';
   appName: string;
   timestamp: string;
+  /** Code this server process runs (stale = started before the latest server/domain change). */
+  server?: { pid: number; startedAt: string; commit: string | null; currentCommit: string | null; stale: boolean };
 }
 
 export type RoadsResponse = RoadSegment[];

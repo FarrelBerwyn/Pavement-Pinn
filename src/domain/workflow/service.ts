@@ -54,9 +54,23 @@ export interface WorkflowSnapshot {
 
 export interface CaseStore {
   load(): Promise<WorkflowSnapshot>;
-  /** Persist the full next snapshot. Must not change what `load` returns if it throws. */
+  /**
+   * Persist the full next snapshot. Must not change what `load` returns if it throws.
+   * Shared stores throw StoreConflictError when someone else committed since `load`
+   * (next.revision is always the loaded revision + 1).
+   */
   commit(next: WorkflowSnapshot): Promise<void>;
 }
+
+/** The store changed underneath (another server process wrote first); reload and retry. */
+export class StoreConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'StoreConflictError';
+  }
+}
+
+const MAX_STORE_RETRIES = 4;
 
 export class MemoryCaseStore implements CaseStore {
   private snapshot: WorkflowSnapshot = { revision: 0, cases: [], audit: [] };
@@ -118,9 +132,22 @@ export class WorkflowService {
 
   constructor(private readonly store: CaseStore, private readonly deps: WorkflowDeps) {}
 
-  /** Run `fn` after every earlier call finished, so read-modify-write never interleaves. */
+  /**
+   * Run `fn` after every earlier call finished, so read-modify-write never interleaves in
+   * this process. If another process committed first, `fn` runs again on the fresh data
+   * (each attempt loads the snapshot itself, so case version checks still apply).
+   */
   private serialize<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.queue.then(fn, fn);
+    const attempt = async (): Promise<T> => {
+      for (let i = 0; ; i++) {
+        try {
+          return await fn();
+        } catch (error) {
+          if (!(error instanceof StoreConflictError) || i >= MAX_STORE_RETRIES) throw error;
+        }
+      }
+    };
+    const run = this.queue.then(attempt, attempt);
     this.queue = run.catch(() => undefined);
     return run;
   }
@@ -132,6 +159,7 @@ export class WorkflowService {
     try {
       await this.store.commit(next);
     } catch (error) {
+      if (error instanceof StoreConflictError) throw error;
       return { ok: false, code: 'STORAGE', message: `The change was not saved: ${(error as Error).message}` };
     }
     return { ok: true, value: changed };
@@ -210,6 +238,7 @@ export class WorkflowService {
       try {
         await this.store.commit(next);
       } catch (error) {
+        if (error instanceof StoreConflictError) throw error;
         return { ok: false, code: 'STORAGE', message: `The simulation was not saved: ${(error as Error).message}` };
       }
       return { ok: true, value: record };

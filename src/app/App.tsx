@@ -12,6 +12,7 @@ import { AppErrorBoundary } from './AppErrorBoundary';
 import { NotFoundPage, ForbiddenPage, ModernAppOnlyPage } from '../pages/not-found/NotFoundPage';
 import { buildPath, matchRoute } from './routeConfig';
 import { ClassicTab, classicTabForRoute, navForRoute, routeForClassicTab, routeForNav, WorkspaceNav } from './navigation';
+import { ServerVersionBanner } from '../components/ui/ServerVersionBanner';
 import {
   canOpenRoute,
   homeRouteFor,
@@ -174,6 +175,7 @@ export default function App() {
         <AppStateProvider>
           <GlobalModalsProvider>
             <AppErrorBoundary>
+              <ServerVersionBanner />
               <AppShell />
             </AppErrorBoundary>
           </GlobalModalsProvider>

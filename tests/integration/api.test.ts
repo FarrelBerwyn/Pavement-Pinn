@@ -53,7 +53,10 @@ test('GET /api/health', async () => {
   assert.equal(res.status, 200);
   assert.match(res.headers.get('content-type') ?? '', /^application\/json/);
   const body = await res.json();
-  assert.deepEqual(Object.keys(body), ['status', 'appName', 'timestamp']);
+  assert.deepEqual(Object.keys(body), ['status', 'appName', 'timestamp', 'server']);
+  // Which code this process runs, so the UI can warn about a stale server on another port.
+  assert.deepEqual(Object.keys(body.server), ['pid', 'startedAt', 'commit', 'currentCommit', 'stale']);
+  assert.equal(typeof body.server.stale, 'boolean');
   assert.equal(body.status, 'ok');
   assert.equal(body.appName, 'PAVEMENT-PINN');
   assert.ok(!Number.isNaN(Date.parse(body.timestamp)));

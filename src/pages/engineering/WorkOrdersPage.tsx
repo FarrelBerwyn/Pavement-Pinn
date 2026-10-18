@@ -30,6 +30,7 @@ export const WorkOrdersPage: React.FC = () => {
         onRefresh={() => void workflow.refresh()}
         onRun={workflow.runTransition}
         roadSegments={roadSegments}
+        account={currentAccount}
         onShowOnMap={(c) => {
           const segment = segmentOf(c.segmentId);
           if (segment) onSelectSegment(segment);

@@ -29,6 +29,7 @@ import {
 import { DamageReport, ReportReview } from '../../types';
 import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
+import { BeforeAfterSlider } from '../../components/ui/BeforeAfterSlider';
 import { canEditReport } from '../rbac/accessPolicy';
 
 export type SheetSnapPoint = 'PEEK' | 'HALF' | 'FULL';
@@ -405,41 +406,19 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           {/* TAB 1: BEFORE (citizen photo) & AFTER (F.E repair evidence from the server) */}
           {detailsTab === 'COMPARISON' && (
             <div className="space-y-3 animate-in fade-in duration-200">
-              <div className="grid grid-cols-2 gap-2">
-                <figure className="space-y-2">
-                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-canvas aspect-video">
-                    {!report.photoUrl.startsWith('data:') && (
-                      <span className="absolute bottom-1 left-1 z-10 bg-slate-950/80 text-amber-300 text-xs font-bold px-2 py-1 rounded">{ILLUSTRATIVE_PHOTO_LABEL.id}</span>
-                    )}
-                    <img src={report.photoUrl} alt="Foto sebelum perbaikan (laporan warga)" className="w-full h-full object-cover" />
-                    <span className="absolute top-1.5 left-1.5 bg-slate-950/80 text-rose-200 text-xs font-semibold px-2 py-1 rounded-full">SEBELUM</span>
-                  </div>
-                  <figcaption className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 flex justify-between">
-                    <span className="text-slate-400">Estimasi pelapor:</span>
-                    <span className="font-mono font-bold">{report.estimatedDepthCm} cm</span>
-                  </figcaption>
-                </figure>
-
-                <figure className="space-y-2">
-                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-canvas aspect-video">
-                    {report.repairDetails?.afterPhotoUrl ? (
-                      <img src={report.repairDetails.afterPhotoUrl} alt="Foto sesudah perbaikan (bukti F.E)" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full grid place-items-center p-3 text-center text-xs text-slate-400">
-                        Belum ada foto sesudah. Foto muncul setelah petugas lapangan mengirim bukti perbaikan.
-                      </div>
-                    )}
-                    <span className="absolute top-1.5 left-1.5 bg-slate-950/80 text-emerald-200 text-xs font-semibold px-2 py-1 rounded-full">SESUDAH</span>
-                  </div>
-                  <figcaption className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 text-center">
-                    {!report.repairDetails?.afterPhotoUrl
-                      ? 'Perbaikan belum dilakukan'
-                      : report.repairDetails.verified === false
-                        ? 'Menunggu verifikasi M.O'
-                        : '✓ Terverifikasi M.O'}
-                  </figcaption>
-                </figure>
-              </div>
+              <BeforeAfterSlider
+                before={report.photoUrl}
+                after={report.repairDetails?.afterPhotoUrl}
+                beforeAlt="Foto sebelum perbaikan (laporan warga)"
+                afterAlt="Foto sesudah perbaikan (bukti F.E)"
+                afterBadge={report.repairDetails?.afterPhotoUrl ? (report.repairDetails.verified === false ? 'Menunggu verifikasi M.O' : '✓ Terverifikasi M.O') : null}
+                emptyAfterText="Belum ada foto sesudah. Foto muncul setelah petugas lapangan mengirim bukti perbaikan dan M.O memverifikasinya."
+              />
+              {!report.photoUrl.startsWith('data:') && <p className="text-xs text-amber-300">{ILLUSTRATIVE_PHOTO_LABEL.id}</p>}
+              <p className="flex justify-between rounded-xl border border-white/5 bg-elevated p-2 text-xs text-slate-300">
+                <span className="text-slate-400">Estimasi pelapor:</span>
+                <span className="font-mono font-bold">{report.estimatedDepthCm} cm · {report.estimatedAreaM2} m²</span>
+              </p>
 
               {report.repairDetails && (
                 <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1 text-xs text-slate-300">

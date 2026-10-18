@@ -5,7 +5,7 @@
  * (stateMachine.ts), so the old look keeps the new rules: identity-based assignment,
  * server RBAC, evidence photos, M.O verification and the audited history.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, ClipboardList, Eye, HardHat, MapPin, Navigation, RefreshCw, RotateCcw, ShieldCheck, Camera, X, Inbox, History } from 'lucide-react';
 import type { ReportCase, WorkflowAction, WorkflowState } from '../../../domain/workflow/model';
 import type { WorkflowCommand } from '../../../domain/workflow/stateMachine';
@@ -18,6 +18,10 @@ import { ReportWorkflowPanel, actorName } from '../ReportWorkflowPanel';
 import { clearDraft, loadDraft, saveDraft } from '../../work-orders/inspectionDraft';
 import type { RoadSegment } from '../../../types';
 import { TaskNavigation } from './TaskNavigation';
+import { fieldStage } from '../../work-orders/fieldStages';
+import { BeforeAfterSlider } from '../../../components/ui/BeforeAfterSlider';
+import { AccountContext, type AccountInfo } from './AccountContext';
+import { isOverdue } from '../queues';
 
 type Role = 'OPS' | 'FE';
 type Tab = 'TODO' | 'ACTIVE' | 'DONE' | 'ALL';
@@ -25,16 +29,38 @@ type Tab = 'TODO' | 'ACTIVE' | 'DONE' | 'ALL';
 const TODO_STATES: WorkflowState[] = ['NEEDS_REVIEW', 'VERIFIED'];
 const DONE_STATES: WorkflowState[] = ['RESOLVED', 'CLOSED'];
 /**
- * M.O "Belum Ditugaskan": waiting for review or assignment. F.E "Belum Dimulai": a field task
- * not yet sent back — a new or re-requested inspection, or repair work not yet evidenced
- * (issued, or returned for rework). Everything else open is "Sedang Dikerjakan".
+ * M.O "Belum Ditugaskan": waiting for review or assignment. F.E tabs come from the single
+ * stage mapping in fieldStages.ts (new / re-requested / unsent work = "Belum Dimulai").
  */
-const tabOf = (c: Pick<ReportCase, 'state' | 'workOrder'>, role: Role): Exclude<Tab, 'ALL'> => {
+const tabOf = (c: ReportCase, role: Role): Exclude<Tab, 'ALL'> => {
+  if (role === 'FE') return fieldStage(c, { hasDraft: !!loadDraft(c) }).tab;
   if (DONE_STATES.includes(c.state)) return 'DONE';
-  if (role === 'OPS') return TODO_STATES.includes(c.state) ? 'TODO' : 'ACTIVE';
-  const fieldTodo = c.state === 'FIELD_INSPECTION_REQUESTED' || (c.state === 'IN_PROGRESS' && c.workOrder?.status !== 'COMPLETED');
-  return fieldTodo ? 'TODO' : 'ACTIVE';
+  return TODO_STATES.includes(c.state) ? 'TODO' : 'ACTIVE';
 };
+
+/** What the user just did, in words, once the server confirmed it. */
+function doneText(action: WorkflowAction, c: ReportCase): string {
+  switch (action) {
+    case 'REQUEST_INSPECTION':
+      return `SPK ${c.assignment?.id ?? ''} diterbitkan untuk ${c.assignment ? actorName(c.assignment.engineerId) : 'F.E'}`;
+    case 'REVIEW_ACCEPT':
+      return 'Laporan diterima';
+    case 'SUBMIT_INSPECTION':
+      return 'Hasil inspeksi terkirim · menunggu verifikasi M.O';
+    case 'VERIFY_INSPECTION':
+      return 'Hasil inspeksi diverifikasi';
+    case 'REQUEST_REINSPECTION':
+      return 'Inspeksi dikembalikan ke F.E dengan alasan';
+    case 'COMPLETE_WORK_ORDER':
+      return 'Bukti perbaikan terkirim · menunggu verifikasi M.O';
+    case 'REQUEST_REWORK':
+      return 'Perbaikan dikembalikan ke F.E dengan alasan';
+    case 'RESOLVE':
+      return 'Perbaikan diverifikasi — laporan selesai dan pelapor diberi notifikasi';
+    default:
+      return `${ACTION_LABEL[action]} tersimpan`;
+  }
+}
 const TAB_LABEL = (t: Tab, role: Role) =>
   t === 'TODO' ? (role === 'OPS' ? 'Belum Ditugaskan' : 'Belum Dimulai') : t === 'ACTIVE' ? 'Sedang Dikerjakan' : t === 'DONE' ? 'Selesai' : 'Semua';
 
@@ -64,15 +90,24 @@ export interface LegacyCaseBoardProps {
   onShowOnMap?: (c: ReportCase) => void;
   /** Road network for the task navigation map. */
   roadSegments?: RoadSegment[];
+  /** Signed-in account, for the account context header. */
+  account?: AccountInfo | null;
 }
 
 type Dialog = { kind: 'SPK' | 'EVIDENCE' | 'VERIFY' | 'WORK_DONE' | 'WORK_VERIFY' | 'NAV'; caseId: string } | { kind: 'PANEL'; caseId: string; action: WorkflowAction | null } | { kind: 'PHOTO'; src: string; alt: string };
 
-export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, roadSegments = [] }) => {
+export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, roadSegments = [], account = null }) => {
   const [tab, setTab] = useState<Tab>('TODO');
-  // After an action the case may belong to another tab: follow it there and say so.
-  const [moved, setMoved] = useState<{ id: string; to: Tab } | null>(null);
+  // After a server-confirmed action: say what happened and, if the case now belongs to
+  // another tab, follow it there and highlight it.
+  const [notice, setNotice] = useState<{ id: string; text: string; to: Tab | null } | null>(null);
+  const follow = useRef<{ id: string; action: WorkflowAction; version: number } | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  // When the server data last arrived in this browser (polling or after an action).
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (views.length) setSyncedAt(new Date().toISOString());
+  }, [views]);
 
   const staff = useMemo(() => views.filter((v): v is Extract<ReportView, { audience: 'STAFF' }> => v.audience === 'STAFF'), [views]);
   const mine = useMemo(() => (role === 'FE' ? staff.filter((v) => samePerson(v.case.assignment?.engineerId, me)) : staff), [staff, role, me]);
@@ -92,8 +127,15 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
       }
       return buckets;
     }
-    const items = mine.map((v) => v.case).filter(inTab).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
-    return items.length ? [{ title: '', hint: '', items }] : [];
+    // F.E: one group per task stage, the engineer's own turn first.
+    const byStage = new Map<string, { title: string; hint: string; order: number; items: ReportCase[] }>();
+    for (const c of mine.map((v) => v.case).filter(inTab)) {
+      const st = fieldStage(c, { hasDraft: !!loadDraft(c) });
+      const g = byStage.get(st.key) ?? { title: st.label, hint: '', order: st.order, items: [] };
+      g.items.push(c);
+      byStage.set(st.key, g);
+    }
+    return [...byStage.values()].sort((a, b) => a.order - b.order).map((g) => ({ ...g, items: g.items.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)) }));
   }, [mine, tab, role]);
 
   const count = (t: Tab) => mine.filter((v) => t === 'ALL' || tabOf(v.case, role) === t).length;
@@ -108,15 +150,23 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
   const run = async (command: WorkflowCommand) => {
     const c = open!.case;
     const out = await onRun(c.id, command);
-    if (out.ok && out.report.workflowState) {
-      const next = tabOf({ state: out.report.workflowState as WorkflowState, workOrder: command.action === 'COMPLETE_WORK_ORDER' ? { ...c.workOrder!, status: 'COMPLETED' } : command.action === 'START_WORK' || command.action === 'REQUEST_REWORK' ? { ...(c.workOrder ?? ({} as NonNullable<ReportCase['workOrder']>)), status: 'ISSUED' } : c.workOrder }, role);
-      if (tab !== 'ALL' && next !== tab) {
-        setTab(next);
-        setMoved({ id: c.id, to: next });
-      }
-    }
+    if (out.ok) follow.current = { id: c.id, action: command.action as WorkflowAction, version: c.version };
     return out;
   };
+
+  // Runs once the refreshed case (newer version) is in the list: compute its tab from the
+  // server data, not from a guess.
+  useEffect(() => {
+    const f = follow.current;
+    if (!f) return;
+    const c = byId.get(f.id)?.case;
+    if (!c || c.version <= f.version) return;
+    follow.current = null;
+    const next = tabOf(c, role);
+    const moves = tab !== 'ALL' && next !== tab;
+    if (moves) setTab(next);
+    setNotice({ id: c.id, text: doneText(f.action, c), to: moves ? next : null });
+  }, [byId, role, tab]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 space-y-5 text-fg">
@@ -132,14 +182,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
             </div>
             <RefreshButton loading={loading} onRefresh={onRefresh} />
           </div>
-          <div className="rounded-2xl border border-line bg-navy p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md border border-brand/40 bg-brand/10 px-2 py-0.5 font-mono text-[10px] font-bold text-brand">FIELD ENGINEER WORK ORDERS</span>
-              <span className="text-xs text-fg-muted">{mode === 'SERVER' ? 'Tersinkron lewat server · dimuat ulang tiap 15 detik' : 'DEMO OFFLINE di browser ini — tidak terbagi ke akun lain'}</span>
-            </div>
-            <h2 className="mt-2 text-lg font-bold">Penugasan Inspeksi Kerusakan dari Operations Manager</h2>
-            <p className="mt-1 max-w-2xl text-sm text-fg-muted">Buka tugas, periksa lokasi dan instruksi, lalu kirim hasil inspeksi beserta foto bukti. M.O memverifikasi hasil Anda sebelum penanganan diputuskan.</p>
-          </div>
+          <AccountContext role="FE" account={account} cases={mine.map((v) => v.case)} mode={mode} syncedAt={syncedAt} onTab={setTab} />
         </header>
       ) : (
         <header className="flex flex-wrap items-start justify-between gap-3">
@@ -152,6 +195,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
           <RefreshButton loading={loading} onRefresh={onRefresh} />
         </header>
       )}
+      {role === 'OPS' && <AccountContext role="OPS" account={account} cases={mine.map((v) => v.case)} mode={mode} syncedAt={syncedAt} onTab={setTab} />}
 
       <nav className="flex flex-wrap gap-2 rounded-xl border border-line bg-surface p-2" aria-label="Filter status">
         {tabs.map((t) => (
@@ -168,10 +212,13 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
         ))}
       </nav>
 
-      {moved && (
+      {notice && (
         <p role="status" className="flex items-center justify-between gap-3 rounded-lg border border-info/40 bg-info/10 px-4 py-2.5 text-sm text-fg">
-          <span><b className="font-mono">{moved.id}</b> dipindahkan ke tab <b>{TAB_LABEL(moved.to, role)}</b> sesuai status terbarunya.</span>
-          <button type="button" className="text-xs text-fg-muted underline" onClick={() => setMoved(null)}>Tutup</button>
+          <span>
+            <b>{notice.text}</b> — <span className="font-mono">{notice.id}</span>
+            {notice.to && <> dipindahkan ke tab <b>{TAB_LABEL(notice.to, role)}</b>.</>}
+          </span>
+          <button type="button" className="text-xs text-fg-muted underline" onClick={() => setNotice(null)}>Tutup</button>
         </p>
       )}
       {error && <p role="alert" className="rounded-lg border border-status-heavy/40 bg-status-heavy/10 px-4 py-3 text-sm text-rose-200">Gagal memuat data dari server: {error}</p>}
@@ -196,7 +243,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
               </div>
             )}
             {g.items.map((c) => (
-              <CaseCard key={c.id} c={c} role={role} highlight={moved?.id === c.id} actions={byId.get(c.id)?.availableActions ?? []} onDialog={setDialog} onShowOnMap={onShowOnMap} />
+              <CaseCard key={c.id} c={c} role={role} highlight={notice?.id === c.id} actions={byId.get(c.id)?.availableActions ?? []} onDialog={setDialog} onShowOnMap={onShowOnMap} />
             ))}
           </section>
         ))
@@ -296,7 +343,10 @@ const CaseCard: React.FC<{
               <span className="h-1.5 w-1.5 rounded-full bg-brand" /> {WORKFLOW_STATE_LABEL[c.state]}
             </span>
             <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">{r.damageType}</span>
-            <span className="text-[11px] font-semibold text-fg-muted">· {r.severity}</span>
+            <span className="text-[11px] font-semibold text-fg-muted">
+              · {c.inspection?.severity ?? r.severity} <span className="font-normal text-fg-subtle">({c.inspection ? 'terukur F.E' : 'estimasi pelapor'})</span>
+            </span>
+            {isOverdue(c) && <span className="rounded-full border border-status-heavy/50 bg-status-heavy/10 px-2 py-0.5 text-[11px] font-bold text-rose-200">Lewat tenggat</span>}
             {c.dataStatus === 'SYNTHETIC' && <span className="rounded border border-amber-500/30 px-1.5 text-[10px] text-amber-200">data contoh</span>}
           </div>
           <h3 className="text-base font-bold leading-snug">{r.damageTypeLabel} — {r.segmentName}</h3>
@@ -305,15 +355,19 @@ const CaseCard: React.FC<{
             <span className="font-mono">({r.coordinates[0].toFixed(4)}, {r.coordinates[1].toFixed(4)})</span>
           </p>
           <p className="line-clamp-2 text-sm text-fg/90">“{r.description}”</p>
+          <p className="text-[11px] text-fg-subtle">
+            Estimasi pelapor: {r.estimatedDepthCm} cm · {r.estimatedAreaM2} m²
+            {c.inspection && <> · Terukur F.E: {c.inspection.measuredDepthCm ?? '—'} cm · {c.inspection.measuredAreaM2 ?? '—'} m²</>}
+          </p>
 
           {c.assignment && (
             <div className="mt-2 rounded-lg border border-line bg-canvas/60 p-3 text-xs">
               <div className="flex flex-wrap justify-between gap-2">
                 <span>
-                  <b>Penugasan {c.assignment.id}</b> · F.E: {actorName(c.assignment.engineerId)} · Prioritas:{' '}
+                  <b>SPK {c.assignment.id}</b> · F.E: {actorName(c.assignment.engineerId)} · Prioritas:{' '}
                   <b className="text-amber-300">{PRIORITY[PRIORITY_OF[r.severity] ?? 'MEDIUM']}</b>
                 </span>
-                <span className="text-fg-muted">Tenggat: {fmt(c.assignment.dueAt)}</span>
+                <span className={isOverdue(c) ? 'font-bold text-rose-300' : 'text-fg-muted'}>Tenggat: {fmt(c.assignment.dueAt)}</span>
               </div>
               <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-fg-subtle">Instruksi dari Operations Manager</p>
               <p className="text-fg/90">{c.assignment.instructions}</p>
@@ -389,10 +443,10 @@ const useSubmit = (onClose: () => void) => {
   const submit = async (steps: (() => Promise<ReportMutationOutcome>)[], after?: () => void) => {
     setBusy(true);
     setErr(null);
-    for (const step of steps) {
+    for (const [i, step] of steps.entries()) {
       const out = await step();
       if (out.ok === false) {
-        setErr(out.error);
+        setErr(i > 0 ? `Sebagian tersimpan (${i} dari ${steps.length} langkah); langkah berikutnya gagal: ${out.error} Coba kirim lagi.` : out.error);
         setBusy(false);
         return;
       }
@@ -419,12 +473,13 @@ const SpkModal: React.FC<{ c: ReportCase; engineers: EngineerSummary[]; onRun: (
   const [priority, setPriority] = useState<keyof typeof PRIORITY>(PRIORITY_OF[c.report.severity] ?? 'MEDIUM');
   const [taskType, setTaskType] = useState('Survei Kerusakan');
   const [method, setMethod] = useState('Visual + Instrumen');
+  const [hours, setHours] = useState('2');
   const [due, setDue] = useState(() => new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10));
   const [engineerId, setEngineerId] = useState(engineers[0]?.id ?? '');
   const [instructions, setInstructions] = useState('');
   const [reason, setReason] = useState('');
   const { busy, err, submit } = useSubmit(onClose);
-  const ready = engineerId && instructions.trim() && reason.trim() && due;
+  const ready = engineerId && instructions.trim() && reason.trim() && due && Number(hours) > 0;
 
   const go = () => {
     const steps: (() => Promise<ReportMutationOutcome>)[] = [];
@@ -435,7 +490,7 @@ const SpkModal: React.FC<{ c: ReportCase; engineers: EngineerSummary[]; onRun: (
         reason: reason.trim(),
         engineerId,
         dueAt: new Date(`${due}T23:59:00`).toISOString(),
-        instructions: `[${taskType} · ${method} · Prioritas ${PRIORITY[priority]}] ${instructions.trim()}`
+        instructions: `[${taskType} · ${method} · Prioritas ${PRIORITY[priority]} · Estimasi ${hours} jam] ${instructions.trim()}`
       })
     );
     void submit(steps);
@@ -467,6 +522,9 @@ const SpkModal: React.FC<{ c: ReportCase; engineers: EngineerSummary[]; onRun: (
               <option>Visual + Instrumen</option><option>Visual</option><option>Instrumen</option>
             </select>
           </label>
+          <label className="block"><span className={LABEL}>Estimasi waktu kerja (jam)</span>
+            <input type="number" min="0.5" step="0.5" className={INPUT} value={hours} onChange={(e) => setHours(e.target.value)} />
+          </label>
           <label className="block"><span className={LABEL}>Batas waktu inspeksi</span>
             <input type="date" className={INPUT} value={due} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDue(e.target.value)} />
           </label>
@@ -485,7 +543,7 @@ const SpkModal: React.FC<{ c: ReportCase; engineers: EngineerSummary[]; onRun: (
         </label>
       </div>
       <Footer err={err} onClose={onClose}>
-        <button type="button" className={BTN_BRAND} disabled={!ready || busy} onClick={go}><HardHat className="h-4 w-4" /> {busy ? 'Mengirim…' : 'Terbitkan SPK & Tugaskan'}</button>
+        <button type="button" className={BTN_BRAND} disabled={!ready || busy} onClick={go}><HardHat className="h-4 w-4" /> {busy ? 'Mengirim…' : 'Terbitkan SPK & Tugaskan F.E'}</button>
       </Footer>
     </Modal>
   );
@@ -697,10 +755,23 @@ const WorkVerifyModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) =
   const { busy, err, submit } = useSubmit(onClose);
   const wo = c.workOrder;
   const subs = wo?.submissions ?? [];
+  const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
   return (
     <Modal title="Verifikasi mutu perbaikan oleh M.O" subtitle={<>Laporan: <span className="text-brand">{c.id}</span>{wo && <> · Perintah kerja {wo.id}</>}</>} icon={<ShieldCheck className="h-5 w-5" />} onClose={onClose} wide>
       <div className="space-y-4">
-        <BeforeAfter before={c.report.photoUrl} after={wo?.completionPhotoUrl} afterAlt="Foto sesudah perbaikan (F.E)" />
+        <BeforeAfterSlider
+          before={c.report.photoUrl}
+          after={wo?.completionPhotoUrl}
+          beforeAlt="Foto laporan warga (R.E)"
+          afterAlt="Foto sesudah perbaikan (F.E)"
+          afterBadge="Menunggu verifikasi M.O"
+          onZoom={(src, alt) => setZoom({ src, alt })}
+        />
+        {zoom && (
+          <button type="button" className="fixed inset-0 z-[1300] grid place-items-center bg-black/85 p-4" onClick={() => setZoom(null)} aria-label="Tutup foto">
+            <img src={zoom.src} alt={zoom.alt} className="max-h-[90vh] max-w-full rounded-lg object-contain" />
+          </button>
+        )}
         <div className="space-y-2 rounded-xl border border-line bg-canvas/60 p-3 text-xs">
           <div className="flex flex-wrap justify-between gap-2">
             <span className="font-mono text-fg-subtle">FIELD ENGINEER PELAKSANA</span>

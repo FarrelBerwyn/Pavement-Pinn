@@ -313,3 +313,16 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
 - **Tests.** Unit: M.O cannot send evidence, F.E cannot verify, no verification before evidence, citizen
   photo refused, rework keeps history. API: fake image → 400. Live UI run REP-CE4FF6508311FFCD
   (R.E → M.O → F.E → M.O → R.E, one re-inspection and one rework) passed; data survived a restart.
+
+## D-042 One workflow store across server processes (2026-10-18)
+
+- **Incident.** Two dev servers (:3001 and :5173) ran from this folder on the same
+  `.data/workflow.json`. `FileCaseStore` cached the file forever and rewrote it whole on commit, so
+  each port showed different data and one commit dropped REP-0D48E30E6358447F from disk.
+- **Decision.** The file store re-reads on change (mtime/size), commits under a cross-process lock
+  with compare-and-swap on `revision`, and the service retries on `StoreConflictError`. Case
+  versions still guard real conflicts. `/api/health` reports the code a process runs; the UI warns
+  when a port serves older code. No real-time claim: browsers poll every 15 s.
+- **F.E tabs.** One mapping (`fieldStages.ts`) from state + reviews + work order to tab and stage;
+  no new workflow states.
+- **Evidence.** docs/audit/legacy-ux-sync-2026-10-18.md.
