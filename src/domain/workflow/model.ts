@@ -127,6 +127,18 @@ export interface ApprovalRecord {
 }
 
 export type WorkOrderStatus = 'ISSUED' | 'IN_PROGRESS' | 'COMPLETED';
+
+export interface WorkSubmission {
+  photoUrl: string;
+  note: string;
+  by: string;
+  at: string;
+  /** Set when M.O decides on this submission. */
+  decision?: 'VERIFIED' | 'REWORK_REQUESTED';
+  decidedBy?: string;
+  decidedAt?: string;
+  reason?: string;
+}
 export interface WorkOrder {
   id: string;
   issuedBy: string;
@@ -134,6 +146,12 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   contractorNote: string;
   completedAt: string | null;
+  /** Repair evidence from the assigned F.E (latest submission); verified by M.O via RESOLVE. */
+  completionPhotoUrl?: string | null;
+  completionNote?: string | null;
+  completedBy?: string | null;
+  /** Every evidence submission, kept when M.O asks for rework (never overwritten). */
+  submissions?: WorkSubmission[];
   /** This is an internal demo work order, not an official government SPK document. */
   isOfficialDocument: false;
 }
@@ -193,6 +211,7 @@ export const WORKFLOW_ACTIONS = [
   'REJECT_ACTION',
   'START_WORK',
   'COMPLETE_WORK_ORDER',
+  'REQUEST_REWORK',
   'RESOLVE',
   'CLOSE_RESOLVED',
   /** Bundled demo report imported into the store with its existing state; never user-triggered. */

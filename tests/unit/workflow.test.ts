@@ -134,9 +134,23 @@ test('cross-role golden path: review → assign → inspect → recommend → ap
   assert.equal(c.report.status, 'SCHEDULED_FOR_REPAIR');
   await step(OPS, { action: 'START_WORK', reason: 'Tim pemeliharaan tersedia', contractorNote: 'Tim swakelola BBPJN' });
   assert.equal(c.workOrder?.isOfficialDocument, false);
-  await step(OPS, { action: 'COMPLETE_WORK_ORDER', reason: 'Pekerjaan lapangan selesai' });
+  // Repair evidence comes from the assigned F.E; M.O verifies it (spec 2026-10-17, D-041).
+  const AFTER = 'data:image/png;base64,QUZURVI=';
+  const tryAs = (actor: Actor, command: Parameters<WorkflowService['transition']>[1]) => service.transition(c.id, command, actor, c.version);
+  assert.equal(((await tryAs(OPS, { action: 'COMPLETE_WORK_ORDER', reason: 'x', completionPhotoUrl: AFTER })) as any).code, 'FORBIDDEN', 'M.O cannot send the F.E evidence');
+  assert.equal(((await tryAs(OPS, { action: 'RESOLVE', reason: 'x' })) as any).code, 'FORBIDDEN', 'no verification before evidence exists');
+  assert.equal(((await tryAs(ENG, { action: 'COMPLETE_WORK_ORDER', reason: 'x', completionPhotoUrl: c.report.photoUrl })) as any).code, 'VALIDATION', 'the citizen photo is not repair evidence');
+  await step(ENG, { action: 'COMPLETE_WORK_ORDER', reason: 'Patching selesai, dipadatkan.', completionPhotoUrl: AFTER });
   assert.equal(c.state, 'IN_PROGRESS');
-  await step(ENG, { action: 'RESOLVE', reason: 'Perbaikan dicek di lapangan.' });
+  assert.equal(c.workOrder?.completionPhotoUrl, AFTER);
+  assert.equal(((await tryAs(ENG, { action: 'RESOLVE', reason: 'x' })) as any).code, 'FORBIDDEN', 'F.E cannot verify its own repair');
+  assert.equal(((await tryAs(OPS, { action: 'REQUEST_REWORK', reason: '' })) as any).code, 'VALIDATION', 'rework needs a reason');
+  await step(OPS, { action: 'REQUEST_REWORK', reason: 'Tepi tambalan belum rata.' });
+  assert.equal(c.workOrder?.status, 'IN_PROGRESS');
+  await step(ENG, { action: 'COMPLETE_WORK_ORDER', reason: 'Tepi diratakan ulang.', completionPhotoUrl: 'data:image/png;base64,QUZURVIy' });
+  assert.deepEqual(c.workOrder?.submissions?.map((s) => s.decision ?? 'PENDING'), ['REWORK_REQUESTED', 'PENDING'], 'earlier evidence is kept');
+  await step(OPS, { action: 'RESOLVE', reason: 'Perbaikan dicek, rata.' });
+  assert.equal(c.workOrder?.submissions?.at(-1)?.decision, 'VERIFIED');
   assert.equal(c.report.status, 'REPAIRED');
   await step(OPS, { action: 'CLOSE_RESOLVED', reason: 'Selesai.' });
   assert.equal(c.state, 'CLOSED');

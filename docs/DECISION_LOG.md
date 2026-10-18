@@ -293,3 +293,23 @@ for the WIM modal, IR export and telemetry screens, which were deleted in Phase 
   machine only — not a shared or cloud database; one server per data directory (WS-13). Data survives
   refresh, re-login and server restart (verified). `SESSION_SECRET` is unset, so sessions end on restart
   and users log in again (HD-WS-2, not changed).
+
+## D-041 Repair evidence comes from F.E; M.O verifies it (2026-10-18)
+
+- **Context.** The legacy-UI restoration brief (2026-10-17) asks for: F.E "Sudah Selesai" sends an
+  after-photo and notes, M.O verifies or requests rework, then the citizen is notified. The state
+  machine had the roles reversed (M.O marked the work order complete, F.E "verified" the repair) and
+  stored no repair photo, so every "after" image on screen was a stock photo.
+- **Decision.** `COMPLETE_WORK_ORDER` → assigned field engineer only, with a required new
+  `completionPhotoUrl` (server byte check; the citizen photo is refused). New `REQUEST_REWORK` (M.O,
+  reason) reopens the work order. `RESOLVE` → M.O, only once evidence exists. No new workflow state:
+  the case stays `IN_PROGRESS` until `RESOLVE`. All submissions are kept in `workOrder.submissions`
+  with the decision, so rework never overwrites evidence.
+- **Display.** The "after" photo of a real case is `workOrder.completionPhotoUrl` (projections.ts);
+  citizens see it only after M.O verified it. Stock fallbacks and the stock `afterPhotoUrl` written on
+  report creation were removed; sample cases keep their labelled illustrative photos.
+- **Navigation.** "Navigasi ke Lokasi" centres the map on the report's coordinates and hands routing to
+  Google Maps; distance is shown only from the device GPS as a straight line. No simulated route/ETA.
+- **Tests.** Unit: M.O cannot send evidence, F.E cannot verify, no verification before evidence, citizen
+  photo refused, rework keeps history. API: fake image → 400. Live UI run REP-CE4FF6508311FFCD
+  (R.E → M.O → F.E → M.O → R.E, one re-inspection and one rework) passed; data survived a restart.

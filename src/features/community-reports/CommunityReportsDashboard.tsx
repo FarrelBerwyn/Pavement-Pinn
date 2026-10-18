@@ -248,15 +248,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       photoUrl: PHOTO_PRESETS[photoPresetIndex].url,
       description: description,
       upvotesCount: 1,
-      userUpvoted: true,
-      repairDetails: {
-        afterPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800',
-        repairDate: 'Proyeksi Restorasi (belum dijadwalkan)',
-        repairMethod: 'Hotmix Asphalt Overlay & Patching AC-WC 6cm',
-        repairedPciImprovement: 'Target: PCI >85 (Mulus)',
-        engineerNote: 'Contoh catatan perbaikan (DEMO).',
-        agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
-      }
+      userUpvoted: true
+      // No repairDetails: the "after" photo comes only from the F.E repair evidence.
       }, currentAccount);
     } catch (error) {
       if (error instanceof ReportCreationError) {

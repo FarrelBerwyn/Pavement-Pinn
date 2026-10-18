@@ -19,8 +19,9 @@ export const ACTION_LABEL: Record<WorkflowAction, string> = {
   APPROVE_ACTION: 'Setujui penanganan',
   REJECT_ACTION: 'Kembalikan rekomendasi ke F.E',
   START_WORK: 'Terbitkan perintah kerja internal',
-  COMPLETE_WORK_ORDER: 'Tandai pekerjaan selesai',
-  RESOLVE: 'Verifikasi hasil perbaikan',
+  COMPLETE_WORK_ORDER: 'Kirim bukti perbaikan ke M.O',
+  REQUEST_REWORK: 'Minta perbaikan ulang ke F.E',
+  RESOLVE: 'Setujui & verifikasi perbaikan',
   CLOSE_RESOLVED: 'Tutup laporan',
   SEED_IMPORT: 'Impor data contoh'
 };

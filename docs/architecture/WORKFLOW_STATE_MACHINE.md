@@ -20,8 +20,9 @@ stateDiagram-v2
   ACTION_RECOMMENDED --> ACTION_APPROVED: APPROVE_ACTION (ops ≠ recommender)
   ACTION_RECOMMENDED --> INSPECTED: REJECT_ACTION (ops)
   ACTION_APPROVED --> IN_PROGRESS: START_WORK (ops, internal work order)
-  IN_PROGRESS --> IN_PROGRESS: COMPLETE_WORK_ORDER (ops)
-  IN_PROGRESS --> RESOLVED: RESOLVE (engineer, work order completed)
+  IN_PROGRESS --> IN_PROGRESS: COMPLETE_WORK_ORDER (assigned engineer, repair photo)
+  IN_PROGRESS --> IN_PROGRESS: REQUEST_REWORK (ops, reason)
+  IN_PROGRESS --> RESOLVED: RESOLVE (ops, repair evidence present)
   RESOLVED --> CLOSED: CLOSE_RESOLVED (ops)
 ```
 
@@ -38,8 +39,10 @@ stateDiagram-v2
 6. Changes are committed before success is reported; a failed commit changes nothing.
 7. AI screening never makes a human decision; the DEMO classifier always routes to
    `NEEDS_REVIEW`.
-8. Report resolution (`RESOLVED`) is distinct from work-order completion
-   (`COMPLETE_WORK_ORDER`), and requires the engineer's field verification.
+8. Report resolution (`RESOLVED`) is distinct from work-order completion. The assigned
+   engineer sends repair evidence (`COMPLETE_WORK_ORDER`, new after-photo required); M.O
+   verifies it (`RESOLVE`) or asks for rework (`REQUEST_REWORK`, reason required). Every
+   evidence submission is kept in `workOrder.submissions` (D-041).
 
 ## Display status mapping (existing screens)
 

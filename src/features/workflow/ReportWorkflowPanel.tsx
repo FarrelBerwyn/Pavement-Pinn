@@ -504,9 +504,15 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
             <div className={card}>
               <span className={`font-semibold ${skin.strong}`}>Perintah kerja internal {staffCase.workOrder.id}</span>
               <p className={skin.body}>
-                Status: {staffCase.workOrder.status === 'COMPLETED' ? `selesai ${fmt(staffCase.workOrder.completedAt!)}` : 'diterbitkan'}
+                Status: {staffCase.workOrder.status === 'COMPLETED' ? `bukti dikirim ${fmt(staffCase.workOrder.completedAt!)}` : 'sedang dikerjakan'}
                 {staffCase.workOrder.contractorNote && ` · ${staffCase.workOrder.contractorNote}`}
               </p>
+              {staffCase.workOrder.completionPhotoUrl && (
+                <>
+                  <img src={staffCase.workOrder.completionPhotoUrl} alt="Foto sesudah perbaikan (F.E)" className="mt-2 w-full max-h-72 object-contain rounded-lg border border-line bg-canvas" />
+                  <p className={skin.body}>“{staffCase.workOrder.completionNote}” · {staffCase.state === 'RESOLVED' || staffCase.state === 'CLOSED' ? 'terverifikasi M.O' : staffCase.workOrder.status === 'COMPLETED' ? 'menunggu verifikasi M.O' : 'diminta perbaikan ulang'}</p>
+                </>
+              )}
               <p className={`text-xs ${skin.note}`}>Catatan sistem, bukan dokumen SPK resmi pemerintah.</p>
             </div>
           )}
@@ -517,7 +523,7 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
         <div className="space-y-2">
           <p className={`text-xs font-bold uppercase tracking-wider ${skin.muted}`}>Tindakan Anda</p>
           <div className="flex flex-wrap gap-2">
-            {view.availableActions.map((action) => (
+            {view.availableActions.filter((a) => a !== 'COMPLETE_WORK_ORDER').map((action) => (
               <button
                 key={action}
                 type="button"
@@ -532,6 +538,9 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
               </button>
             ))}
           </div>
+          {view.availableActions.includes('COMPLETE_WORK_ORDER') && (
+            <p className={`text-xs ${skin.muted}`}>Bukti perbaikan (foto sesudah wajib) dikirim lewat tombol “Sudah Selesai” di halaman Tugas Saya.</p>
+          )}
           {openAction && staffCase && (
             <ActionForm key={openAction} action={openAction} engineers={engineers} caseData={staffCase} busy={busy} skin={skin} onSubmit={run} onCancel={() => setOpenAction(null)} />
           )}

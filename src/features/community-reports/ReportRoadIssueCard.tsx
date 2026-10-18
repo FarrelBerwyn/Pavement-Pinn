@@ -1,3 +1,4 @@
+import { nearestSegment } from '../../domain/geo/nearestSegment';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Camera,
@@ -154,11 +155,16 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   });
 
   // Location State
-  const [locationName, setLocationName] = useState<string>('Jl. Sudirman, Karet Tengsin, Jakarta Pusat');
+  const [locationName, setLocationName] = useState<string>('');
   const [coordinates, setCoordinates] = useState<[number, number]>(
     initialCoordinates || selectedSegment?.coordinates || [-6.2150, 106.8220]
   );
   const [locationStatus, setLocationStatus] = useState<'DETECTED' | 'REQUESTING' | 'DENIED' | 'MANUAL'>('DETECTED');
+  const nearest = (point: [number, number]) => nearestSegment(roadSegments, point);
+  const labelFor = (point: [number, number]) => {
+    const seg = nearest(point);
+    return seg ? `${seg.name}, ${seg.province}` : `Lokasi GPS ${point[0].toFixed(5)}, ${point[1].toFixed(5)}`;
+  };
 
   // Validation Error
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -188,13 +194,15 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
       if (selectedSegment) {
         setLocationName(`${selectedSegment.name}, ${selectedSegment.province}`);
       } else {
-        setLocationName(`Jl. Sudirman, Karet Tengsin, Jakarta Pusat`);
+        setLocationName(labelFor(initialCoordinates));
       }
       setLocationStatus('DETECTED');
     } else if (selectedSegment) {
       setCoordinates(selectedSegment.coordinates);
       setLocationName(`${selectedSegment.name}, ${selectedSegment.province}`);
       setLocationStatus('DETECTED');
+    } else {
+      setLocationName((prev) => prev || labelFor(coordinates));
     }
   }, [initialCoordinates, selectedSegment]);
 
@@ -203,8 +211,13 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
     if (isOpen && !initialCoordinates && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setCoordinates([pos.coords.latitude, pos.coords.longitude]);
-          setLocationStatus('DETECTED');
+          const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setCoordinates(point);
+          // GPS wins over the preselected segment: keep the label in step with the pin.
+          setLocationStatus((prev) => {
+            if (prev !== 'MANUAL') setLocationName(labelFor(point));
+            return prev === 'MANUAL' ? prev : 'DETECTED';
+          });
         },
         (err) => {
           console.warn('Geolocation notice:', err.message);
@@ -225,9 +238,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
           const lng = pos.coords.longitude;
           setCoordinates([lat, lng]);
           setLocationStatus('DETECTED');
-          if (!locationName || locationName.startsWith('Lokasi Koordinat')) {
-            setLocationName(`Jl. Sudirman, Karet Tengsin, Jakarta Pusat`);
-          }
+          setLocationName(labelFor([lat, lng]));
         },
         (err) => {
           console.warn('GPS error:', err);
@@ -471,11 +482,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   // Submit Final Report
   const handleSubmitReport = async () => {
     if (isSubmitting) return;
-    const targetSeg =
-      roadSegments.find((s) => {
-        const dist = Math.hypot(s.coordinates[0] - coordinates[0], s.coordinates[1] - coordinates[1]);
-        return dist < 0.25;
-      }) || roadSegments[0];
+    const targetSeg = nearest(coordinates) ?? roadSegments[0];
 
     const effectiveSeverity: ReportSeverity = customSeverity || analyzedClass.defaultSeverity;
 
@@ -493,7 +500,8 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
         minute: '2-digit'
       }),
       segmentId: targetSeg.id,
-      segmentName: locationName.split(',')[0] || targetSeg.name,
+      // A typed place name is the reporter's own words; otherwise the road the GPS point is on.
+      segmentName: (locationStatus === 'MANUAL' && locationName.split(',')[0].trim()) || targetSeg.name,
       corridor: targetSeg.corridor || 'Koridor Jalan Nasional',
       province: targetSeg.province || 'DKI Jakarta',
       coordinates: coordinates,
@@ -551,7 +559,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
   // Derive location title and subtitle cleanly
   const locationParts = locationName.split(',');
-  const mainRoadName = locationParts[0]?.trim() || selectedSegment?.name || 'Jl. Sudirman';
+  const mainRoadName = locationParts[0]?.trim() || selectedSegment?.name || 'Lokasi laporan';
   const subLocationName =
     locationParts.slice(1).join(',').trim() ||
     (selectedSegment ? `${selectedSegment.corridor}, ${selectedSegment.province}` : 'Karet Tengsin, Jakarta Pusat');
@@ -1149,7 +1157,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                       <Check className="w-6 h-6 stroke-[2.5]" />
                     </span>
                     <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-white">Laporan terkirim</h3>
+                      <h3 className="text-lg font-semibold text-white">Laporan berhasil dikirim</h3>
                       <p className="text-sm text-slate-400">Terima kasih. Laporan Anda sudah ada di peta.</p>
                     </div>
                   </div>
@@ -1178,7 +1186,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                         <p className="text-sm text-white truncate">{analyzedClass.label}</p>
                       </div>
                       <span className="rounded-full border border-amber-400/40 px-3 py-1 text-xs text-amber-300 shrink-0">
-                        {savedState === 'NEEDS_REVIEW' ? 'Menunggu peninjauan' : 'Terkirim'}
+                        {savedState === 'NEEDS_REVIEW' ? 'Menunggu peninjauan M.O' : savedState === 'VERIFIED' ? 'Diterima, menunggu penugasan M.O' : 'Terkirim'}
                       </span>
                     </div>
                   </div>

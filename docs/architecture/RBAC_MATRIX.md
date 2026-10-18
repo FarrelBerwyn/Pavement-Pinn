@@ -105,7 +105,9 @@ Each row mirrors a gate that exists in the UI code (`ACTION_RULES` in `accessPol
 | View policy analysis | no | no | yes | no | no | route `/policy/` |
 | Triage reports (review, close, assign inspection) | no | yes | no | no | no | workflow actions, enforced by the API |
 | Verify an inspection or request a re-inspection (HD-WS-1, D-039) | no | yes | no | no | no | `VERIFY_INSPECTION` / `REQUEST_REINSPECTION`, reason required, audited in `inspectionReviews` |
-| Approve/reject maintenance, start and complete work orders | no | yes | no | no | no | `APPROVE_ACTION` / `REJECT_ACTION` (audited in `approvals`), `START_WORK`, `COMPLETE_WORK_ORDER`; the recommender cannot approve; D.M reviews priority and budget only |
+| Send repair evidence (after-photo) for an assigned work order (D-041) | yes (assigned person) | no | no | no | no | `COMPLETE_WORK_ORDER`, photo byte-checked by the API |
+| Verify a repair or request rework (D-041) | no | yes | no | no | no | `RESOLVE` / `REQUEST_REWORK`, reason required, only after evidence exists |
+| Approve/reject maintenance, start work orders | no | yes | no | no | no | `APPROVE_ACTION` / `REJECT_ACTION` (audited in `approvals`), `START_WORK`; the recommender cannot approve; D.M reviews priority and budget only |
 | View the audit trail | yes | yes | yes | no | no | `GET /api/workflow/audit` (403 otherwise); UI entry points hidden |
 
 ### Report creation and ownership (M1a)

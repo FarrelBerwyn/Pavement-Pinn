@@ -244,7 +244,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
         time: relativeTime(n.at),
         type: n.kind === 'DONE' ? 'REPAIR' : n.kind === 'DECISION' || n.kind === 'PROGRESS' ? 'VERIFIED' : 'ALERT',
         isUnread: !readIds.has(n.id),
-        icon: n.kind
+        icon: n.kind,
+        caseId: n.caseId,
+        done: n.kind === 'DONE'
       })),
     [workflow.views, workflow.actor, currentAccount.id, currentAccount.role, readIds]
   );
@@ -616,15 +618,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       photoUrl: PHOTO_PRESETS[formPhotoPreset].url,
       description: formDescription,
       upvotesCount: 1,
-      userUpvoted: true,
-      repairDetails: {
-        afterPhotoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800',
-        repairDate: 'Proyeksi Restorasi (belum dijadwalkan)',
-        repairMethod: 'Hotmix Asphalt Overlay & Patching AC-WC 6cm',
-        repairedPciImprovement: 'Target: PCI >85 (Mulus)',
-        engineerNote: 'Contoh catatan perbaikan (DEMO).',
-        agencyInCharge: 'Instansi berwenang (belum ditetapkan)'
-      }
+      userUpvoted: true
+      // No repairDetails: the "after" photo comes only from the F.E repair evidence.
       }, currentAccount);
     } catch (error) {
       if (error instanceof ReportCreationError) {
@@ -1669,6 +1664,24 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                             <p className={`text-xs mt-1 leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
                               {language === 'id' ? notif.descId : notif.descEn}
                             </p>
+                            {notif.done && communityReports.some((r) => r.id === notif.caseId) && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const rep = communityReports.find((r) => r.id === notif.caseId);
+                                  if (!rep) return;
+                                  setActiveNav('MAP');
+                                  setMapCenterTarget({ coords: rep.coordinates, zoom: 17, timestamp: Date.now() });
+                                  setSelectedIssueReport(rep);
+                                  setDetailsTab('COMPARISON');
+                                  setIsDetailsPanelOpen(true);
+                                }}
+                                className="mt-2 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-300"
+                              >
+                                Lihat Hasil
+                              </button>
+                            )}
                           </div>
                           {notif.isUnread && (
                             <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 mt-2 shadow-sm " />

@@ -34,7 +34,7 @@ const STAFF_RULES: Record<string, Partial<Record<WorkflowAction, Rule & { mine?:
     SCREENING_PASSED: { kind: 'REVIEW', title: 'Laporan lolos penyaringan, siap ditugaskan' },
     SUBMIT_INSPECTION: { kind: 'DECISION', title: 'Hasil inspeksi F.E menunggu verifikasi Anda' },
     RECOMMEND_ACTION: { kind: 'DECISION', title: 'Rekomendasi menunggu persetujuan Anda' },
-    RESOLVE: { kind: 'DONE', title: 'Perbaikan terverifikasi F.E, siap ditutup' }
+    COMPLETE_WORK_ORDER: { kind: 'DECISION', title: 'Bukti perbaikan F.E menunggu verifikasi Anda' }
   },
   FIELD_ENGINEER: {
     REQUEST_INSPECTION: { kind: 'ASSIGNED', title: 'Tugas inspeksi baru untuk Anda', mine: true },
@@ -42,7 +42,9 @@ const STAFF_RULES: Record<string, Partial<Record<WorkflowAction, Rule & { mine?:
     REQUEST_REINSPECTION: { kind: 'ASSIGNED', title: 'M.O meminta inspeksi ulang', mine: true },
     APPROVE_ACTION: { kind: 'DECISION', title: 'Rekomendasi Anda disetujui M.O', mine: true },
     REJECT_ACTION: { kind: 'DECISION', title: 'Rekomendasi Anda dikembalikan M.O', mine: true },
-    COMPLETE_WORK_ORDER: { kind: 'ASSIGNED', title: 'Pekerjaan selesai, perlu verifikasi Anda', mine: true },
+    START_WORK: { kind: 'ASSIGNED', title: 'Perintah kerja diterbitkan untuk tugas Anda', mine: true },
+    REQUEST_REWORK: { kind: 'ASSIGNED', title: 'M.O meminta perbaikan ulang', mine: true },
+    RESOLVE: { kind: 'DONE', title: 'Perbaikan Anda diverifikasi M.O', mine: true },
     CLOSE_RESOLVED: { kind: 'DONE', title: 'Laporan ditutup', mine: true }
   },
   POLICY_MAKER: {
@@ -77,7 +79,17 @@ export function workflowNotifications(views: ReportView[], viewer: { id: string;
       // Citizens hear about status changes of their own reports (public notes only).
       const c = v.case as PublicReportView;
       c.timeline.slice(1).forEach((t, i) => {
-        out.push({ id: `${c.id}-t${i + 1}`, caseId: c.id, at: t.at, kind: t.state === 'RESOLVED' || t.state === 'CLOSED' ? 'DONE' : 'PROGRESS', title: 'Status laporan Anda berubah', description: describe(c, t.note) });
+        const done = t.state === 'RESOLVED';
+        out.push({
+          id: `${c.id}-t${i + 1}`,
+          caseId: c.id,
+          at: t.at,
+          kind: done || t.state === 'CLOSED' ? 'DONE' : 'PROGRESS',
+          title: done ? 'Laporan Anda selesai diperbaiki & terverifikasi' : 'Status laporan Anda berubah',
+          description: done
+            ? `${describe(c)} — diverifikasi ${new Date(t.at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}. ${t.note}`
+            : describe(c, t.note)
+        });
       });
     }
   }

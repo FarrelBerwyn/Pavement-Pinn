@@ -264,13 +264,18 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [gateway, views, applyViews, refresh, refreshAudit]
   );
 
+  // Latest known view per report, updated as soon as a transition returns. Two commands sent
+  // from one click (e.g. accept then assign) must not reuse the version of the last render.
+  const latestViews = useRef(views);
+  latestViews.current = views;
   const runTransition = useCallback(
     async (reportId: string, command: WorkflowCommand): Promise<MutationResult> => {
       await sessionReady.current;
-      const current = views[reportId];
+      const current = latestViews.current[reportId];
       if (!current) return { ok: false, error: 'Laporan belum dimuat dari server.', code: 'NOT_FOUND' };
       try {
         const view = await gateway.transition(reportId, command, current.case.version);
+        latestViews.current = { ...latestViews.current, [reportId]: view };
         applyViews([view], false);
         await refreshAudit();
         return { ok: true, report: displayReport(view) };
@@ -279,7 +284,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return errorResult(e);
       }
     },
-    [gateway, views, applyViews, refresh, refreshAudit]
+    [gateway, applyViews, refresh, refreshAudit]
   );
 
   const loadView = useCallback(

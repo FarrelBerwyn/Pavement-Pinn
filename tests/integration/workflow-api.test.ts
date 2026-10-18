@@ -20,6 +20,8 @@ import { demoLoginFor } from '../../src/data/reference/demoCredentials';
 
 // 1x1 transparent PNG.
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+// A different real PNG (same header, extra trailing bytes) for the repair evidence.
+const PNG_AFTER = 'data:image/png;base64,' + Buffer.concat([Buffer.from(PNG.split(',')[1], 'base64'), Buffer.from('after')]).toString('base64');
 
 const dataDir = mkdtempSync(path.join(tmpdir(), 'pinn-workflow-'));
 let server: Server;
@@ -145,8 +147,10 @@ test('cross-role golden path over HTTP, with public tracking and audit', async (
 
   await act(ops2, { action: 'APPROVE_ACTION', reason: 'Disetujui sesuai prioritas.' });
   await act(ops2, { action: 'START_WORK', reason: 'Tim tersedia', contractorNote: 'Swakelola' });
-  await act(ops2, { action: 'COMPLETE_WORK_ORDER', reason: 'Pekerjaan selesai' });
-  await act(eng, { action: 'RESOLVE', reason: 'Dicek di lapangan.' });
+  const fakeAfter = await call('POST', `/api/workflow/reports/${id}/transitions`, { command: { action: 'COMPLETE_WORK_ORDER', reason: 'x', completionPhotoUrl: 'data:image/png;base64,QUFBQQ==' }, expectedVersion: version }, eng);
+  assert.equal(fakeAfter.status, 400, 'repair evidence must be a real image');
+  await act(eng, { action: 'COMPLETE_WORK_ORDER', reason: 'Pekerjaan selesai', completionPhotoUrl: PNG_AFTER });
+  await act(ops2, { action: 'RESOLVE', reason: 'Dicek di lapangan.' });
   const closed = await act(ops, { action: 'CLOSE_RESOLVED', reason: 'Selesai' });
   assert.equal(closed.case.state, 'CLOSED');
   assert.equal(closed.case.report.status, 'REPAIRED');
@@ -157,7 +161,7 @@ test('cross-role golden path over HTTP, with public tracking and audit', async (
   assert.equal(pub.body.report.case.state, 'CLOSED');
   const pubJson = JSON.stringify(pub.body);
   assert.doesNotMatch(pubJson, /USR-00[0-9]|Swakelola|Prioritas koridor pilot|Lubang aktif, tepi retak/);
-  assert.ok(pub.body.report.case.timeline.some((t: any) => t.note === 'Perbaikan terverifikasi di lapangan'));
+  assert.ok(pub.body.report.case.timeline.some((t: any) => t.note === 'Perbaikan terverifikasi petugas'));
 
   // Audit trail: who did what, when and why — officials only.
   const audit = await call('GET', `/api/workflow/audit?entityId=${id}`, undefined, ops);

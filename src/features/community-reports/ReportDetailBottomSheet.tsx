@@ -402,91 +402,56 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             </button>
           </div>
 
-          {/* TAB 1: SIDE-BY-SIDE BEFORE & AFTER */}
+          {/* TAB 1: BEFORE (citizen photo) & AFTER (F.E repair evidence from the server) */}
           {detailsTab === 'COMPARISON' && (
             <div className="space-y-3 animate-in fade-in duration-200">
               <div className="grid grid-cols-2 gap-2">
-                {/* Before (Rusak) */}
-                <div className="space-y-2">
-                  <div className="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-slate-950 aspect-video shadow-md">
-                    <span className="absolute bottom-1 left-1 z-10 bg-slate-950/80 text-amber-300 text-xs font-bold px-2 py-1 rounded">
-                      {ILLUSTRATIVE_PHOTO_LABEL.id}
-                    </span>
-                    <img
-                      src={report.photoUrl}
-                      alt="Sebelum Perbaikan (Rusak)"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=600';
-                      }}
-                    />
-                    <div className="absolute top-1.5 left-1.5 bg-rose-600 text-white text-xs font-mono font-semibold px-2 py-1 rounded-full shadow flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                      SEBELUM (RUSAK)
-                    </div>
+                <figure className="space-y-2">
+                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-canvas aspect-video">
+                    {!report.photoUrl.startsWith('data:') && (
+                      <span className="absolute bottom-1 left-1 z-10 bg-slate-950/80 text-amber-300 text-xs font-bold px-2 py-1 rounded">{ILLUSTRATIVE_PHOTO_LABEL.id}</span>
+                    )}
+                    <img src={report.photoUrl} alt="Foto sebelum perbaikan (laporan warga)" className="w-full h-full object-cover" />
+                    <span className="absolute top-1.5 left-1.5 bg-slate-950/80 text-rose-200 text-xs font-semibold px-2 py-1 rounded-full">SEBELUM</span>
                   </div>
-                  <div className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 flex justify-between items-center">
-                    <span className="text-slate-400">Kedalaman:</span>
-                    <span className="font-mono font-bold text-rose-400">{report.estimatedDepthCm} cm</span>
-                  </div>
-                </div>
+                  <figcaption className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 flex justify-between">
+                    <span className="text-slate-400">Estimasi pelapor:</span>
+                    <span className="font-mono font-bold">{report.estimatedDepthCm} cm</span>
+                  </figcaption>
+                </figure>
 
-                {/* After (Perbaikan) */}
-                <div className="space-y-2">
-                  <div className="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-slate-950 aspect-video shadow-md">
-                    <img
-                      src={
-                        report.repairDetails?.afterPhotoUrl ||
-                        'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800'
-                      }
-                      alt="Sesudah Perbaikan (Mulus)"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=800';
-                      }}
-                    />
-                    <div className="absolute top-1.5 left-1.5 bg-emerald-600 text-slate-950 text-xs font-mono font-semibold px-2 py-1 rounded-full shadow flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-slate-950 animate-pulse" />
-                      SESUDAH (PERBAIKAN)
-                    </div>
+                <figure className="space-y-2">
+                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-canvas aspect-video">
+                    {report.repairDetails?.afterPhotoUrl ? (
+                      <img src={report.repairDetails.afterPhotoUrl} alt="Foto sesudah perbaikan (bukti F.E)" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center p-3 text-center text-xs text-slate-400">
+                        Belum ada foto sesudah. Foto muncul setelah petugas lapangan mengirim bukti perbaikan.
+                      </div>
+                    )}
+                    <span className="absolute top-1.5 left-1.5 bg-slate-950/80 text-emerald-200 text-xs font-semibold px-2 py-1 rounded-full">SESUDAH</span>
                   </div>
-                  <div className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 flex justify-between items-center">
-                    <span className="text-slate-400">Target PCI:</span>
-                    <span className="font-mono font-bold text-amber-300">
-                      {report.repairDetails?.repairedPciImprovement?.split('(')[0] || 'PCI 28 → 88'}
-                    </span>
-                  </div>
-                </div>
+                  <figcaption className="bg-elevated p-2 rounded-xl border border-white/5 text-xs text-slate-300 text-center">
+                    {!report.repairDetails?.afterPhotoUrl
+                      ? 'Perbaikan belum dilakukan'
+                      : report.repairDetails.verified === false
+                        ? 'Menunggu verifikasi M.O'
+                        : '✓ Terverifikasi M.O'}
+                  </figcaption>
+                </figure>
               </div>
 
-              {/* Status & Method Summary */}
-              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 min-w-0">
+              {report.repairDetails && (
+                <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1 text-xs text-slate-300">
+                  <p className="flex items-center gap-2 font-semibold text-slate-100">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-semibold text-emerald-300 text-xs truncate">
-                      {isRepaired ? 'Telah Selesai Diperbaiki' : 'Rencana Pemulihan'}
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-amber-300 bg-amber-400/15 px-2 py-1 rounded-full border border-amber-400/30 shrink-0">
-                    {report.repairDetails?.repairedPciImprovement || 'PCI 28 → 88 (Mulus)'}
-                  </span>
-                </div>
-                <div className="space-y-1 text-xs text-slate-300 border-t border-white/5 pt-2">
-                  <p>
-                    <span className="text-slate-400 font-semibold">Metode: </span>
-                    <span className="font-medium text-slate-200">
-                      {report.repairDetails?.repairMethod || 'Hotmix Asphalt Overlay & Patching AC-WC 6cm'}
-                    </span>
+                    {isRepaired ? 'Telah selesai diperbaiki' : 'Bukti perbaikan diterima'}
                   </p>
-                  <p className="text-slate-400 text-xs leading-relaxed">
-                    {report.repairDetails?.engineerNote ||
-                      'Catatan perbaikan belum tersedia.'}
-                  </p>
+                  {report.repairDetails.repairMethod && <p><span className="text-slate-400">Penanganan: </span>{report.repairDetails.repairMethod}</p>}
+                  {report.repairDetails.repairedPciImprovement && <p><span className="text-slate-400">Kondisi: </span>{report.repairDetails.repairedPciImprovement}</p>}
+                  {report.repairDetails.repairDate && <p className="text-slate-400">Bukti dikirim {report.repairDetails.repairDate.includes('T') ? new Date(report.repairDetails.repairDate).toLocaleString('id-ID') : report.repairDetails.repairDate}</p>}
                 </div>
-              </div>
+              )}
             </div>
           )}
 

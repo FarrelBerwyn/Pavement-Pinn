@@ -183,6 +183,10 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
       return sendError(res, "VALIDATION", "Body must be { command: { action, ... }, expectedVersion }.");
     }
     if (expectedVersion === null) return sendError(res, "VALIDATION", "expectedVersion must be a positive integer.");
+    if (command.action === "COMPLETE_WORK_ORDER") {
+      const photo = checkPhotoReference(command.completionPhotoUrl);
+      if (photo.ok === false) return sendError(res, "VALIDATION", `Repair photo: ${photo.message}`);
+    }
     if (command.action === "SUBMIT_INSPECTION" && command.evidencePhotoUrl) {
       // Same byte-level check as the citizen photo: real JPEG/PNG/WebP, at most 5 MB.
       const photo = checkPhotoReference(command.evidencePhotoUrl);

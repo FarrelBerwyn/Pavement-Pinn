@@ -98,6 +98,8 @@ export interface DamageReport {
     repairedPciImprovement?: string;
     engineerNote?: string;
     agencyInCharge?: string;
+    /** Real cases: true once M.O verified the repair evidence; false while it awaits verification. */
+    verified?: boolean;
   };
 }
 

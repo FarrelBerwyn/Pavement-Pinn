@@ -63,8 +63,10 @@ export const TRANSITIONS: Readonly<Record<WorkflowAction, TransitionRule>> = {
   APPROVE_ACTION: { from: ['ACTION_RECOMMENDED'], to: 'ACTION_APPROVED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Penanganan disetujui' },
   REJECT_ACTION: { from: ['ACTION_RECOMMENDED'], to: 'INSPECTION_VERIFIED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Rekomendasi dikaji ulang' },
   START_WORK: { from: ['ACTION_APPROVED'], to: 'IN_PROGRESS', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Pekerjaan perbaikan dimulai' },
-  COMPLETE_WORK_ORDER: { from: ['IN_PROGRESS'], to: 'SAME', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Pekerjaan lapangan selesai, menunggu verifikasi' },
-  RESOLVE: { from: ['IN_PROGRESS'], to: 'RESOLVED', roles: ['FIELD_ENGINEER'], reasonRequired: true, publicNote: 'Perbaikan terverifikasi di lapangan' },
+  // F.E sends repair evidence; M.O verifies it (RESOLVE) or asks for rework. Same state until verified.
+  COMPLETE_WORK_ORDER: { from: ['IN_PROGRESS'], to: 'SAME', roles: ['FIELD_ENGINEER'], reasonRequired: true, publicNote: 'Pekerjaan lapangan selesai, menunggu verifikasi' },
+  REQUEST_REWORK: { from: ['IN_PROGRESS'], to: 'SAME', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Perbaikan perlu diulang' },
+  RESOLVE: { from: ['IN_PROGRESS'], to: 'RESOLVED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Perbaikan terverifikasi petugas' },
   CLOSE_RESOLVED: { from: ['RESOLVED'], to: 'CLOSED', roles: ['OPERATIONS_MANAGER'], reasonRequired: true, publicNote: 'Laporan ditutup' },
   SEED_IMPORT: { from: [null], to: 'SAME', roles: [], reasonRequired: false, publicNote: 'Data contoh (DEMO) dimuat ke sistem' }
 };
@@ -72,7 +74,8 @@ export const TRANSITIONS: Readonly<Record<WorkflowAction, TransitionRule>> = {
 export type WorkflowCommand =
   | { action: 'BEGIN_SCREENING' }
   | { action: 'SCREENING_PASSED' | 'SCREENING_NEEDS_REVIEW'; screening: ScreeningResult }
-  | { action: 'REVIEW_ACCEPT' | 'CLOSE_INVALID' | 'VERIFY_INSPECTION' | 'REQUEST_REINSPECTION' | 'CLOSE_NO_ACTION' | 'APPROVE_ACTION' | 'REJECT_ACTION' | 'COMPLETE_WORK_ORDER' | 'RESOLVE' | 'CLOSE_RESOLVED'; reason: string }
+  | { action: 'REVIEW_ACCEPT' | 'CLOSE_INVALID' | 'VERIFY_INSPECTION' | 'REQUEST_REINSPECTION' | 'CLOSE_NO_ACTION' | 'APPROVE_ACTION' | 'REJECT_ACTION' | 'REQUEST_REWORK' | 'RESOLVE' | 'CLOSE_RESOLVED'; reason: string }
+  | { action: 'COMPLETE_WORK_ORDER'; reason: string; completionPhotoUrl: string }
   | { action: 'REQUEST_INSPECTION'; reason: string; engineerId: string; dueAt: string; instructions: string }
   | {
       action: 'SUBMIT_INSPECTION';
@@ -141,6 +144,8 @@ function optionalMeasure(value: unknown, field: string): number | null | Command
   return value;
 }
 
+const PHOTO_REF = new RegExp("^(data:image/(jpeg|png|webp);base64,|https?://)", "i");
+
 /** Which actions this actor could take on this case right now (drives the UI buttons). */
 export function availableActions(c: ReportCase, actor: Actor): WorkflowAction[] {
   return (Object.keys(TRANSITIONS) as WorkflowAction[]).filter((action) => {
@@ -163,10 +168,12 @@ function assignmentGuard(action: WorkflowAction, c: ReportCase, actor: Actor): s
       if (c.recommendation && samePerson(c.recommendation.recommendedBy, actor.id)) return 'The person who recommended an action cannot approve it.';
       return null;
     case 'RESOLVE':
-      if (!c.workOrder || c.workOrder.status !== 'COMPLETED') return 'The work order must be completed before the repair is verified.';
+    case 'REQUEST_REWORK':
+      if (!c.workOrder || c.workOrder.status !== 'COMPLETED' || !c.workOrder.completionPhotoUrl) return 'The assigned engineer has not sent repair evidence yet.';
       return null;
     case 'COMPLETE_WORK_ORDER':
       if (!c.workOrder || c.workOrder.status === 'COMPLETED') return 'There is no open work order.';
+      if (!c.assignment || !samePerson(c.assignment.engineerId, actor.id)) return 'Only the assigned field engineer may do this.';
       return null;
     default:
       return null;
@@ -324,9 +331,33 @@ export function applyCommand(c: ReportCase, command: WorkflowCommand, ctx: Comma
       };
       break;
     }
-    case 'COMPLETE_WORK_ORDER':
-      next.workOrder = { ...c.workOrder!, status: 'COMPLETED', completedAt: ctx.now };
+    case 'COMPLETE_WORK_ORDER': {
+      const photo = command.completionPhotoUrl;
+      if (typeof photo !== 'string' || !PHOTO_REF.test(photo)) {
+        return fail('VALIDATION', 'completionPhotoUrl must be a JPEG, PNG or WebP image of the finished repair.');
+      }
+      if (photo === c.report.photoUrl) return fail('VALIDATION', 'The repair photo must be a new photo, not the citizen report photo.');
+      const submission = { photoUrl: photo, note: reason as string, by: ctx.actor.id, at: ctx.now };
+      next.workOrder = {
+        ...c.workOrder!,
+        status: 'COMPLETED',
+        completedAt: ctx.now,
+        completionPhotoUrl: photo,
+        completionNote: reason as string,
+        completedBy: ctx.actor.id,
+        submissions: [...(c.workOrder!.submissions ?? []), submission]
+      };
       break;
+    }
+    case 'REQUEST_REWORK':
+    case 'RESOLVE': {
+      const decided = { decision: command.action === 'RESOLVE' ? ('VERIFIED' as const) : ('REWORK_REQUESTED' as const), decidedBy: ctx.actor.id, decidedAt: ctx.now, reason: reason as string };
+      const subs = [...(c.workOrder!.submissions ?? [])];
+      if (subs.length) subs[subs.length - 1] = { ...subs[subs.length - 1], ...decided };
+      // Rework reopens the order; the earlier evidence stays in submissions.
+      next.workOrder = command.action === 'RESOLVE' ? { ...c.workOrder!, submissions: subs } : { ...c.workOrder!, status: 'IN_PROGRESS', completedAt: null, submissions: subs };
+      break;
+    }
     default:
       break;
   }

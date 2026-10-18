@@ -73,7 +73,23 @@ export function reportForDisplay(c: ReportCase): DamageReport {
     status,
     workflowState: c.state,
     caseVersion: c.version,
-    repairDetails: c.report.repairDetails ? (publicRepair as DamageReport['repairDetails']) : undefined
+    repairDetails: repairFor(c, c.report.repairDetails ? (publicRepair as DamageReport['repairDetails']) : undefined)
+  };
+}
+
+/**
+ * The "after" photo of a real case is the repair evidence the assigned F.E sent — nothing
+ * else (no stock or sample image). Sample cases keep their labelled illustrative details.
+ */
+function repairFor(c: ReportCase, sample: DamageReport['repairDetails']): DamageReport['repairDetails'] {
+  if (c.dataStatus === 'SYNTHETIC') return sample;
+  const wo = c.workOrder;
+  if (!wo?.completionPhotoUrl) return undefined;
+  return {
+    afterPhotoUrl: wo.completionPhotoUrl,
+    repairDate: wo.completedAt ?? undefined,
+    repairMethod: c.recommendation?.treatment,
+    verified: c.state === 'RESOLVED' || c.state === 'CLOSED'
   };
 }
 
@@ -83,7 +99,8 @@ export function toPublicView(c: ReportCase): PublicReportView {
     version: c.version,
     state: c.state,
     segmentId: c.segmentId,
-    report: reportForDisplay(c),
+    // Citizens see the repair photo only after M.O verified it.
+    report: ((r) => (r.repairDetails && r.repairDetails.verified === false ? { ...r, repairDetails: undefined } : r))(reportForDisplay(c)),
     timeline: c.history.map((h) => ({ at: h.at, state: h.to, note: h.publicNote })),
     createdAt: c.createdAt,
     updatedAt: c.updatedAt

@@ -61,8 +61,9 @@ bodies never carry identity. Demo tokens are *not* authentication (see RBAC_MATR
 | `APPROVE_ACTION` | ACTION_RECOMMENDED → ACTION_APPROVED | OPERATIONS_MANAGER (not the recommender) | `reason` |
 | `REJECT_ACTION` | ACTION_RECOMMENDED → INSPECTION_VERIFIED (inspection stays verified) | OPERATIONS_MANAGER | `reason` |
 | `START_WORK` | ACTION_APPROVED → IN_PROGRESS | OPERATIONS_MANAGER | `reason, contractorNote` (internal work order, not an SPK) |
-| `COMPLETE_WORK_ORDER` | IN_PROGRESS (stays) | OPERATIONS_MANAGER | `reason` |
-| `RESOLVE` | IN_PROGRESS → RESOLVED | FIELD_ENGINEER (work order completed) | `reason` |
+| `COMPLETE_WORK_ORDER` | IN_PROGRESS (stays) | FIELD_ENGINEER (assigned person) | `reason`, `completionPhotoUrl` (JPEG/PNG/WebP ≤5 MB, byte-checked, not the report photo) |
+| `REQUEST_REWORK` | IN_PROGRESS (stays, work order reopened) | OPERATIONS_MANAGER (evidence present) | `reason` |
+| `RESOLVE` | IN_PROGRESS → RESOLVED | OPERATIONS_MANAGER (evidence present) | `reason` |
 | `CLOSE_RESOLVED` | RESOLVED → CLOSED | OPERATIONS_MANAGER | `reason` |
 
 `SUBMIT`, `BEGIN_SCREENING`, `SCREENING_PASSED`, `SCREENING_NEEDS_REVIEW` and
