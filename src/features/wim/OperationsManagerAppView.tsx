@@ -257,27 +257,27 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
     : `Peringatan Kritis ODOL di ${selectedSegment.name}. Ambang batas muatan dinamis saat cuaca basah: ${dynamicAllowedTonnage} Ton.`;
 
   return (
-    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-canvas text-slate-100 font-sans pb-16">
+    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace text-ink font-sans pb-16">
       {/* 1. TOP HEADER BANNER: Role Identity & Traffic Light Alert System */}
-      <div className="border-b border-slate-800 bg-slate-900 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="border-b border-line-subtle bg-panel sticky top-0 z-30 px-4 sm:px-5 py-3 shadow-sm">
+        <div className="w-full min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-slate-800 text-rose-400 rounded-xl border border-slate-700 shrink-0">
+            <div className="p-2.5 bg-card text-rose-400 rounded-nested border border-line-subtle shrink-0">
               <Truck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs bg-rose-500/10 text-rose-300 font-mono font-semibold px-2 py-1 rounded border border-rose-500/20 flex items-center gap-1">
+                <span className="text-xs bg-rose-500/10 text-rose-300 font-mono font-medium px-2 py-0.5 rounded border border-rose-500/20 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-rose-400" />
                   RBAC Level 2: Operations Manager WIM & Penindakan
                 </span>
-                <span className="text-xs bg-slate-800 text-slate-300 font-mono px-2 py-1 rounded border border-slate-700">
+                <span className="text-xs bg-card text-ink-2 font-mono px-2 py-0.5 rounded border border-line-subtle">
                   {currentAccount.agencyCode} &bull; {currentAccount.name}
                 </span>
               </div>
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight mt-1 flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-semibold text-ink tracking-tight mt-1 flex items-center gap-2">
                 <span>Pusat Kendali Operasional WIM & Penindakan ODOL</span>
-                <span className="text-xs font-mono font-normal text-slate-400 hidden sm:inline">
+                <span className="text-xs font-mono font-normal text-ink-3 hidden sm:inline">
                   (data DEMO)
                 </span>
               </h1>
@@ -289,17 +289,17 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
             {simulationResult && (
               <button
                 onClick={() => generateOfficialReportPdf(simulationResult, 'OPERATIONS_MANAGER')}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl border border-indigo-500 flex items-center space-x-2 transition-colors cursor-pointer"
+                className="h-8.5 rounded-control border border-line-subtle bg-card hover:bg-raised text-ink text-xs font-semibold px-3.5 flex items-center space-x-2 transition-colors cursor-pointer"
                 title="Cetak Sinyal WIM & Ringkasan Penindakan Format PDF (DEMO)"
               >
-                <FileDown className="w-4 h-4 text-indigo-200" />
+                <FileDown className="w-4 h-4 text-indigo-300" />
                 <span>Cetak Sinyal WIM PDF</span>
               </button>
             )}
 
             <button
               onClick={onOpenCreateReport}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl border border-amber-400 flex items-center space-x-2 transition-colors cursor-pointer"
+              className="h-8.5 rounded-control border border-[#E8B52B] bg-[#E8B52B] hover:bg-[#F3C442] text-slate-950 text-xs font-semibold px-3.5 flex items-center space-x-2 transition-colors cursor-pointer"
               title="Buat Laporan Kerusakan Baru dari Lokasi Pos Timbang"
             >
               <Plus className="w-4 h-4 text-slate-950" />
@@ -310,7 +310,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
       </div>
 
       {/* 2. MAIN CONTAINER */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+      <main className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
         {/* TOAST ACTION CONFIRMATION */}
         {actionSuccessToast && (
           <div className="p-4 rounded-xl bg-slate-800 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-between shadow-sm">
@@ -329,19 +329,19 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
         {/* 2.1 REAL-TIME TRAFFIC LIGHT SIGNAL ALERT & DYNAMIC TONNAGE BANNER */}
         <div
-          className={`p-4 sm:p-5 rounded-2xl border transition-colors ${
+          className={`p-4 sm:p-5 rounded-panel border transition-colors ${
             alertStatus === 'RED'
-              ? 'bg-slate-900 border-rose-500/40'
+              ? 'bg-panel border-line-subtle'
               : alertStatus === 'YELLOW'
-              ? 'bg-slate-900 border-amber-500/40'
-              : 'bg-slate-900 border-emerald-500/40'
+              ? 'bg-panel border-line-subtle'
+              : 'bg-panel border-line-subtle'
           }`}
         >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center space-x-4">
               {/* Traffic Light Visual Indicator */}
               <div
-                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-bold text-xl sm:text-2xl text-white shrink-0 border ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-nested flex items-center justify-center font-bold text-xl sm:text-2xl text-white shrink-0 border ${
                   alertStatus === 'RED'
                     ? 'bg-rose-600 border-rose-500'
                     : alertStatus === 'YELLOW'
@@ -354,29 +354,29 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-slate-400 font-bold">
+                  <span className="text-xs text-ink-3 font-semibold">
                     Sinyal Keamanan WIM Pos Timbang:
                   </span>
                   <span
-                    className={`text-xs font-mono font-bold px-2 py-1 rounded uppercase ${
+                    className={`text-xs font-mono font-bold px-2 py-0.5 rounded uppercase ${
                       alertStatus === 'RED'
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
                         : alertStatus === 'YELLOW'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
                     }`}
                   >
                     STATUS {alertStatus} (matriks keputusan DEMO)
                   </span>
                 </div>
 
-                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
+                <h2 className="text-sm sm:text-base font-semibold text-ink leading-snug">
                   {operationalAlertSummary}
                 </h2>
 
-                <p className="text-xs text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-xs text-ink-3 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span>
-                    Ruas Terpantau: <strong className="text-white font-medium">{selectedSegment.name}</strong>
+                    Ruas Terpantau: <strong className="text-ink-2 font-mono">{selectedSegment.name}</strong>
                   </span>
                   <span>&bull;</span>
                   <span>
@@ -399,7 +399,7 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   setSelectedTruckForAction(wimStream[0]);
                   setActiveModalType('BATM_MODAL');
                 }}
-                className="flex-1 sm:flex-initial bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl border border-rose-500 flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial bg-rose-700 hover:bg-rose-600 text-white font-semibold text-xs px-3.5 py-2 rounded-control border border-rose-600 flex items-center justify-center space-x-2 transition-colors cursor-pointer"
               >
                 <ShieldAlert className="w-4 h-4" />
                 <span>Transfer Muatan (BATM)</span>
@@ -410,9 +410,9 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   setSelectedTruckForAction(wimStream[0]);
                   setActiveModalType('REROUTE_MODAL');
                 }}
-                className="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs px-4 py-2 rounded-xl border border-slate-700 flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial bg-card hover:bg-raised text-ink font-semibold text-xs px-3.5 py-2 rounded-control border border-line-subtle flex items-center justify-center space-x-2 transition-colors cursor-pointer"
               >
-                <Compass className="w-4 h-4 text-slate-400" />
+                <Compass className="w-4 h-4 text-ink-3" />
                 <span>Pengalihan Rute</span>
               </button>
 
@@ -421,10 +421,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
                   setSelectedTruckForAction(wimStream[0]);
                   setActiveModalType('ETLE_MODAL');
                 }}
-                className="flex-1 sm:flex-initial bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 font-semibold text-xs px-3 py-2 rounded-xl flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                className="flex-1 sm:flex-initial bg-card hover:bg-raised text-ink font-semibold text-xs px-3.5 py-2 rounded-control border border-line-subtle flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 title="Tilang Elektronik ETLE WIM"
               >
-                <FileText className="w-4 h-4" />
+                <FileText className="w-4 h-4 text-ink-3" />
                 <span>Tilang ETLE</span>
               </button>
             </div>
@@ -434,70 +434,70 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
         {/* 2.2 TOP 4 KPI OPERATIONAL METRICS CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Truk Melintas Hari Ini */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="bg-panel border border-line-subtle p-4 rounded-card flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs text-slate-400 font-semibold">Total Truk WIM Hari Ini</p>
-              <h3 className="text-xl font-bold text-white font-mono">1,842</h3>
+              <p className="text-xs text-ink-3 font-semibold">Total Truk WIM Hari Ini</p>
+              <h3 className="text-2xl font-bold text-ink font-mono">1,842</h3>
               <p className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
-                <span>&uarr; +14.2%</span> <span className="text-slate-400">vs rerata harian</span>
+                <span>&uarr; +14.2%</span> <span className="text-ink-3">vs rerata harian</span>
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+            <div className="p-2.5 rounded-nested bg-card text-ink-2 border border-line-subtle">
               <Truck className="w-5 h-5" />
             </div>
           </div>
 
           {/* Card 2: Pelanggaran ODOL Kritis */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="bg-panel border border-line-subtle p-4 rounded-card flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs text-rose-400 font-semibold">Pelanggaran ODOL Kritis (&gt;20T)</p>
-              <h3 className="text-xl font-bold text-rose-400 font-mono">142</h3>
+              <h3 className="text-2xl font-bold text-rose-400 font-mono">142</h3>
               <p className="text-xs text-rose-400 flex items-center gap-1 font-medium">
                 <AlertTriangle className="w-3 h-3" />
                 <span>7.7% Tingkat Pelanggaran</span>
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <div className="p-2.5 rounded-nested bg-rose-500/10 text-rose-400 border border-rose-500/20">
               <ShieldAlert className="w-5 h-5" />
             </div>
           </div>
 
           {/* Card 3: Penindakan Berhasil & Denda */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="bg-panel border border-line-subtle p-4 rounded-card flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs text-amber-400 font-semibold">BATM & Denda Terbit</p>
-              <h3 className="text-xl font-bold text-amber-400 font-mono">Rp 182.5 Jt</h3>
-              <p className="text-xs text-slate-300 font-medium">28 Transfer &bull; 45 Reroute</p>
+              <h3 className="text-2xl font-bold text-amber-400 font-mono">Rp 182.5 Jt</h3>
+              <p className="text-xs text-ink-2 font-medium">28 Transfer &bull; 45 Reroute</p>
             </div>
-            <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2.5 rounded-nested bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <Scale className="w-5 h-5" />
             </div>
           </div>
 
           {/* Card 4: Intel OpenVINO Edge Telemetry */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="bg-panel border border-line-subtle p-4 rounded-card flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs text-indigo-300 font-semibold">Intel OpenVINO Edge</p>
-              <h3 className="text-xl font-bold text-white font-mono">6.2 ms</h3>
+              <h3 className="text-2xl font-bold text-ink font-mono">6.2 ms</h3>
               <p className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
-                <Cpu className="w-3 h-3 text-slate-400" />
+                <Cpu className="w-3 h-3 text-ink-3" />
                 <span>Target &lt;10ms (NPU INT8)</span>
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-slate-800 text-indigo-400 border border-slate-700">
+            <div className="p-2.5 rounded-nested bg-card text-indigo-400 border border-line-subtle">
               <Zap className="w-5 h-5 text-indigo-400" />
             </div>
           </div>
         </div>
 
         {/* 2.3 NAVIGATION TABS INSIDE OPERATIONS MANAGER VIEW */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line-subtle pb-3">
           <button
             onClick={() => setActiveOpsTab('LIVE_WIM')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-control font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'LIVE_WIM'
-                ? 'bg-slate-800 text-white border border-slate-600'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                ? 'bg-raised text-ink border border-line-active'
+                : 'bg-panel text-ink-2 hover:bg-raised hover:text-ink border border-line-subtle'
             }`}
           >
             <Activity className="w-4 h-4 text-rose-400" />
@@ -506,10 +506,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
           <button
             onClick={() => setActiveOpsTab('ENFORCEMENT_BATM')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-control font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'ENFORCEMENT_BATM'
-                ? 'bg-slate-800 text-white border border-slate-600'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                ? 'bg-raised text-ink border border-line-active'
+                : 'bg-panel text-ink-2 hover:bg-raised hover:text-ink border border-line-subtle'
             }`}
           >
             <ShieldAlert className="w-4 h-4 text-rose-400" />
@@ -518,10 +518,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
           <button
             onClick={() => setActiveOpsTab('DYNAMIC_TONNAGE')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-control font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'DYNAMIC_TONNAGE'
-                ? 'bg-slate-800 text-white border border-slate-600'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                ? 'bg-raised text-ink border border-line-active'
+                : 'bg-panel text-ink-2 hover:bg-raised hover:text-ink border border-line-subtle'
             }`}
           >
             <Sliders className="w-4 h-4 text-amber-400" />
@@ -530,10 +530,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
           <button
             onClick={() => setActiveOpsTab('COMMUNITY_WIM')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-control font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'COMMUNITY_WIM'
-                ? 'bg-slate-800 text-white border border-slate-600'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                ? 'bg-raised text-ink border border-line-active'
+                : 'bg-panel text-ink-2 hover:bg-raised hover:text-ink border border-line-subtle'
             }`}
           >
             <Camera className="w-4 h-4 text-emerald-400" />
@@ -542,10 +542,10 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
           <button
             onClick={() => setActiveOpsTab('DISPATCH')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-control font-semibold text-xs transition-colors flex items-center space-x-2 cursor-pointer ${
               activeOpsTab === 'DISPATCH'
-                ? 'bg-slate-800 text-white border border-slate-600'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                ? 'bg-raised text-ink border border-line-active'
+                : 'bg-panel text-ink-2 hover:bg-raised hover:text-ink border border-line-subtle'
             }`}
           >
             <Building2 className="w-4 h-4 text-indigo-400" />
@@ -1083,13 +1083,13 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
         {/* 2.8 TAB 5: CROSS-AGENCY DISPATCH (BINA MARGA & POLRI) */}
         {activeOpsTab === 'DISPATCH' && (
           <div className="space-y-4">
-            <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <div className="bg-panel border border-line-subtle p-4 sm:p-5 rounded-panel space-y-4">
+              <div className="border-b border-line-subtle pb-3">
+                <h3 className="text-base font-semibold text-ink flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-indigo-400" />
                   Sistem Disposisi Lintas-Instansi (Kemenhub &bull; Bina Marga PUPR &bull; Korlantas Polri)
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-ink-3">
                   Kirimkan notifikasi darurat penanganan jalan langsung ke Pejabat Pembuat Komitmen (PPK) Bina Marga atau
                   petugas Satlantas Polri.
                 </p>
@@ -1097,46 +1097,46 @@ export const OperationsManagerAppView: React.FC<OperationsManagerAppViewProps> =
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                 {/* Dispatch Option 1: Bina Marga Overlay Urgensi */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="bg-card p-4 rounded-card border border-line-subtle space-y-3">
                   <div className="flex items-center space-x-2">
-                    <span className="p-2 rounded-lg bg-slate-800 text-indigo-400 border border-slate-700">
+                    <span className="p-2 rounded-nested bg-raised text-indigo-400 border border-line-subtle">
                       <Building2 className="w-4 h-4" />
                     </span>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Disposisi Preservasi ke Ditjen Bina Marga</h4>
-                      <p className="text-xs text-slate-400">BBPJN DKI-Jawa Barat / Balai Pelaksanaan Jalan</p>
+                      <h4 className="text-xs font-semibold text-ink">Disposisi Preservasi ke Ditjen Bina Marga</h4>
+                      <p className="text-xs text-ink-3">BBPJN DKI-Jawa Barat / Balai Pelaksanaan Jalan</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-ink-2">
                     Notifikasi kerusakan struktural akibat 142 truk ODOL melintas di {selectedSegment.name}. Minta
                     penjadwalan perbaikan lapis aus AC-WC 6 cm sebelum retak amblas meluas.
                   </p>
                   <button
                     onClick={() => handleExecuteAction(`Disposisi Preservasi Jalan Resmi Dikirim ke BBPJN / PPK Bina Marga`)}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 rounded-lg border border-indigo-500 transition-colors cursor-pointer"
+                    className="w-full bg-[#3B5998] hover:bg-[#4C70BA] text-white font-semibold text-xs py-2.5 rounded-control border border-[#4C70BA] transition-colors cursor-pointer"
                   >
                     Kirim Disposisi ke Bina Marga
                   </button>
                 </div>
 
                 {/* Dispatch Option 2: Korlantas Polri Tilang ETLE */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="bg-card p-4 rounded-card border border-line-subtle space-y-3">
                   <div className="flex items-center space-x-2">
-                    <span className="p-2 rounded-lg bg-slate-800 text-rose-400 border border-slate-700">
+                    <span className="p-2 rounded-nested bg-raised text-rose-400 border border-line-subtle">
                       <Car className="w-4 h-4" />
                     </span>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Integrasi ETLE WIM ke Korlantas Polri</h4>
-                      <p className="text-xs text-slate-400">Pusat Penegakan Hukum Lalu Lintas Elektronik</p>
+                      <h4 className="text-xs font-semibold text-ink">Integrasi ETLE WIM ke Korlantas Polri</h4>
+                      <p className="text-xs text-ink-3">Pusat Penegakan Hukum Lalu Lintas Elektronik</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-ink-2">
                     Sinkronisasi data plat nomor dan bobot tonase truk pelanggar ODOL langsung ke server ETLE Korlantas
                     untuk pemblokiran STNK otomatis saat perpanjangan pajak tahunan.
                   </p>
                   <button
                     onClick={() => handleExecuteAction(`Data 142 Truk ODOL Berhasil Disinkronkan ke ETLE Korlantas Polri`)}
-                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-2 rounded-lg border border-rose-500 transition-colors cursor-pointer"
+                    className="w-full bg-rose-700 hover:bg-rose-600 text-white font-semibold text-xs py-2.5 rounded-control border border-rose-600 transition-colors cursor-pointer"
                   >
                     Sinkronisasi ke ETLE Korlantas
                   </button>

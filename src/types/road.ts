@@ -57,4 +57,15 @@ export interface RoadSegment {
   attributeStatus?: 'SYNTHETIC' | 'ESTIMATED' | 'OBSERVED';
   /** Provenance of the polyline: ILLUSTRATIVE until digitised from open road geometry. */
   geometryStatus?: 'ILLUSTRATIVE' | 'DIGITISED';
+  /** Provenance source of the centerline geometry */
+  geometrySource?: 'OSM_CENTERLINE' | 'VERIFIED_GIS' | 'ILLUSTRATIVE';
+  /** Coordinate reference system (standard EPSG:4326 / WGS84) */
+  crs?: 'EPSG:4326';
+  /** Spatial validation status */
+  validationStatus?: 'VALID' | 'UNVERIFIED';
+  /** Standard GeoJSON LineString representation (RFC 7946: [longitude, latitude]) */
+  geometry?: {
+    type: 'LineString';
+    coordinates: [number, number][];
+  };
 }

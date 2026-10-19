@@ -1,0 +1,38 @@
+{
+  "labels_version": "cv-taxonomy-v1",
+  "severity_policy": "cv-severity-v1",
+  "detector": {
+    "id": "rdd-yolov8n-v1",
+    "xml": "rdd-yolov8n-v1/rdd_yolov8.xml",
+    "task": "detect",
+    "imgsz": 640,
+    "source": "https://huggingface.co/nsr51324/Road_Damage_Object_Detection (runs/detect/yolov8_road/weights/best.pt)",
+    "license": "Repository card: MIT. Architecture/export code: Ultralytics AGPL-3.0.",
+    "trained_on": "Roboflow 'road-damage-1' (RDD-style classes), YOLOv8n, 50 epochs, 640 px",
+    "reported_metrics": "Author-reported mAP50 0.394, mAP50-95 0.230 (not re-validated here)",
+    "conf_accept": 0.25,
+    "conf_candidate": 0.15,
+    "iou_nms": 0.5,
+    "labels": {
+      "alligator":    { "taxonomy": "ALLIGATOR_CRACK",    "damageType": "ALLIGATOR_CRACK", "label": "Retak buaya (alligator)", "kind": "area" },
+      "block":        { "taxonomy": "BLOCK_CRACK",        "damageType": "CRACK",           "label": "Retak blok",              "kind": "area" },
+      "crack":        { "taxonomy": "OTHER_ROAD_DAMAGE",  "damageType": "CRACK",           "label": "Retak (tidak spesifik)",  "kind": "linear" },
+      "edge":         { "taxonomy": "EDGE_CRACK",         "damageType": "CRACK",           "label": "Retak tepi",              "kind": "linear" },
+      "longitudinal": { "taxonomy": "LONGITUDINAL_CRACK", "damageType": "CRACK",           "label": "Retak memanjang",         "kind": "linear" },
+      "pothole":      { "taxonomy": "POTHOLE",            "damageType": "POTHOLE",         "label": "Lubang (pothole)",        "kind": "pothole" },
+      "transverse":   { "taxonomy": "TRANSVERSE_CRACK",   "damageType": "CRACK",           "label": "Retak melintang",         "kind": "linear" }
+    }
+  },
+  "segmenter": {
+    "id": "crackseg-yolov8s-v1",
+    "xml": "crackseg-yolov8s-v1/crackseg_yolov8s.xml",
+    "task": "segment",
+    "imgsz": 640,
+    "source": "https://huggingface.co/OpenSistemas/YOLOv8-crack-seg (yolov8s/weights/best.pt)",
+    "license": "AGPL-3.0",
+    "trained_on": "Ultralytics Crack-seg dataset (road and wall cracks), single class 'crack'",
+    "conf_accept": 0.25,
+    "iou_nms": 0.5,
+    "mask_threshold": 0.5
+  }
+}

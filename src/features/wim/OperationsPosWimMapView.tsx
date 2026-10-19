@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { attachMapResizeRecovery } from '../../components/maps/mapViewport';
@@ -50,6 +50,7 @@ import {
 import { RoadSegment, SimulationResult, DamageReport } from '../../types';
 import { UserAccount } from '../authentication/demoAccounts';
 import confetti from 'canvas-confetti';
+import { PavementMap } from '../../components/maps/PavementMap';
 
 interface OperationsPosWimMapViewProps {
   currentAccount: UserAccount;
@@ -116,8 +117,8 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
   const [isLayerDropdownOpen, setIsLayerDropdownOpen] = useState<boolean>(false);
   const [activeLayer, setActiveLayer] = useState<'STANDARD' | 'SATELLITE' | 'TRAFFIC' | 'WIM_HEATMAP'>('STANDARD');
 
-  // Map Theme: Dark Mode (Default), Satelit, Real Light
-  const [mapTheme, setMapTheme] = useState<'DARK_MODE' | 'SATELLITE' | 'REAL_LIGHT'>('DARK_MODE');
+  // Map Theme: Real Light (Default matching Reference 2), Satelit, Dark Mode
+  const [mapTheme, setMapTheme] = useState<'DARK_MODE' | 'SATELLITE' | 'REAL_LIGHT'>('REAL_LIGHT');
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState<boolean>(false);
 
   // Search Corridor / WIM
@@ -292,64 +293,147 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
     }
   ]);
 
-  // Leaflet Map Refs
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const polylinesGroupRef = useRef<L.FeatureGroup | null>(null);
-  const markersGroupRef = useRef<L.FeatureGroup | null>(null);
+  // Camera focus & active highlight state for map interaction
+  const [mapCenterTarget, setMapCenterTarget] = useState<{ coords: [number, number]; zoom?: number; timestamp: number } | null>(null);
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
 
-  // Initialize Leaflet Map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
-
-    const map = L.map(mapContainerRef.current, {
-      center: [-6.2800, 106.9000],
-      zoom: 10,
-      zoomControl: false,
-      attributionControl: false
+  const handleFocusIncident = (incidentId: string, coords: [number, number]) => {
+    setActiveHighlightId(incidentId);
+    setMapCenterTarget({
+      coords,
+      zoom: 15,
+      timestamp: Date.now()
     });
+  };
 
-    const tileUrl =
-      mapTheme === 'SATELLITE'
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : mapTheme === 'REAL_LIGHT'
-        ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-        : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+  // Combine communityReports with the active anomalies & WIM stations so all 4 cards have matching interactive pins
+  const displayReports = useMemo<DamageReport[]>(() => {
+    const anomalyPins: DamageReport[] = [
+      {
+        id: 'alert-1',
+        reporterName: 'Sensor High-Speed WIM KM 62',
+        reporterRole: 'Telemetri Otomatis',
+        reporterAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+        timestamp: 'Baru saja',
+        segmentId: 'JLN-KRW-KIIC-1',
+        segmentName: 'KM 62 + 200, Tol Jakarta - Cikampek',
+        corridor: 'Tol Jakarta - Cikampek',
+        province: 'Jawa Barat',
+        coordinates: [-6.385, 107.285],
+        damageType: 'RUTTING',
+        damageTypeLabel: 'ODOL Kritis (67.4 Ton)',
+        severity: 'CRITICAL',
+        estimatedDepthCm: 18,
+        estimatedAreaM2: 25,
+        photoUrl: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&q=80&w=600',
+        description: 'Truk Tronton Golongan V terdeteksi GVW 67.4 Ton (+68.5% Overload). Kecepatan: 42 km/jam • Lajur 1 (Lambat).',
+        status: 'PENDING',
+        upvotesCount: 92,
+        userUpvoted: true
+      },
+      {
+        id: 'wim-2',
+        reporterName: 'Pos WIM Pelabuhan Priok',
+        reporterRole: 'Bina Marga WIM Sensor',
+        reporterAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
+        timestamp: '2 mnt lalu',
+        segmentId: 'JLN-JKT-PRIOK',
+        segmentName: 'Arteri Pelabuhan Tanjung Priok',
+        corridor: 'Arteri Tanjung Priok',
+        province: 'DKI Jakarta',
+        coordinates: [-6.1384, 106.8640],
+        damageType: 'RUTTING',
+        damageTypeLabel: 'Pos WIM Pelabuhan Priok',
+        severity: 'CRITICAL',
+        estimatedDepthCm: 14,
+        estimatedAreaM2: 20,
+        photoUrl: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&q=80&w=600',
+        description: 'Kontainer 40ft Gandeng terdeteksi 62.1 Ton (+55.2% Overload). Pelanggaran: 188 unit • Sensor 98.8%.',
+        status: 'PENDING',
+        upvotesCount: 78,
+        userUpvoted: false
+      },
+      {
+        id: 'alert-2',
+        reporterName: 'Sensor AWS Jagorawi',
+        reporterRole: 'Sensor Cuaca Otomatis',
+        reporterAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+        timestamp: '5 mnt lalu',
+        segmentId: 'JLN-BOGOR-JAGORAWI',
+        segmentName: 'KM 48 + 800, Tol Jagorawi',
+        corridor: 'Tol Jagorawi KM 48',
+        province: 'Jawa Barat',
+        coordinates: [-6.582, 106.845],
+        damageType: 'POTHOLE',
+        damageTypeLabel: 'Hujan Lebat AWS',
+        severity: 'SEVERE',
+        estimatedDepthCm: 10,
+        estimatedAreaM2: 15,
+        photoUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=600',
+        description: 'Intensitas hujan 78 mm/jam, resiko aquaplaning pada turunan Ciawi. Kecepatan Max: 60 km/jam • Visibilitas 300m.',
+        status: 'PENDING',
+        upvotesCount: 46,
+        userUpvoted: false
+      },
+      {
+        id: 'alert-3',
+        reporterName: 'Unit Patroli Tol JORR',
+        reporterRole: 'Petugas Lapangan',
+        reporterAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+        timestamp: '8 mnt lalu',
+        segmentId: 'JLN-JAKARTA-JORR',
+        segmentName: 'KM 12 + 400, Tol JORR',
+        corridor: 'Tol JORR KM 12',
+        province: 'DKI Jakarta',
+        coordinates: [-6.295, 106.812],
+        damageType: 'POTHOLE',
+        damageTypeLabel: 'Genangan Air Box Culvert',
+        severity: 'MODERATE',
+        estimatedDepthCm: 15,
+        estimatedAreaM2: 12,
+        photoUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=600',
+        description: 'Genangan setinggi 15 cm di lajur 1 akibat sumbatan sampah inlet. Pompa Mobile: Standby • Laju 30 km/jam.',
+        status: 'PENDING',
+        upvotesCount: 35,
+        userUpvoted: false
+      }
+    ];
 
-    const tileLayer = L.tileLayer(tileUrl, {
-      maxZoom: 19,
-      attribution:
-        mapTheme === 'REAL_LIGHT'
-          ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          : '&copy; <a href="https://www.esri.com/">Esri</a>'
-    }).addTo(map);
+    const baseReports = communityReports || [];
+    const existingIds = new Set(baseReports.map((r) => r.id));
+    const nonDuplicated = anomalyPins.filter((pin) => !existingIds.has(pin.id));
+    return [...nonDuplicated, ...baseReports];
+  }, [communityReports]);
 
-    tileLayerRef.current = tileLayer;
-    polylinesGroupRef.current = L.featureGroup().addTo(map);
-    markersGroupRef.current = L.featureGroup().addTo(map);
-
-    mapInstanceRef.current = map;
-    attachMapResizeRecovery(map, mapContainerRef.current);
-
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-    };
-  }, []);
-
-  // Update Tile Layer URL when Theme changes
-  useEffect(() => {
-    if (!tileLayerRef.current) return;
-    const tileUrl =
-      mapTheme === 'SATELLITE'
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : mapTheme === 'REAL_LIGHT'
-        ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-        : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
-
-    tileLayerRef.current.setUrl(tileUrl);
-  }, [mapTheme]);
+  // Search handler to focus on corridor, WIM station or alert
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    const q = searchQuery.toLowerCase().trim();
+    const matchedAlert = activeAlerts.find(
+      (a) => a.location.toLowerCase().includes(q) || a.title.toLowerCase().includes(q)
+    );
+    if (matchedAlert) {
+      handleFocusIncident(matchedAlert.id, matchedAlert.coordinates);
+      return;
+    }
+    const matchedWim = wimStations.find(
+      (w) => w.name.toLowerCase().includes(q) || w.corridor.toLowerCase().includes(q)
+    );
+    if (matchedWim) {
+      handleFocusIncident(matchedWim.id, matchedWim.coords);
+      return;
+    }
+    const matchedReport = displayReports.find(
+      (r) =>
+        r.segmentName.toLowerCase().includes(q) ||
+        r.damageTypeLabel.toLowerCase().includes(q) ||
+        r.corridor.toLowerCase().includes(q)
+    );
+    if (matchedReport) {
+      handleFocusIncident(matchedReport.id, matchedReport.coordinates);
+    }
+  };
 
   // Corridors data with coordinates
   const roadCorridors = [
@@ -447,189 +531,16 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
     }
   ];
 
-  // Render Polylines & Markers on Leaflet Map
-  useEffect(() => {
-    if (!mapInstanceRef.current || !polylinesGroupRef.current || !markersGroupRef.current) return;
-
-    polylinesGroupRef.current.clearLayers();
-    markersGroupRef.current.clearLayers();
-
-    // 1. Draw Corridors
-    roadCorridors.forEach((corr) => {
-      if (selectedStatusFilter !== 'ALL' && corr.status !== selectedStatusFilter) {
-        return;
-      }
-      if (searchQuery && !corr.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return;
-      }
-
-      // Outer glow for critical/warning
-      if (corr.status === 'KRITIS' || corr.status === 'SIAGA') {
-        const glow = L.polyline(corr.coords, {
-          color: corr.color,
-          weight: 12,
-          opacity: 0.35,
-          lineCap: 'round',
-          lineJoin: 'round'
-        });
-        polylinesGroupRef.current?.addLayer(glow);
-      }
-
-      const line = L.polyline(corr.coords, {
-        color: corr.color,
-        weight: 6,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round'
-      });
-
-      line.bindTooltip(
-        `<div class="p-1 text-xs font-bold text-slate-900">
-          <div class="font-semibold">${corr.name}</div>
-          <div class="text-xs text-slate-600">${corr.info}</div>
-        </div>`,
-        { sticky: true }
-      );
-
-      polylinesGroupRef.current?.addLayer(line);
-    });
-
-    // 2. Draw WIM Station Badges & Pins
-    wimStations.forEach((stn) => {
-      if (selectedStatusFilter !== 'ALL' && stn.status !== selectedStatusFilter) {
-        return;
-      }
-      if (searchQuery && !stn.name.toLowerCase().includes(searchQuery.toLowerCase()) && !stn.corridor.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return;
-      }
-
-      const isCritical = stn.status === 'KRITIS';
-      const isSiaga = stn.status === 'SIAGA';
-
-      const wimHtml = `
-        <div class="relative flex items-center space-x-2 bg-slate-900/95 text-white text-xs font-bold px-3 py-2 rounded-2xl border ${
-          isCritical ? 'border-rose-500 ' : isSiaga ? 'border-orange-500 ' : 'border-emerald-500/80 '
-        } shadow-lg  hover:scale-110 transition-transform cursor-pointer">
-          <span class="w-2 h-2 rounded-full ${
-            isCritical ? 'bg-rose-500 animate-ping' : isSiaga ? 'bg-orange-500 animate-pulse' : 'bg-emerald-400'
-          }"></span>
-          <span class="truncate max-w-[120px]">${stn.name}</span>
-          <span class="text-xs px-2 py-0.2 rounded font-mono ${
-            isCritical ? 'bg-rose-500/30 text-rose-300' : isSiaga ? 'bg-orange-500/30 text-orange-300' : 'bg-emerald-500/30 text-emerald-300'
-          }">${stn.lastGvw.split(' ')[0]}</span>
-        </div>
-      `;
-
-      const wimIcon = L.divIcon({
-        className: 'custom-wim-interactive-pin',
-        html: wimHtml,
-        iconSize: [160, 32],
-        iconAnchor: [80, 16]
-      });
-
-      const marker = L.marker(stn.coords, { icon: wimIcon });
-      marker.on('click', () => {
-        setSelectedWimStation(stn);
-      });
-
-      marker.bindTooltip(
-        `<div class="p-1 text-xs">
-          <div class="font-semibold text-slate-900">${stn.name}</div>
-          <div class="text-slate-700">${stn.corridor}</div>
-          <div class="text-slate-500 font-mono text-xs mt-1">Beban Terakhir: ${stn.lastGvw}</div>
-        </div>`,
-        { direction: 'top', offset: [0, -14] }
-      );
-
-      markersGroupRef.current?.addLayer(marker);
-    });
-
-    // 3. Draw Incident Alert Pins
-    activeAlerts.forEach((alert) => {
-      if (selectedStatusFilter !== 'ALL' && alert.level !== selectedStatusFilter) {
-        return;
-      }
-      if (searchQuery && !alert.title.toLowerCase().includes(searchQuery.toLowerCase()) && !alert.location.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return;
-      }
-
-      let iconHtml = '';
-      if (alert.level === 'KRITIS') {
-        iconHtml = `
-          <div class="relative flex items-center justify-center cursor-pointer hover:scale-125 transition-transform">
-            <span class="absolute w-10 h-10 rounded-full bg-rose-500/40 animate-ping"></span>
-            <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-semibold">
-              !
-            </div>
-          </div>
-        `;
-      } else if (alert.level === 'SIAGA') {
-        iconHtml = `
-          <div class="relative flex items-center justify-center cursor-pointer hover:scale-125 transition-transform">
-            <span class="absolute w-8 h-8 rounded-full bg-orange-500/30 animate-pulse"></span>
-            <div class="w-7 h-7 rounded-full bg-orange-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold">
-              ⚠
-            </div>
-          </div>
-        `;
-      } else if (alert.level === 'WASPADA') {
-        iconHtml = `
-          <div class="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform">
-            <div class="w-7 h-7 rounded-full bg-amber-400 border-2 border-white shadow-lg flex items-center justify-center text-slate-950 text-xs font-bold">
-              ⚠
-            </div>
-          </div>
-        `;
-      } else {
-        iconHtml = `
-          <div class="flex items-center justify-center cursor-pointer hover:scale-125 transition-transform">
-            <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-semibold">
-              ✓
-            </div>
-          </div>
-        `;
-      }
-
-      const alertIcon = L.divIcon({
-        className: 'custom-alert-pin',
-        html: iconHtml,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      const marker = L.marker(alert.coordinates, { icon: alertIcon });
-      marker.on('click', () => {
-        setSelectedAlertDetail(alert);
-      });
-
-      markersGroupRef.current?.addLayer(marker);
-    });
-
-  }, [activeAlerts, wimStations, selectedStatusFilter, searchQuery]);
-
   // Carousel Navigation Helpers
   const scrollCarouselLeft = () => {
     if (carouselContainerRef.current) {
-      carouselContainerRef.current.scrollBy({ left: -340, behavior: 'smooth' });
+      carouselContainerRef.current.scrollBy({ left: -360, behavior: 'smooth' });
     }
   };
 
   const scrollCarouselRight = () => {
     if (carouselContainerRef.current) {
-      carouselContainerRef.current.scrollBy({ left: 340, behavior: 'smooth' });
-    }
-  };
-
-  // Zoom & Recenter
-  const handleZoomIn = () => {
-    if (mapInstanceRef.current) mapInstanceRef.current.zoomIn();
-  };
-  const handleZoomOut = () => {
-    if (mapInstanceRef.current) mapInstanceRef.current.zoomOut();
-  };
-  const handleRecenter = () => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([-6.2800, 106.9000], 10, { animate: true });
+      carouselContainerRef.current.scrollBy({ left: 360, behavior: 'smooth' });
     }
   };
 
@@ -695,330 +606,275 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
       )}
 
       {/* ========================================================================= */}
-      {/* TOP FLOATING TOOLBAR (Operations Center Dark Header & Filters) */}
+      {/* TOP FLOATING TOOLBAR: INTEGRATED HEADER + SEARCH (M.O DESIGN SYSTEM) */}
       {/* ========================================================================= */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        {/* Left Side: Brand Title & Quick Search */}
-        <div className="flex flex-wrap items-center gap-3 pointer-events-auto">
-          {/* Main Title Badge */}
-          <div className="flex items-center space-x-3 bg-slate-900/90 px-4 py-3 rounded-2xl border border-slate-800 shadow-2xl">
-            <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30 shrink-0">
-              <Scale className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-sm sm:text-base font-semibold text-white tracking-tight">
-                  Peta & POS WIM
-                </h1>
-                <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 px-2 py-1 rounded-full border border-rose-500/30">
-                  LIVE TELEMETRI
-                </span>
+      <div className="absolute top-4 left-4 right-4 z-20 flex flex-col gap-2.5 pointer-events-none">
+        {/* Row 1: Header + Search on Left, Filter + Action on Right */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left Side: Single Unified Live Telemetry Card with Integrated Search */}
+          <div className="flex items-center gap-3 pointer-events-auto max-w-full">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 bg-[#12151A]/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-[#292D33] shadow-2xl">
+              {/* Identity & Status */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="p-2 bg-rose-500/15 text-rose-400 rounded-xl border border-rose-500/30 shrink-0">
+                  <Scale className="w-5 h-5 text-rose-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-sm sm:text-base font-semibold text-[#F0F1F3] tracking-tight">
+                      Peta & POS WIM
+                    </h1>
+                    <span className="text-[11px] font-mono font-bold bg-rose-500/15 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30 tracking-wider">
+                      LIVE TELEMETRI
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#757D8A]">Monitoring Sensor Beban Truk & Kondisi Koridor</p>
+                </div>
               </div>
-              <p className="text-xs text-slate-400">Monitoring Sensor Beban Truk & Kondisi Koridor</p>
+
+              {/* Vertical divider on desktop */}
+              <div className="hidden sm:block w-px h-8 bg-[#292D33] shrink-0" />
+
+              {/* Integrated Search Input (aligned center, standard control height) */}
+              <form onSubmit={handleSearchSubmit} className="relative min-w-[200px] sm:w-60 md:w-68 lg:w-72 flex-1">
+                <Search className="w-4 h-4 text-[#757D8A] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari Koridor / Pos WIM..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-9 pl-9 pr-8 text-xs bg-[#181B20] border border-[#292D33] text-[#F0F1F3] placeholder-[#757D8A] rounded-xl focus:border-[#E8B52B]/60 focus:ring-1 focus:ring-[#E8B52B]/40 outline-none transition-all shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#757D8A] hover:text-[#F0F1F3] p-0.5 rounded cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </form>
             </div>
           </div>
 
-          {/* Quick Search Input */}
-          <div className="relative hidden md:block">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Cari Koridor / Pos WIM..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 text-xs bg-slate-900/90 border border-slate-800 text-white placeholder-slate-500 rounded-2xl w-56 focus:w-64 focus:ring-2 focus:ring-rose-500 outline-none transition-all shadow-xl"
-            />
-            {searchQuery && (
+          {/* Right Side: Status Filter Dropdown & Buat Peringatan Button */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {/* Status Filter Dropdown */}
+            <div className="relative">
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                className="flex items-center space-x-2 px-3.5 py-2 bg-[#12151A]/95 hover:bg-[#1E2228] text-xs font-semibold text-[#F0F1F3] rounded-2xl border border-[#292D33] shadow-xl transition-all cursor-pointer h-9"
               >
-                <X className="w-4 h-4" />
+                <Layers className="w-4 h-4 text-[#E8B52B]" />
+                <span>
+                  {selectedStatusFilter === 'ALL'
+                    ? 'Semua Status'
+                    : selectedStatusFilter === 'NORMAL'
+                    ? 'Normal'
+                    : selectedStatusFilter === 'WASPADA'
+                    ? 'Waspada'
+                    : selectedStatusFilter === 'SIAGA'
+                    ? 'Siaga'
+                    : 'Kritis'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-[#757D8A]" />
               </button>
-            )}
-          </div>
-        </div>
 
-        {/* Right Side: Status Filter, Layer Switcher, Map Theme & Actions */}
-        <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
-          {/* Status Filter Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-              className="flex items-center space-x-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
-            >
-              <Layers className="w-4 h-4 text-amber-400" />
-              <span>
-                {selectedStatusFilter === 'ALL'
-                  ? 'Semua Status'
-                  : selectedStatusFilter === 'NORMAL'
-                  ? 'Normal'
-                  : selectedStatusFilter === 'WASPADA'
-                  ? 'Waspada'
-                  : selectedStatusFilter === 'SIAGA'
-                  ? 'Siaga'
-                  : 'Kritis'}
-              </span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-
-            {isFilterDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-44 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 py-2 z-40 animate-in fade-in duration-150">
-                <button
-                  onClick={() => {
-                    setSelectedStatusFilter('ALL');
-                    setIsFilterDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span>Semua Status</span>
-                  {selectedStatusFilter === 'ALL' && <Check className="w-4 h-4 text-amber-400" />}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedStatusFilter('KRITIS');
-                    setIsFilterDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                    <span>Kritis (ODOL {'>'}50%)</span>
-                  </span>
-                  {selectedStatusFilter === 'KRITIS' && <Check className="w-4 h-4 text-rose-400" />}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedStatusFilter('SIAGA');
-                    setIsFilterDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                    <span>Siaga (Hujan/Cuaca)</span>
-                  </span>
-                  {selectedStatusFilter === 'SIAGA' && <Check className="w-4 h-4 text-orange-400" />}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedStatusFilter('WASPADA');
-                    setIsFilterDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                    <span>Waspada (Genangan)</span>
-                  </span>
-                  {selectedStatusFilter === 'WASPADA' && <Check className="w-4 h-4 text-amber-400" />}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedStatusFilter('NORMAL');
-                    setIsFilterDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span>Normal</span>
-                  </span>
-                  {selectedStatusFilter === 'NORMAL' && <Check className="w-4 h-4 text-emerald-400" />}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Map Theme Toggle (Dark Mode / Satelit / Real Light) */}
-          <div className="relative">
-            <button
-              onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-              className="flex items-center space-x-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-800 text-xs font-bold text-slate-200 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
-            >
-              {mapTheme === 'DARK_MODE' ? (
-                <>
-                  <Moon className="w-4 h-4 text-indigo-400" />
-                  <span className="hidden sm:inline">Dark Mode</span>
-                </>
-              ) : mapTheme === 'SATELLITE' ? (
-                <>
-                  <Satellite className="w-4 h-4 text-emerald-400" />
-                  <span className="hidden sm:inline">Satelit</span>
-                </>
-              ) : (
-                <>
-                  <Sun className="w-4 h-4 text-amber-400" />
-                  <span className="hidden sm:inline">Real Terang</span>
-                </>
+              {isFilterDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-[#12151A] rounded-2xl shadow-2xl border border-[#292D33] py-2 z-40 animate-in fade-in duration-150">
+                  <button
+                    onClick={() => {
+                      setSelectedStatusFilter('ALL');
+                      setIsFilterDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-[#1E2228] text-[#F0F1F3] flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Semua Status</span>
+                    {selectedStatusFilter === 'ALL' && <Check className="w-4 h-4 text-[#E8B52B]" />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatusFilter('KRITIS');
+                      setIsFilterDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-[#1E2228] text-[#F0F1F3] flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      <span>Kritis (ODOL {'>'}50%)</span>
+                    </span>
+                    {selectedStatusFilter === 'KRITIS' && <Check className="w-4 h-4 text-rose-400" />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatusFilter('SIAGA');
+                      setIsFilterDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-[#1E2228] text-[#F0F1F3] flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                      <span>Siaga (Hujan/Cuaca)</span>
+                    </span>
+                    {selectedStatusFilter === 'SIAGA' && <Check className="w-4 h-4 text-orange-400" />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatusFilter('WASPADA');
+                      setIsFilterDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-[#1E2228] text-[#F0F1F3] flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      <span>Waspada (Genangan)</span>
+                    </span>
+                    {selectedStatusFilter === 'WASPADA' && <Check className="w-4 h-4 text-amber-400" />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedStatusFilter('NORMAL');
+                      setIsFilterDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-[#1E2228] text-[#F0F1F3] flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span>Normal</span>
+                    </span>
+                    {selectedStatusFilter === 'NORMAL' && <Check className="w-4 h-4 text-emerald-400" />}
+                  </button>
+                </div>
               )}
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </div>
+
+            {/* "+ Buat Peringatan" Yellow Button */}
+            <button
+              onClick={() => setIsCreateAlertModalOpen(true)}
+              className="bg-[#E8B52B] hover:bg-[#d4a017] text-slate-950 font-bold text-xs px-4 rounded-2xl shadow-lg flex items-center space-x-2 transition-all cursor-pointer active:scale-95 border border-amber-300 h-9"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span className="hidden sm:inline">Buat Peringatan</span>
             </button>
-
-            {isThemeMenuOpen && (
-              <div className="absolute top-full right-0 mt-2 w-40 bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 py-2 z-40 animate-in fade-in duration-150">
-                <button
-                  onClick={() => {
-                    setMapTheme('DARK_MODE');
-                    setIsThemeMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <Moon className="w-4 h-4 text-indigo-400" />
-                    <span>Dark Mode</span>
-                  </span>
-                  {mapTheme === 'DARK_MODE' && <Check className="w-4 h-4 text-indigo-400" />}
-                </button>
-                <button
-                  onClick={() => {
-                    setMapTheme('SATELLITE');
-                    setIsThemeMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <Satellite className="w-4 h-4 text-emerald-400" />
-                    <span>Satelit</span>
-                  </span>
-                  {mapTheme === 'SATELLITE' && <Check className="w-4 h-4 text-emerald-400" />}
-                </button>
-                <button
-                  onClick={() => {
-                    setMapTheme('REAL_LIGHT');
-                    setIsThemeMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-800 text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center space-x-2">
-                    <Sun className="w-4 h-4 text-amber-400" />
-                    <span>Real Terang</span>
-                  </span>
-                  {mapTheme === 'REAL_LIGHT' && <Check className="w-4 h-4 text-amber-400" />}
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* Recenter Button */}
-          <button
-            onClick={handleRecenter}
-            title="Pusatkan Peta"
-            className="p-3 bg-slate-900/90 hover:bg-slate-800 text-cyan-400 rounded-2xl border border-slate-800 shadow-xl transition-all cursor-pointer"
-          >
-            <Crosshair className="w-4 h-4" />
-          </button>
-
-          {/* "+ Buat Peringatan" Yellow Button */}
-          <button
-            onClick={() => setIsCreateAlertModalOpen(true)}
-            className="bg-[#e8b23a] hover:bg-[#d97706] text-slate-950 font-semibold text-xs px-4 py-3 rounded-2xl shadow-lg flex items-center space-x-2 transition-all cursor-pointer active:scale-95 border border-amber-300"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span className="hidden sm:inline">Buat Peringatan</span>
-          </button>
         </div>
-      </div>
 
-      {/* ========================================================================= */}
-      {/* TOP FLOATING KPI STATS RIBBON (Dark Mode) */}
-      {/* ========================================================================= */}
-      <div className="absolute top-20 left-4 z-20 hidden md:flex items-center space-x-2 pointer-events-none">
-        <div className="flex items-center space-x-3 bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-800 shadow-2xl pointer-events-auto">
-          <div className="flex items-center space-x-2 text-xs">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-            <span className="text-slate-400 font-medium">ODOL Kritis:</span>
-            <strong className="text-rose-400 font-semibold font-mono">3 Lokasi</strong>
-          </div>
-          <div className="w-px h-4 bg-slate-700"></div>
-          <div className="flex items-center space-x-2 text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span className="text-slate-400 font-medium">Stasiun WIM Aktif:</span>
-            <strong className="text-emerald-400 font-semibold font-mono">24/24 Online</strong>
-          </div>
-          <div className="w-px h-4 bg-slate-700"></div>
-          <div className="flex items-center space-x-2 text-xs">
-            <Scale className="w-4 h-4 text-amber-400" />
-            <span className="text-slate-400 font-medium">Overload Rate:</span>
-            <strong className="text-amber-400 font-semibold font-mono">18.4%</strong>
+        {/* Row 2: Status Strip (Cleanly separated beneath the header, NO overlap) */}
+        <div className="flex items-center pointer-events-none">
+          <div className="flex items-center space-x-3 bg-[#12151A]/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-[#292D33] shadow-xl pointer-events-auto text-xs">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span className="text-[#B0B5BE] font-medium">ODOL Kritis:</span>
+              <strong className="text-rose-400 font-semibold font-mono">3 Lokasi</strong>
+            </div>
+            <div className="w-px h-3.5 bg-[#292D33]"></div>
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span className="text-[#B0B5BE] font-medium">Stasiun WIM Aktif:</span>
+              <strong className="text-emerald-400 font-semibold font-mono">24/24 Online</strong>
+            </div>
+            <div className="w-px h-3.5 bg-[#292D33]"></div>
+            <div className="flex items-center space-x-2">
+              <Scale className="w-3.5 h-3.5 text-[#E8B52B]" />
+              <span className="text-[#B0B5BE] font-medium">Overload Rate:</span>
+              <strong className="text-[#E8B52B] font-semibold font-mono">18.4%</strong>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* MAIN LEAFLET MAP CONTAINER */}
+      {/* MAIN MAP CONTAINER */}
       {/* ========================================================================= */}
       <div className="flex-1 w-full h-full relative">
-        <div ref={mapContainerRef} className="w-full h-full z-0 bg-slate-950" />
-
-        {/* Zoom Controls floating bottom right */}
-        <div className="absolute right-4 bottom-48 sm:bottom-40 z-20 flex flex-col space-y-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-800 shadow-2xl">
-          <button
-            onClick={handleZoomIn}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-all cursor-pointer"
-          >
-            +
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-all cursor-pointer"
-          >
-            -
-          </button>
-        </div>
+        <PavementMap
+          compact={false}
+          engine="globe"
+          isTabActive={true}
+          roadSegments={roadSegments}
+          selectedSegment={selectedSegment ?? null}
+          onSelectSegment={onSelectSegment ?? (() => {})}
+          communityReports={displayReports}
+          highlightReportId={activeHighlightId}
+          mapCenterTarget={mapCenterTarget}
+          onSelectReport={(report) => {
+            handleFocusIncident(report.id, report.coordinates);
+            const matchedAlert = activeAlerts.find((a) => a.id === report.id);
+            if (matchedAlert) {
+              setSelectedAlertDetail(matchedAlert);
+            } else {
+              const matchedWim = wimStations.find((w) => w.id === report.id);
+              if (matchedWim) {
+                setSelectedWimStation(matchedWim);
+              }
+            }
+          }}
+        />
       </div>
 
       {/* ========================================================================= */}
-      {/* BOTTOM FLOATING CAROUSEL OF ACTIVE ALERTS & POS WIM (DARK CARDS) */}
+      {/* BOTTOM FLOATING CONTAINER: 4 ANOMALY CARDS (GRID WITH PRECISION GAP) */}
       {/* ========================================================================= */}
-      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col space-y-2 pointer-events-none">
-        {/* Carousel Header Bar */}
-        <div className="flex items-center justify-between px-1 pointer-events-auto">
-          <div className="flex items-center space-x-2 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-800 shadow-lg text-xs">
-            <span className="font-semibold text-white">Anomali Terdeteksi & Pos WIM Prioritas</span>
-            <span className="text-xs text-slate-400 font-mono">({activeAlerts.length} Insiden Aktif)</span>
+      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2.5 pointer-events-none">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between pointer-events-auto">
+          <div className="flex items-center space-x-2 bg-[#12151A]/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-[#292D33] shadow-lg text-xs">
+            <span className="font-semibold text-[#F0F1F3]">Anomali Terdeteksi & Pos WIM Prioritas</span>
+            <span className="text-xs text-[#757D8A] font-mono">({activeAlerts.length} Insiden Aktif)</span>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
               onClick={scrollCarouselLeft}
-              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 shadow-lg cursor-pointer"
+              className="p-2 rounded-xl bg-[#12151A]/95 hover:bg-[#1E2228] text-[#F0F1F3] border border-[#292D33] shadow-lg cursor-pointer transition-colors"
+              title="Sebelumnya"
+              aria-label="Sebelumnya"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={scrollCarouselRight}
-              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 shadow-lg cursor-pointer"
+              className="p-2 rounded-xl bg-[#12151A]/95 hover:bg-[#1E2228] text-[#F0F1F3] border border-[#292D33] shadow-lg cursor-pointer transition-colors"
+              title="Selanjutnya"
+              aria-label="Selanjutnya"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Carousel Cards Container */}
+        {/* 4 Cards Grid Layout with Consistent 14px Column Gap */}
         <div
           ref={carouselContainerRef}
-          className="flex items-stretch space-x-3 overflow-x-auto pb-1 pointer-events-auto custom-scrollbar scroll-smooth"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 w-full pointer-events-auto"
         >
           {/* Card 1: Critical ODOL Alert KM 62 */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-rose-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-rose-400 transition-all">
+          <div
+            onClick={() => handleFocusIncident('alert-1', activeAlerts[0].coordinates)}
+            className={`w-full min-w-0 bg-[#12151A]/95 backdrop-blur-md border rounded-2xl shadow-2xl p-4 flex flex-col justify-between transition-all cursor-pointer group ${
+              activeHighlightId === 'alert-1'
+                ? 'border-rose-400 ring-2 ring-rose-500/30'
+                : 'border-rose-500/40 hover:border-rose-400'
+            }`}
+          >
             <div>
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded-full">
+              <div className="flex items-center justify-between pb-2 border-b border-[#292D33]">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="text-[11px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full shrink-0">
                     KRITIS
                   </span>
-                  <span className="text-xs font-bold text-white">ODOL Terlampaui</span>
+                  <span className="text-xs font-bold text-[#F0F1F3] truncate">ODOL Terlampaui</span>
                 </div>
-                <span className="text-xs text-slate-400 font-mono">Baru saja</span>
+                <span className="text-[11px] text-[#757D8A] font-mono shrink-0 ml-2">Baru saja</span>
               </div>
 
-              <div className="mt-3 space-y-1">
-                <h4 className="text-xs font-bold text-rose-300">KM 62 + 200, Tol Jakarta - Cikampek</h4>
-                <p className="text-xs text-slate-300 leading-tight">
+              <div className="mt-3 space-y-1 min-w-0">
+                <h4 className="text-xs font-bold text-rose-300 truncate">KM 62 + 200, Tol Jakarta - Cikampek</h4>
+                <p className="text-xs text-[#B0B5BE] leading-relaxed line-clamp-2">
                   Truk Tronton Golongan V terdeteksi GVW <strong className="text-white">67.4 Ton</strong> (+68.5% Overload).
                 </p>
-                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-[11px] font-mono text-[#757D8A] pt-1">
                   <span>Kecepatan: 42 km/jam</span>
                   <span>•</span>
                   <span>Lajur 1 (Lambat)</span>
@@ -1026,15 +882,22 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-[#292D33] flex items-center justify-between gap-2">
               <button
-                onClick={() => setSelectedAlertDetail(activeAlerts[0])}
-                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAlertDetail(activeAlerts[0]);
+                  handleFocusIncident('alert-1', activeAlerts[0].coordinates);
+                }}
+                className="flex-1 py-2 bg-[#1E2228] hover:bg-[#292D33] text-[#F0F1F3] border border-[#292D33] text-xs font-semibold rounded-xl transition-all cursor-pointer text-center"
               >
                 Rincian
               </button>
               <button
-                onClick={() => handleExecuteAction('BATASI')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExecuteAction('BATASI');
+                }}
                 className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 Batasi Truk
@@ -1043,24 +906,31 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           </div>
 
           {/* Card 2: Priok Port Overload WIM */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-rose-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-rose-400 transition-all">
+          <div
+            onClick={() => handleFocusIncident('wim-2', wimStations[1].coords)}
+            className={`w-full min-w-0 bg-[#12151A]/95 backdrop-blur-md border rounded-2xl shadow-2xl p-4 flex flex-col justify-between transition-all cursor-pointer group ${
+              activeHighlightId === 'wim-2'
+                ? 'border-rose-400 ring-2 ring-rose-500/30'
+                : 'border-rose-500/40 hover:border-rose-400'
+            }`}
+          >
             <div>
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded-full">
+              <div className="flex items-center justify-between pb-2 border-b border-[#292D33]">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="text-[11px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full shrink-0">
                     KRITIS
                   </span>
-                  <span className="text-xs font-bold text-white">Pos WIM Pelabuhan Priok</span>
+                  <span className="text-xs font-bold text-[#F0F1F3] truncate">Pos WIM Pelabuhan Priok</span>
                 </div>
-                <span className="text-xs text-slate-400 font-mono">2 mnt lalu</span>
+                <span className="text-[11px] text-[#757D8A] font-mono shrink-0 ml-2">2 mnt lalu</span>
               </div>
 
-              <div className="mt-3 space-y-1">
-                <h4 className="text-xs font-bold text-rose-300">Arteri Pelabuhan Tanjung Priok</h4>
-                <p className="text-xs text-slate-300 leading-tight">
+              <div className="mt-3 space-y-1 min-w-0">
+                <h4 className="text-xs font-bold text-rose-300 truncate">Arteri Pelabuhan Tanjung Priok</h4>
+                <p className="text-xs text-[#B0B5BE] leading-relaxed line-clamp-2">
                   Kontainer 40ft Gandeng terdeteksi <strong className="text-white">62.1 Ton</strong> (+55.2% Overload).
                 </p>
-                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-[11px] font-mono text-[#757D8A] pt-1">
                   <span>Pelanggaran: 188 unit</span>
                   <span>•</span>
                   <span>Sensor 98.8%</span>
@@ -1068,15 +938,22 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-[#292D33] flex items-center justify-between gap-2">
               <button
-                onClick={() => setSelectedWimStation(wimStations[1])}
-                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedWimStation(wimStations[1]);
+                  handleFocusIncident('wim-2', wimStations[1].coords);
+                }}
+                className="flex-1 py-2 bg-[#1E2228] hover:bg-[#292D33] text-[#F0F1F3] border border-[#292D33] text-xs font-semibold rounded-xl transition-all cursor-pointer text-center"
               >
                 Telemetri
               </button>
               <button
-                onClick={() => handleExecuteAction('TILANG')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExecuteAction('TILANG');
+                }}
                 className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 E-Tilang WIM
@@ -1085,24 +962,31 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           </div>
 
           {/* Card 3: Weather Alert Tol Jagorawi */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-orange-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-orange-400 transition-all">
+          <div
+            onClick={() => handleFocusIncident('alert-2', activeAlerts[1].coordinates)}
+            className={`w-full min-w-0 bg-[#12151A]/95 backdrop-blur-md border rounded-2xl shadow-2xl p-4 flex flex-col justify-between transition-all cursor-pointer group ${
+              activeHighlightId === 'alert-2'
+                ? 'border-orange-400 ring-2 ring-orange-500/30'
+                : 'border-orange-500/40 hover:border-orange-400'
+            }`}
+          >
             <div>
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-mono font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2 py-1 rounded-full">
+              <div className="flex items-center justify-between pb-2 border-b border-[#292D33]">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="text-[11px] font-mono font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2 py-0.5 rounded-full shrink-0">
                     SIAGA
                   </span>
-                  <span className="text-xs font-bold text-white">Hujan Lebat AWS</span>
+                  <span className="text-xs font-bold text-[#F0F1F3] truncate">Hujan Lebat AWS</span>
                 </div>
-                <span className="text-xs text-slate-400 font-mono">5 mnt lalu</span>
+                <span className="text-[11px] text-[#757D8A] font-mono shrink-0 ml-2">5 mnt lalu</span>
               </div>
 
-              <div className="mt-3 space-y-1">
-                <h4 className="text-xs font-bold text-orange-300">KM 48 + 800, Tol Jagorawi</h4>
-                <p className="text-xs text-slate-300 leading-tight">
+              <div className="mt-3 space-y-1 min-w-0">
+                <h4 className="text-xs font-bold text-orange-300 truncate">KM 48 + 800, Tol Jagorawi</h4>
+                <p className="text-xs text-[#B0B5BE] leading-relaxed line-clamp-2">
                   Intensitas hujan <strong className="text-white">78 mm/jam</strong>, resiko aquaplaning pada turunan Ciawi.
                 </p>
-                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-[11px] font-mono text-[#757D8A] pt-1">
                   <span>Kecepatan Max: 60 km/jam</span>
                   <span>•</span>
                   <span>Visibilitas 300m</span>
@@ -1110,15 +994,22 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-[#292D33] flex items-center justify-between gap-2">
               <button
-                onClick={() => setSelectedAlertDetail(activeAlerts[1])}
-                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAlertDetail(activeAlerts[1]);
+                  handleFocusIncident('alert-2', activeAlerts[1].coordinates);
+                }}
+                className="flex-1 py-2 bg-[#1E2228] hover:bg-[#292D33] text-[#F0F1F3] border border-[#292D33] text-xs font-semibold rounded-xl transition-all cursor-pointer text-center"
               >
                 Rincian
               </button>
               <button
-                onClick={() => handleExecuteAction('ALIHKAN')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExecuteAction('ALIHKAN');
+                }}
                 className="flex-1 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 VMS Peringatan
@@ -1127,24 +1018,31 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
           </div>
 
           {/* Card 4: WIM Lenteng Agung */}
-          <div className="min-w-[320px] max-w-[340px] bg-slate-900/95 border border-amber-500/40 rounded-2xl shadow-2xl p-4 flex flex-col justify-between hover:border-amber-400 transition-all">
+          <div
+            onClick={() => handleFocusIncident('alert-3', activeAlerts[2].coordinates)}
+            className={`w-full min-w-0 bg-[#12151A]/95 backdrop-blur-md border rounded-2xl shadow-2xl p-4 flex flex-col justify-between transition-all cursor-pointer group ${
+              activeHighlightId === 'alert-3'
+                ? 'border-amber-400 ring-2 ring-amber-500/30'
+                : 'border-amber-500/40 hover:border-amber-400'
+            }`}
+          >
             <div>
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-full">
+              <div className="flex items-center justify-between pb-2 border-b border-[#292D33]">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="text-[11px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full shrink-0">
                     WASPADA
                   </span>
-                  <span className="text-xs font-bold text-white">Genangan Air Box Culvert</span>
+                  <span className="text-xs font-bold text-[#F0F1F3] truncate">Genangan Air Box Culvert</span>
                 </div>
-                <span className="text-xs text-slate-400 font-mono">8 mnt lalu</span>
+                <span className="text-[11px] text-[#757D8A] font-mono shrink-0 ml-2">8 mnt lalu</span>
               </div>
 
-              <div className="mt-3 space-y-1">
-                <h4 className="text-xs font-bold text-amber-300">KM 12 + 400, Tol JORR</h4>
-                <p className="text-xs text-slate-300 leading-tight">
+              <div className="mt-3 space-y-1 min-w-0">
+                <h4 className="text-xs font-bold text-amber-300 truncate">KM 12 + 400, Tol JORR</h4>
+                <p className="text-xs text-[#B0B5BE] leading-relaxed line-clamp-2">
                   Genangan setinggi <strong className="text-white">15 cm</strong> di lajur 1 akibat sumbatan sampah inlet.
                 </p>
-                <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 pt-1">
+                <div className="flex items-center space-x-2 text-[11px] font-mono text-[#757D8A] pt-1">
                   <span>Pompa Mobile: Standby</span>
                   <span>•</span>
                   <span>Laju 30 km/jam</span>
@@ -1152,15 +1050,22 @@ export const OperationsPosWimMapView: React.FC<OperationsPosWimMapViewProps> = (
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="mt-3 pt-3 border-t border-[#292D33] flex items-center justify-between gap-2">
               <button
-                onClick={() => setSelectedAlertDetail(activeAlerts[2])}
-                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAlertDetail(activeAlerts[2]);
+                  handleFocusIncident('alert-3', activeAlerts[2].coordinates);
+                }}
+                className="flex-1 py-2 bg-[#1E2228] hover:bg-[#292D33] text-[#F0F1F3] border border-[#292D33] text-xs font-semibold rounded-xl transition-all cursor-pointer text-center"
               >
                 Rincian
               </button>
               <button
-                onClick={() => handleExecuteAction('KIRIM_TIM')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExecuteAction('KIRIM_TIM');
+                }}
                 className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg transition-all cursor-pointer text-center"
               >
                 SPK Tim Pompa

@@ -34,8 +34,8 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/90 border-b border-white/10 py-2 px-4 sm:px-6 lg:px-8 shadow-md">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div className="bg-panel border-b border-line-subtle py-2 px-4 sm:px-5 shadow-md">
+      <div className="w-full min-w-0 flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Card Ganti Akun (Nama & Role Singkat) */}
         <div
           onClick={onOpenLoginModal}

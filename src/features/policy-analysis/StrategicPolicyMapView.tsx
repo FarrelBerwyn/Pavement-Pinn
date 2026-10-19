@@ -64,6 +64,7 @@ import {
 } from './policyMapData';
 import { SegmentHealthProfileCard } from './SegmentHealthProfileCard';
 import { StrategicPolicyDrawers } from './StrategicPolicyDrawers';
+import { PavementMap } from '../../components/maps/PavementMap';
 
 interface StrategicPolicyMapViewProps {
   roadSegments: RoadSegment[];
@@ -596,7 +597,10 @@ export const StrategicPolicyMapView: React.FC<StrategicPolicyMapViewProps> = ({
   return (
     <div className="relative w-full h-[calc(100vh-68px)] bg-[#070b14] overflow-hidden select-none font-sans text-slate-100">
       {/* 1. FULL BLEED MAP CONTAINER */}
-      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-0" />
+      {/* Shared map engine (same globe, data and coordinates as every role's map tab) */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <PavementMap compact roadSegments={roadSegments} selectedSegment={selectedSegment} onSelectSegment={onSelectSegment} communityReports={communityReports} />
+      </div>
 
       {/* Share Toast */}
       {shareToastMessage && (
@@ -828,27 +832,6 @@ export const StrategicPolicyMapView: React.FC<StrategicPolicyMapViewProps> = ({
 
       {/* 4. LEFT FLOATING MAP TOOLBAR */}
       <div className="absolute top-36 sm:top-40 left-3 sm:left-4 z-20 flex flex-col space-y-2">
-        <button
-          onClick={handleZoomIn}
-          className="w-9 h-9 bg-surface/90 hover:bg-elevated text-white rounded-xl border border-slate-700/60 flex items-center justify-center shadow-lg transition-all cursor-pointer "
-          title="Perbesar Peta"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="w-9 h-9 bg-surface/90 hover:bg-elevated text-white rounded-xl border border-slate-700/60 flex items-center justify-center shadow-lg transition-all cursor-pointer "
-          title="Perkecil Peta"
-        >
-          <Minus className="w-4 h-4" />
-        </button>
-        <button
-          onClick={handleRecenter}
-          className="w-9 h-9 bg-surface/90 hover:bg-elevated text-white rounded-xl border border-slate-700/60 flex items-center justify-center shadow-lg transition-all cursor-pointer "
-          title="Pusatkan Koridor Nasional"
-        >
-          <Navigation className="w-4 h-4 text-amber-400" />
-        </button>
 
         {/* Sub-layers & Basemap Picker */}
         <div className="relative">

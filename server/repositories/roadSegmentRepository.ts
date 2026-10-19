@@ -1,5 +1,13 @@
 import { INDONESIAN_ROAD_SEGMENTS } from "../../src/data/reference/indonesianRoads";
+import { KARAWANG_PILOT_SEGMENTS } from "../../src/data/reference/karawangPilot";
+import { BEKASI_CORRIDOR_SEGMENTS } from "../../src/data/reference/bekasiCorridor";
 import { RoadSegment } from "../../src/types";
+
+const ALL_ROAD_SEGMENTS: RoadSegment[] = [
+  ...KARAWANG_PILOT_SEGMENTS,
+  ...BEKASI_CORRIDOR_SEGMENTS,
+  ...INDONESIAN_ROAD_SEGMENTS
+];
 
 /**
  * Read-only access to the static road-segment reference dataset.
@@ -9,12 +17,18 @@ import { RoadSegment } from "../../src/types";
  * a real data store would be introduced.
  */
 export const roadSegmentRepository = {
-  findAll(): RoadSegment[] {
+  findAll(options?: { all?: boolean }): RoadSegment[] {
+    if (options?.all) return ALL_ROAD_SEGMENTS;
     return INDONESIAN_ROAD_SEGMENTS;
+  },
+
+  getAll(): RoadSegment[] {
+    return ALL_ROAD_SEGMENTS;
   },
 
   /** Unknown ids fall back to the first segment (pre-restructure behaviour). */
   findByIdOrDefault(segmentId: string): RoadSegment {
-    return INDONESIAN_ROAD_SEGMENTS.find((r) => r.id === segmentId) || INDONESIAN_ROAD_SEGMENTS[0];
+    return ALL_ROAD_SEGMENTS.find((r) => r.id === segmentId) || ALL_ROAD_SEGMENTS[0];
   }
 };
+

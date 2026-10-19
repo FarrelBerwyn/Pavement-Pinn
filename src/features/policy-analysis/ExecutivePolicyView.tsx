@@ -322,7 +322,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
   };
 
   return (
-    <div className="w-full min-h-full bg-[#f8fafc] text-slate-100 font-sans select-none antialiased flex flex-col">
+    <div className="w-full min-h-full bg-workspace text-ink font-sans select-none antialiased flex flex-col">
       {/* Toast Notification for Downloads */}
       {downloadSuccessToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-sm font-medium border border-white/10 animate-bounce">
@@ -333,7 +333,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 1: RINGKASAN EKSEKUTIF (EXACT MATCH WITH ATTACHED SCREENSHOT) */}
       {activeTab === 'RINGKASAN_EKSEKUTIF' && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           {/* Header Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -476,7 +476,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Peta Kesehatan Jalan Nasional with Leaflet Light GIS */}
             <div className="lg:col-span-8">
-              <NationalRoadHealthMap onNavigateToMap={onNavigateToMap} />
+              <NationalRoadHealthMap onNavigateToMap={onNavigateToMap} roadSegments={roadSegments} selectedSegment={selectedSegment} onSelectSegment={onSelectSegment} communityReports={communityReports} />
             </div>
 
             {/* 5 Provinsi dengan RHI Terendah (Exact from screenshot) */}
@@ -767,7 +767,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 3: KESEHATAN JALAN / KINERJA JALAN */}
       {(activeTab === 'KESEHATAN_JALAN' || activeTab === 'KINERJA_JALAN') && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-white">Kesehatan Jalan Nasional (RHI & PCI)</h2>
@@ -839,7 +839,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 4: PRIORITAS NASIONAL / PROGRAM PRIORITAS */}
       {(activeTab === 'PRIORITAS_NASIONAL' || activeTab === 'PROGRAM_PRIORITAS') && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           <div>
             <h2 className="text-2xl font-semibold text-white">Koridor Prioritas Nasional & Penanganan Kritis</h2>
             <p className="text-sm text-slate-400 font-medium mt-1">
@@ -930,7 +930,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 5: ANGGARAN & REALISASI / ANGGARAN INVESTASI */}
       {(activeTab === 'ANGGARAN_REALISASI' || activeTab === 'ANGGARAN_INVESTASI') && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-white">Alokasi Anggaran & Matriks Persetujuan Pagu</h2>
@@ -995,7 +995,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 6: DAMPAK EKONOMI / PROYEKSI 5 TAHUN */}
       {(activeTab === 'DAMPAK_EKONOMI' || activeTab === 'PROYEKSI_5_TAHUN') && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           <div>
             <h2 className="text-2xl font-semibold text-white">Analisis Dampak Ekonomi & Kerugian ODOL</h2>
             <p className="text-sm text-slate-400 font-medium mt-1">
@@ -1033,7 +1033,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 6: LAPORAN & DOKUMEN */}
       {activeTab === 'LAPORAN_DOKUMEN' && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           <div>
             <h2 className="text-2xl font-semibold text-white">Dokumen Resmi & Penyusun Nota Kebijakan AI</h2>
             <p className="text-sm text-slate-400 font-medium mt-1">
@@ -1128,7 +1128,7 @@ Ketika curah hujan ekstrem menurunkan daya dukung tanah dasar CBR, batas izin to
 
       {/* SUB-VIEW 7: PENGATURAN */}
       {activeTab === 'PENGATURAN' && (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
           <div>
             <h2 className="text-2xl font-semibold text-white">Pengaturan Kebijakan & Akun Eksekutif</h2>
             <p className="text-sm text-slate-400 font-medium mt-1">

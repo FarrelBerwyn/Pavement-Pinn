@@ -13,6 +13,7 @@
  *   reason).
  */
 import type { DamageReport, UserRole } from '../../types';
+import type { CvAssessment } from '../../types/cv';
 import { canEditReport } from '../access';
 import { createSessionReport, ReportCreationError, ReportDraft } from '../reports/reportFactory';
 import { Actor, ReportCase, SYSTEM_ACTOR, TransitionRecord } from './model';
@@ -272,13 +273,13 @@ export class WorkflowService {
    * (client-sent ids and creator fields are discarded), then run automated screening.
    * SUBMIT, BEGIN_SCREENING and the screening outcome are committed together.
    */
-  submitReport(draft: ReportDraft, actor: Actor, claimTokenHash: string | null): Promise<ServiceResult<ReportCase>> {
+  submitReport(draft: ReportDraft, actor: Actor, claimTokenHash: string | null, verifiedCv?: CvAssessment): Promise<ServiceResult<ReportCase>> {
     return this.serialize(async () => {
       if (actor.role === 'SYSTEM') return { ok: false, code: 'FORBIDDEN', message: 'The system cannot submit reports.' };
       let report: DamageReport;
       const now = this.deps.now();
       try {
-        report = createSessionReport(draft, { id: actor.id, role: actor.role }, new Date(now));
+        report = createSessionReport(draft, { id: actor.id, role: actor.role }, new Date(now), { verifiedCv });
       } catch (error) {
         if (error instanceof ReportCreationError) return { ok: false, code: 'VALIDATION', message: error.message };
         throw error;
@@ -355,7 +356,13 @@ export class WorkflowService {
       for (const key of allowed) {
         if (patch[key] !== undefined) (updates as Record<string, unknown>)[key] = patch[key];
       }
-      const nextReport: DamageReport = { ...current.report, ...updates };
+      let nextReport: DamageReport = { ...current.report, ...updates };
+      // A replaced photo was never analysed: the CV result no longer describes it.
+      if (updates.photoUrl !== undefined && updates.photoUrl !== current.report.photoUrl && nextReport.cvAssessment) {
+        const { cvAssessment: _dropped, ...rest } = nextReport;
+        void _dropped;
+        nextReport = { ...rest, aiAnalysis: rest.aiAnalysis ? { ...rest.aiAnalysis, confidence: null, modelStatus: 'NOT_CLASSIFIED' } : undefined };
+      }
       if (typeof nextReport.description !== 'string' || nextReport.description.length > 2000) {
         return { ok: false, code: 'VALIDATION', message: 'description must be text up to 2000 characters.' };
       }

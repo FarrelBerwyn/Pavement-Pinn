@@ -5,11 +5,11 @@
  * device's real GPS fix, as a straight line. No simulated route, speed or ETA.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Crosshair, ExternalLink, MapPin } from 'lucide-react';
+import { ArrowLeft, Crosshair, ExternalLink, MapPin, Navigation } from 'lucide-react';
 import type { ReportCase } from '../../../domain/workflow/model';
 import type { RoadSegment } from '../../../types';
 import { reportForDisplay } from '../../../domain/workflow/projections';
-import { LeafletMap } from '../../../components/maps/LeafletMap';
+import { PavementMap } from '../../../components/maps/PavementMap';
 
 type Fix = { coordinates: [number, number]; accuracyM: number };
 
@@ -23,7 +23,12 @@ export function distanceM(a: [number, number], b: [number, number]): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export const TaskNavigation: React.FC<{ c: ReportCase; roadSegments: RoadSegment[]; onBack: () => void }> = ({ c, roadSegments, onBack }) => {
+export const TaskNavigation: React.FC<{
+  c: ReportCase;
+  roadSegments: RoadSegment[];
+  onBack: () => void;
+  onStartLiveNavigation?: () => void;
+}> = ({ c, roadSegments, onBack, onStartLiveNavigation }) => {
   const target = c.report.coordinates;
   const report = useMemo(() => reportForDisplay(c), [c]);
   const [fix, setFix] = useState<Fix | null>(null);
@@ -50,7 +55,7 @@ export const TaskNavigation: React.FC<{ c: ReportCase; roadSegments: RoadSegment
   return (
     <div className="fixed inset-0 z-[1100] flex flex-col bg-canvas text-fg md:flex-row" role="dialog" aria-modal="true" aria-label={`Navigasi ke lokasi ${c.id}`}>
       <div className="relative min-h-[50vh] flex-1">
-        <LeafletMap
+        <PavementMap
           roadSegments={roadSegments}
           selectedSegment={segment}
           onSelectSegment={() => {}}
@@ -61,7 +66,7 @@ export const TaskNavigation: React.FC<{ c: ReportCase; roadSegments: RoadSegment
           activeRole="FIELD_ENGINEER"
           theme="dark"
         />
-        <button type="button" onClick={onBack} className="absolute left-3 top-3 z-[500] inline-flex items-center gap-2 rounded-lg border border-line bg-surface/95 px-3 py-2 text-xs font-bold text-fg shadow-lg hover:bg-elevated">
+        <button type="button" onClick={onBack} className="absolute left-3 top-3 z-[500] inline-flex items-center gap-2 rounded-lg border border-line bg-surface/95 px-3 py-2 text-xs font-bold text-fg shadow-lg hover:bg-elevated cursor-pointer">
           <ArrowLeft className="h-4 w-4" /> Kembali ke Tugas Saya
         </button>
       </div>
@@ -91,6 +96,16 @@ export const TaskNavigation: React.FC<{ c: ReportCase; roadSegments: RoadSegment
             </p>
           )}
         </div>
+
+        {onStartLiveNavigation && (
+          <button
+            type="button"
+            onClick={onStartLiveNavigation}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg cursor-pointer transition-all active:scale-95"
+          >
+            <Navigation className="h-4 w-4" /> Mulai Navigasi Langsung di Peta
+          </button>
+        )}
 
         <a href={gmaps} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-navy hover:bg-brand-hover">
           <ExternalLink className="h-4 w-4" /> Buka rute di Google Maps

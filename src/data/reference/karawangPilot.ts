@@ -15,6 +15,7 @@
  * Balonggandu, Jatisari; reconstruction of Klari–Jatisari planned by the regency.
  */
 import type { RoadSegment } from '../../types';
+import { CANONICAL_ROAD_GEOMETRIES, toLeafletPolyline } from '../../domain/geo/canonicalRoadGeometry';
 
 const common = {
   corridor: 'Jalan Nasional Pantura Karawang (Klari → Jatisari → arah Simpang Jomin)',
@@ -26,7 +27,7 @@ const common = {
   geometryStatus: 'ILLUSTRATIVE'
 } as const;
 
-export const KARAWANG_PILOT_SEGMENTS: RoadSegment[] = [
+const RAW_KARAWANG_PILOT_SEGMENTS: RoadSegment[] = [
   {
     ...common,
     id: 'KRW-001',
@@ -112,3 +113,5 @@ export const KARAWANG_PILOT_SEGMENTS: RoadSegment[] = [
     heavyVehiclePercent: 26
   }
 ];
+
+export const KARAWANG_PILOT_SEGMENTS: RoadSegment[] = RAW_KARAWANG_PILOT_SEGMENTS;

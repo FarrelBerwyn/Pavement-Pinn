@@ -133,8 +133,8 @@ export const MyTasksView: React.FC<MyTasksViewProps> = ({ views, engineerId: me,
   ];
 
   return (
-    <div className="w-full min-h-full bg-canvas text-slate-100 antialiased">
-      <div className="max-w-[1440px] mx-auto p-4 sm:p-6 lg:p-8 space-y-5">
+    <div className="w-full min-h-full bg-workspace text-ink antialiased">
+      <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4">
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-3">

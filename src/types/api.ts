@@ -26,6 +26,8 @@ export const WORKFLOW_API_PATHS = {
   demoSession: '/api/auth/demo-session',
   anonymousSession: '/api/auth/anonymous',
   me: '/api/auth/me',
+  /** Ends the signed-in session (revokes the token, clears the cookie). */
+  logout: '/api/auth/logout',
   reports: '/api/workflow/reports',
   report: '/api/workflow/reports/:id',
   transitions: '/api/workflow/reports/:id/transitions',
@@ -42,12 +44,24 @@ export interface ApiErrorBody {
   error: { code: string; message: string };
 }
 
+export type SyncStatus = 'SYNCED' | 'COMMIT_MISMATCH' | 'SOURCE_MODIFIED' | 'UNKNOWN';
+
 export interface HealthResponse {
   status: 'ok';
   appName: string;
   timestamp: string;
-  /** Code this server process runs (stale = started before the latest server/domain change). */
-  server?: { pid: number; startedAt: string; commit: string | null; currentCommit: string | null; stale: boolean };
+  /** Code this server process runs (stale = started before the latest server/domain change, or commit mismatch). */
+  server?: {
+    pid: number;
+    startedAt: string;
+    commit: string | null;
+    currentCommit: string | null;
+    stale: boolean;
+    syncStatus?: SyncStatus;
+    checkedAt?: string;
+    changedFiles?: string[];
+    fingerprint?: { loaded: string; disk: string; files: number };
+  };
 }
 
 export type RoadsResponse = RoadSegment[];
@@ -79,4 +93,24 @@ export interface OpenvinoExportQuery {
   device?: string;
   precision?: string;
   streams?: string;
+}
+
+/** GET /api/runtime — which runtime answers on this port (no secrets, no credentials). */
+export interface RuntimeIdentity {
+  app: 'pavement-pinn';
+  status: 'ok';
+  /** Random per server process; every port that is an alias of one runtime reports the same id. */
+  runtimeId: string;
+  pid: number;
+  startedAt: string;
+  mode: 'development' | 'production';
+  /** Ports this runtime answers on; `requestPort` is the one this request came through. */
+  ports: { primary: number; aliases: number[] };
+  requestPort: number | null;
+  project: { name: string; rootId: string; branch: string | null; commit: string | null; dirtyFiles: number | null; worktrees: number | null };
+  code: { commit: string | null; syncStatus: SyncStatus; stale: boolean; changedFiles: string[]; fingerprint?: { loaded: string; disk: string; files: number } };
+  /** Data store identity: kind and a hash of its absolute location (the path itself is not sent). */
+  dataStore: { kind: 'file' | 'memory'; storeId: string; relativeLocation: string | null };
+  api: { baseUrl: string };
+  sessions: 'per-process' | 'shared-secret';
 }

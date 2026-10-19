@@ -5,8 +5,8 @@
  * (stateMachine.ts), so the old look keeps the new rules: identity-based assignment,
  * server RBAC, evidence photos, M.O verification and the audited history.
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ClipboardList, Eye, HardHat, MapPin, Navigation, RefreshCw, RotateCcw, ShieldCheck, Camera, X, Inbox, History } from 'lucide-react';
+import React, { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, ClipboardCheck, ClipboardList, Eye, HardHat, MapPin, Navigation, RefreshCw, RotateCcw, ShieldCheck, Camera, X, Inbox, History } from 'lucide-react';
 import type { ReportCase, WorkflowAction, WorkflowState } from '../../../domain/workflow/model';
 import type { WorkflowCommand } from '../../../domain/workflow/stateMachine';
 import type { EngineerSummary, GatewayMode, ReportView } from '../../../services/api/workflowClient';
@@ -18,25 +18,23 @@ import { ReportWorkflowPanel, actorName } from '../ReportWorkflowPanel';
 import { clearDraft, loadDraft, saveDraft } from '../../work-orders/inspectionDraft';
 import type { RoadSegment } from '../../../types';
 import { TaskNavigation } from './TaskNavigation';
+import { RepairResult } from './RepairResult';
+import { friendlyError } from '../friendlyError';
 import { fieldStage } from '../../work-orders/fieldStages';
 import { BeforeAfterSlider } from '../../../components/ui/BeforeAfterSlider';
 import { AccountContext, type AccountInfo } from './AccountContext';
 import { isOverdue } from '../queues';
+import {
+  canonicalStatusOf,
+  CANONICAL_STATUS_LIST,
+  CANONICAL_STATUS_META,
+  CanonicalStatusKey
+} from '../../../domain/workflow/canonicalStatus';
 
 type Role = 'OPS' | 'FE';
-type Tab = 'TODO' | 'ACTIVE' | 'DONE' | 'ALL';
+export type Tab = CanonicalStatusKey | 'ALL';
 
-const TODO_STATES: WorkflowState[] = ['NEEDS_REVIEW', 'VERIFIED'];
-const DONE_STATES: WorkflowState[] = ['RESOLVED', 'CLOSED'];
-/**
- * M.O "Belum Ditugaskan": waiting for review or assignment. F.E tabs come from the single
- * stage mapping in fieldStages.ts (new / re-requested / unsent work = "Belum Dimulai").
- */
-const tabOf = (c: ReportCase, role: Role): Exclude<Tab, 'ALL'> => {
-  if (role === 'FE') return fieldStage(c, { hasDraft: !!loadDraft(c) }).tab;
-  if (DONE_STATES.includes(c.state)) return 'DONE';
-  return TODO_STATES.includes(c.state) ? 'TODO' : 'ACTIVE';
-};
+const tabOf = (c: ReportCase, _role?: Role): CanonicalStatusKey => canonicalStatusOf(c);
 
 /** What the user just did, in words, once the server confirmed it. */
 function doneText(action: WorkflowAction, c: ReportCase): string {
@@ -44,7 +42,7 @@ function doneText(action: WorkflowAction, c: ReportCase): string {
     case 'REQUEST_INSPECTION':
       return `SPK ${c.assignment?.id ?? ''} diterbitkan untuk ${c.assignment ? actorName(c.assignment.engineerId) : 'F.E'}`;
     case 'REVIEW_ACCEPT':
-      return 'Laporan diterima';
+      return 'Laporan diterima dan divalidasi';
     case 'SUBMIT_INSPECTION':
       return 'Hasil inspeksi terkirim · menunggu verifikasi M.O';
     case 'VERIFY_INSPECTION':
@@ -54,23 +52,23 @@ function doneText(action: WorkflowAction, c: ReportCase): string {
     case 'COMPLETE_WORK_ORDER':
       return 'Bukti perbaikan terkirim · menunggu verifikasi M.O';
     case 'REQUEST_REWORK':
-      return 'Perbaikan dikembalikan ke F.E dengan alasan';
+      return 'Perbaikan dikembalikan ke F.E dengan alasan revisi';
     case 'RESOLVE':
       return 'Perbaikan diverifikasi — laporan selesai dan pelapor diberi notifikasi';
     default:
       return `${ACTION_LABEL[action]} tersimpan`;
   }
 }
-const TAB_LABEL = (t: Tab, role: Role) =>
-  t === 'TODO' ? (role === 'OPS' ? 'Belum Ditugaskan' : 'Belum Dimulai') : t === 'ACTIVE' ? 'Sedang Dikerjakan' : t === 'DONE' ? 'Selesai' : 'Semua';
 
-const BTN = 'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 disabled:opacity-50';
-const BTN_BRAND = `${BTN} bg-brand text-navy hover:bg-brand-hover`;
-const BTN_GOOD = `${BTN} bg-status-good/90 text-white hover:bg-status-good`;
-const BTN_GHOST = `${BTN} border border-line bg-elevated text-fg hover:bg-white/[0.06]`;
-const BTN_DANGER = `${BTN} border border-status-heavy/50 text-rose-300 hover:bg-status-heavy/10`;
-const INPUT = 'w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-brand/50';
-const LABEL = 'block text-[11px] font-bold uppercase tracking-wide text-fg-muted mb-1.5';
+const TAB_LABEL = (t: Tab) => (t === 'ALL' ? 'Semua' : CANONICAL_STATUS_META[t]?.label ?? t);
+
+const BTN = 'inline-flex items-center justify-center gap-2 rounded-control px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60 disabled:opacity-50';
+const BTN_BRAND = `${BTN} bg-[#E8B52B] text-slate-950 hover:bg-[#F3C442] shadow-sm cursor-pointer`;
+const BTN_GOOD = `${BTN} bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm cursor-pointer`;
+const BTN_GHOST = `${BTN} border border-line-subtle bg-card text-ink hover:bg-raised cursor-pointer`;
+const BTN_DANGER = `${BTN} border border-rose-500/50 text-rose-300 hover:bg-rose-500/10 cursor-pointer`;
+const INPUT = 'w-full rounded-control border border-line-subtle bg-card px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-[#E8B52B]';
+const LABEL = 'block text-[11px] font-semibold uppercase tracking-wide text-ink-3 mb-1.5';
 
 const PRIORITY = { HIGH: 'Tinggi', MEDIUM: 'Sedang', LOW: 'Rendah' } as const;
 const PRIORITY_OF: Record<string, keyof typeof PRIORITY> = { CRITICAL: 'HIGH', SEVERE: 'HIGH', MODERATE: 'MEDIUM', LIGHT: 'LOW' };
@@ -88,16 +86,17 @@ export interface LegacyCaseBoardProps {
   onRefresh: () => void;
   onRun: (caseId: string, command: WorkflowCommand) => Promise<ReportMutationOutcome>;
   onShowOnMap?: (c: ReportCase) => void;
+  onStartNavigation?: (c: ReportCase) => void;
   /** Road network for the task navigation map. */
   roadSegments?: RoadSegment[];
   /** Signed-in account, for the account context header. */
   account?: AccountInfo | null;
 }
 
-type Dialog = { kind: 'SPK' | 'EVIDENCE' | 'VERIFY' | 'WORK_DONE' | 'WORK_VERIFY' | 'NAV'; caseId: string } | { kind: 'PANEL'; caseId: string; action: WorkflowAction | null } | { kind: 'PHOTO'; src: string; alt: string };
+type Dialog = { kind: 'SPK' | 'EVIDENCE' | 'VERIFY' | 'WORK_DONE' | 'WORK_VERIFY' | 'NAV' | 'RESULT'; caseId: string } | { kind: 'PANEL'; caseId: string; action: WorkflowAction | null } | { kind: 'PHOTO'; src: string; alt: string };
 
-export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, roadSegments = [], account = null }) => {
-  const [tab, setTab] = useState<Tab>('TODO');
+export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, onStartNavigation, roadSegments = [], account = null }) => {
+  const [tab, setTab] = useState<Tab>(role === 'OPS' ? 'MENUNGGU_PENINJAUAN' : 'MENUNGGU_FE');
   // After a server-confirmed action: say what happened and, if the case now belongs to
   // another tab, follow it there and highlight it.
   const [notice, setNotice] = useState<{ id: string; text: string; to: Tab | null } | null>(null);
@@ -113,37 +112,47 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
   const mine = useMemo(() => (role === 'FE' ? staff.filter((v) => samePerson(v.case.assignment?.engineerId, me)) : staff), [staff, role, me]);
   const byId = useMemo(() => new Map(mine.map((v) => [v.case.id, v])), [mine]);
 
-  // M.O keeps the operations buckets (real reports first, then urgency) as group headings.
+  // Canonical status grouping: ordered 1..8 sequentially, followed by 'ALL'
   const groups = useMemo(() => {
-    const inTab = (c: ReportCase) => tab === 'ALL' || tabOf(c, role) === tab;
-    if (role === 'OPS') {
-      const buckets = operationsQueue(mine.map((v) => v.case))
-        .map((b) => ({ title: b.title, hint: b.hint, items: b.items.filter(inTab) }))
-        .filter((b) => b.items.length > 0);
-      if (tab === 'DONE' || tab === 'ALL') {
-        const listed = new Set(buckets.flatMap((b) => b.items.map((c) => c.id)));
-        const done = mine.map((v) => v.case).filter((c) => DONE_STATES.includes(c.state) && !listed.has(c.id));
-        if (done.length) buckets.push({ title: 'Selesai / ditutup', hint: 'Riwayat lengkap tersedia di detail', items: done });
-      }
-      return buckets;
-    }
-    // F.E: one group per task stage, the engineer's own turn first.
-    const byStage = new Map<string, { title: string; hint: string; order: number; items: ReportCase[] }>();
-    for (const c of mine.map((v) => v.case).filter(inTab)) {
-      const st = fieldStage(c, { hasDraft: !!loadDraft(c) });
-      const g = byStage.get(st.key) ?? { title: st.label, hint: '', order: st.order, items: [] };
-      g.items.push(c);
-      byStage.set(st.key, g);
-    }
-    return [...byStage.values()].sort((a, b) => a.order - b.order).map((g) => ({ ...g, items: g.items.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)) }));
-  }, [mine, tab, role]);
+    const inTab = (c: ReportCase) => tab === 'ALL' || canonicalStatusOf(c) === tab;
+    const filtered = mine.map((v) => v.case).filter(inTab);
 
-  const count = (t: Tab) => mine.filter((v) => t === 'ALL' || tabOf(v.case, role) === t).length;
+    if (tab !== 'ALL') {
+      const meta = CANONICAL_STATUS_META[tab as CanonicalStatusKey];
+      return [
+        {
+          title: meta?.label ?? '',
+          hint: meta?.operationalMeaning ?? '',
+          items: filtered.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+        }
+      ].filter((g) => g.items.length > 0);
+    }
+
+    return CANONICAL_STATUS_LIST.map((key) => {
+      const meta = CANONICAL_STATUS_META[key];
+      const items = filtered
+        .filter((c) => canonicalStatusOf(c) === key)
+        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+      return {
+        title: meta.label,
+        hint: meta.operationalMeaning,
+        items
+      };
+    }).filter((g) => g.items.length > 0);
+  }, [mine, tab]);
+
+  const count = (t: Tab) => mine.filter((v) => t === 'ALL' || canonicalStatusOf(v.case) === t).length;
+
   const tabs: { key: Tab; label: string; dot: string }[] = [
-    { key: 'TODO', label: role === 'OPS' ? 'Belum Ditugaskan' : 'Belum Dimulai', dot: 'bg-brand' },
-    { key: 'ACTIVE', label: 'Sedang Dikerjakan', dot: 'bg-info' },
-    { key: 'DONE', label: 'Selesai', dot: 'bg-status-good' },
-    { key: 'ALL', label: 'Semua', dot: 'bg-fg-subtle' }
+    { key: 'MENUNGGU_PENINJAUAN', label: 'Menunggu Peninjauan', dot: 'bg-amber-400' },
+    { key: 'PERLU_VERIFIKASI', label: 'Perlu Verifikasi', dot: 'bg-orange-400' },
+    { key: 'BELUM_DITUGASKAN', label: 'Belum Ditugaskan', dot: 'bg-slate-400' },
+    { key: 'MENUNGGU_FE', label: 'Menunggu F.E', dot: 'bg-blue-400' },
+    { key: 'SEDANG_DIKERJAKAN', label: 'Sedang Dikerjakan', dot: 'bg-sky-400' },
+    { key: 'MENUNGGU_VERIFIKASI', label: 'Menunggu Verifikasi', dot: 'bg-indigo-400' },
+    { key: 'PERLU_REVISI', label: 'Perlu Revisi', dot: 'bg-rose-400' },
+    { key: 'SELESAI', label: 'Selesai', dot: 'bg-emerald-400' },
+    { key: 'ALL', label: 'Semua', dot: 'bg-slate-400' }
   ];
 
   const open = dialog && 'caseId' in dialog ? byId.get(dialog.caseId) ?? null : null;
@@ -162,14 +171,14 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
     const c = byId.get(f.id)?.case;
     if (!c || c.version <= f.version) return;
     follow.current = null;
-    const next = tabOf(c, role);
+    const next = canonicalStatusOf(c);
     const moves = tab !== 'ALL' && next !== tab;
     if (moves) setTab(next);
     setNotice({ id: c.id, text: doneText(f.action, c), to: moves ? next : null });
-  }, [byId, role, tab]);
+  }, [byId, tab]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 space-y-5 text-fg">
+    <div className="w-full min-w-0 px-4 sm:px-5 py-5 pb-8 space-y-4 text-fg">
       {role === 'FE' ? (
         <header className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -197,53 +206,79 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
       )}
       {role === 'OPS' && <AccountContext role="OPS" account={account} cases={mine.map((v) => v.case)} mode={mode} syncedAt={syncedAt} onTab={setTab} />}
 
-      <nav className="flex flex-wrap gap-2 rounded-xl border border-line bg-surface p-2" aria-label="Filter status">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            aria-pressed={tab === t.key}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold transition-colors ${tab === t.key ? 'bg-brand text-navy' : 'text-fg-muted hover:bg-white/[0.05] hover:text-fg'}`}
-          >
-            <span className={`h-2 w-2 rounded-full ${tab === t.key ? 'bg-navy' : t.dot}`} />
-            {t.label} ({count(t.key)})
-          </button>
-        ))}
+      <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar rounded-panel border border-line-subtle bg-panel p-2" aria-label="Filter status">
+        {tabs.map((t) => {
+          const isSelected = tab === t.key;
+          const cCount = count(t.key);
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              aria-pressed={isSelected}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-control px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                isSelected
+                  ? 'bg-[#E8B52B] text-slate-950 shadow-sm ring-1 ring-[#E8B52B]/40'
+                  : 'text-ink-2 hover:bg-raised hover:text-ink'
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${isSelected ? 'bg-slate-950' : t.dot}`} />
+              <span>{t.label}</span>
+              <span className={`rounded-md px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-card text-ink-2 border border-line-subtle'}`}>
+                {cCount}
+              </span>
+            </button>
+          );
+        })}
       </nav>
 
       {notice && (
         <p role="status" className="flex items-center justify-between gap-3 rounded-lg border border-info/40 bg-info/10 px-4 py-2.5 text-sm text-fg">
           <span>
             <b>{notice.text}</b> — <span className="font-mono">{notice.id}</span>
-            {notice.to && <> dipindahkan ke tab <b>{TAB_LABEL(notice.to, role)}</b>.</>}
+            {notice.to && <> dipindahkan ke tab <b>{TAB_LABEL(notice.to)}</b>.</>}
           </span>
-          <button type="button" className="text-xs text-fg-muted underline" onClick={() => setNotice(null)}>Tutup</button>
+          <button type="button" className="text-xs text-fg-muted underline cursor-pointer" onClick={() => setNotice(null)}>Tutup</button>
         </p>
       )}
       {error && <p role="alert" className="rounded-lg border border-status-heavy/40 bg-status-heavy/10 px-4 py-3 text-sm text-rose-200">Gagal memuat data dari server: {error}</p>}
 
       {groups.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
-          <Inbox className="mx-auto h-8 w-8 text-fg-subtle" />
-          <p className="mt-3 font-semibold">Tidak ada laporan di kategori ini</p>
-          <p className="mt-1 text-sm text-fg-muted">
-            {role === 'FE' ? 'Tugas baru muncul setelah M.O menugaskan inspeksi kepada Anda. Pilih tab lain untuk melihat riwayat.' : 'Pilih tab lain untuk melihat laporan pada status berbeda.'}
+        <div className="rounded-panel border border-dashed border-line-subtle bg-panel p-10 text-center">
+          <Inbox className="mx-auto h-8 w-8 text-slate-500" />
+          <p className="mt-3 font-semibold text-slate-200">Tidak ada laporan di kategori ini</p>
+          <p className="mt-1 text-sm text-slate-400">
+            {role === 'FE' ? 'Tugas baru muncul setelah O.M menerbitkan SPK kepada Anda. Pilih tab lain untuk melihat riwayat.' : 'Pilih tab lain untuk melihat laporan pada status berbeda.'}
           </p>
         </div>
       ) : (
         groups.map((g) => (
           <section key={g.title || 'list'} className="space-y-3">
             {g.title && (
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-sm font-bold">
-                  {g.title} <span className="ml-1 rounded-md bg-brand/15 px-2 py-0.5 text-xs text-amber-200 tabular-nums">{g.items.length}</span>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 pt-1">
+                <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                  <span>{g.title}</span>
+                  <span className="rounded-md bg-[#E8B52B]/15 px-2 py-0.5 text-xs text-[#E8B52B] tabular-nums font-mono">
+                    {g.items.length}
+                  </span>
                 </h2>
-                <span className="text-xs text-fg-muted">{g.hint}</span>
+                <span className="text-xs text-slate-400">{g.hint}</span>
               </div>
             )}
             {g.items.map((c) => (
-              <CaseCard key={c.id} c={c} role={role} highlight={notice?.id === c.id} actions={byId.get(c.id)?.availableActions ?? []} onDialog={setDialog} onShowOnMap={onShowOnMap} />
+              <CaseCard
+                key={c.id}
+                c={c}
+                role={role}
+                highlight={notice?.id === c.id}
+                actions={byId.get(c.id)?.availableActions ?? []}
+                onDialog={setDialog}
+                onShowOnMap={onShowOnMap}
+                onStartNavigation={onStartNavigation}
+                onFastAccept={async () => {
+                  await run({ action: 'REVIEW_ACCEPT', reason: 'Laporan divalidasi dan siap ditugaskan' });
+                }}
+              />
             ))}
           </section>
         ))
@@ -259,11 +294,36 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
       {open && dialog?.kind === 'VERIFY' && <VerifyModal c={open.case} onRun={run} onClose={() => setDialog(null)} />}
       {open && dialog?.kind === 'WORK_DONE' && <WorkDoneModal c={open.case} onRun={run} onClose={() => setDialog(null)} />}
       {open && dialog?.kind === 'WORK_VERIFY' && <WorkVerifyModal c={open.case} onRun={run} onClose={() => setDialog(null)} />}
-      {open && dialog?.kind === 'NAV' && <TaskNavigation c={open.case} roadSegments={roadSegments} onBack={() => setDialog(null)} />}
-      {open && dialog?.kind === 'PANEL' && (
-        <Modal title={`Detail & riwayat · ${open.case.id}`} onClose={() => setDialog(null)} wide>
-          <ReportWorkflowPanel view={open} mode={mode} engineers={engineers} onRun={run} initialAction={dialog.action} onShowOnMap={onShowOnMap ? () => onShowOnMap(open.case) : undefined} />
+      {open && dialog?.kind === 'NAV' && (
+        <TaskNavigation
+          c={open.case}
+          roadSegments={roadSegments}
+          onBack={() => setDialog(null)}
+          onStartLiveNavigation={onStartNavigation ? () => { setDialog(null); onStartNavigation(open.case); } : undefined}
+        />
+      )}
+      {open && dialog?.kind === 'RESULT' && (
+        <Modal title="Hasil laporan perbaikan jalan (Before & After)" subtitle={<>Laporan <span className="text-brand">{open.case.id}</span></>} icon={<CheckCircle2 className="h-5 w-5" />} onClose={() => setDialog(null)} wide>
+          <RepairResult c={open.case} />
+          <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-line pt-4">
+            <button type="button" className={BTN_GHOST} onClick={() => setDialog({ kind: 'PANEL', caseId: open.case.id, action: null })}>
+              <History className="h-4 w-4" /> Detail lengkap
+            </button>
+            <button type="button" className={BTN_GOOD} onClick={() => setDialog(null)}>Tutup hasil laporan</button>
+          </div>
         </Modal>
+      )}
+      {open && dialog?.kind === 'PANEL' && (
+        <ReportWorkflowPanel
+          view={open}
+          mode={mode}
+          engineers={engineers}
+          onRun={run}
+          initialAction={dialog.action}
+          onShowOnMap={onShowOnMap ? () => onShowOnMap(open.case) : undefined}
+          onClose={() => setDialog(null)}
+          isModal={true}
+        />
       )}
     </div>
   );
@@ -275,7 +335,7 @@ const RefreshButton: React.FC<{ loading: boolean; onRefresh: () => void }> = ({ 
   </button>
 );
 
-/** One report, as on the original cards: photo, status, title, location, citizen text, assignment. */
+/** One report card, unified under canonical 8-stage workflow */
 const CaseCard: React.FC<{
   highlight?: boolean;
   c: ReportCase;
@@ -283,120 +343,278 @@ const CaseCard: React.FC<{
   actions: WorkflowAction[];
   onDialog: (d: Dialog) => void;
   onShowOnMap?: (c: ReportCase) => void;
-}> = ({ c, role, actions, onDialog, onShowOnMap, highlight }) => {
+  onStartNavigation?: (c: ReportCase) => void;
+  onFastAccept?: () => Promise<void>;
+}> = ({ c, role, actions, onDialog, onShowOnMap, onStartNavigation, onFastAccept, highlight }) => {
   const r = c.report;
-  const can = (a: WorkflowAction) => actions.includes(a);
+  const statusKey = canonicalStatusOf(c);
+  const statusMeta = CANONICAL_STATUS_META[statusKey];
   const lastReview = c.inspectionReviews?.at(-1);
   const returned = c.state === 'FIELD_INSPECTION_REQUESTED' && lastReview?.decision === 'REINSPECTION_REQUESTED' ? lastReview : null;
-  const done = DONE_STATES.includes(c.state);
+  const done = statusKey === 'SELESAI';
   const lastWork = c.workOrder?.submissions?.at(-1);
-  const rework = c.state === 'IN_PROGRESS' && c.workOrder?.status !== 'COMPLETED' && lastWork?.decision === 'REWORK_REQUESTED' ? lastWork : null;
-  const workSent = c.state === 'IN_PROGRESS' && c.workOrder?.status === 'COMPLETED';
-  const accent = c.state === 'INSPECTED' || returned ? 'border-brand/60' : done ? 'border-status-good/40' : 'border-line';
+  const rework = (statusKey === 'PERLU_REVISI' && lastWork?.decision === 'REWORK_REQUESTED') ? lastWork : null;
+  const wo = c.workOrder;
+  const beforePhoto = r.photoUrl;
+  const afterPhoto = wo?.completionPhotoUrl || c.inspection?.evidencePhotoUrl || r.repairDetails?.afterPhotoUrl;
 
-  // The one primary action for this role and state; other allowed actions open the detail form.
+  // Primary action button based on role & canonical status
   let primary: React.ReactNode = null;
-  if (role === 'OPS' && (can('REQUEST_INSPECTION') || can('REVIEW_ACCEPT'))) {
-    primary = <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'SPK', caseId: c.id })}><HardHat className="h-4 w-4" /> + Beri Tugas ke F.E (Terbitkan SPK)</button>;
-  } else if (role === 'OPS' && can('RESOLVE')) {
-    primary = <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'WORK_VERIFY', caseId: c.id })}><ShieldCheck className="h-4 w-4" /> Verifikasi Pekerjaan (Before vs After)</button>;
-  } else if (role === 'FE' && can('COMPLETE_WORK_ORDER')) {
-    primary = <button type="button" className={BTN_GOOD} onClick={() => onDialog({ kind: 'WORK_DONE', caseId: c.id })}><CheckCircle2 className="h-4 w-4" /> {rework ? 'Perbaiki & Kirim Ulang Bukti' : 'Sudah Selesai (Kirim Bukti Perbaikan)'}</button>;
-  } else if (role === 'OPS' && can('VERIFY_INSPECTION')) {
-    primary = <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'VERIFY', caseId: c.id })}><ShieldCheck className="h-4 w-4" /> Verifikasi Mutu (Before vs After)</button>;
-  } else if (role === 'FE' && can('SUBMIT_INSPECTION')) {
-    primary = <button type="button" className={BTN_GOOD} onClick={() => onDialog({ kind: 'EVIDENCE', caseId: c.id })}><CheckCircle2 className="h-4 w-4" /> {returned ? 'Perbaiki & Kirim Ulang ke M.O' : 'Kirim Hasil Inspeksi & Bukti ke M.O'}</button>;
+  if (role === 'OPS') {
+    switch (statusKey) {
+      case 'MENUNGGU_PENINJAUAN':
+      case 'BELUM_DITUGASKAN':
+        primary = (
+          <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'SPK', caseId: c.id })}>
+            <HardHat className="h-4 w-4" /> + Beri Tugas ke F.E (Terbitkan SPK)
+          </button>
+        );
+        break;
+      case 'PERLU_VERIFIKASI':
+        primary = (
+          <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'PANEL', caseId: c.id, action: null })}>
+            <Eye className="h-4 w-4" /> Periksa Kelengkapan Data
+          </button>
+        );
+        break;
+      case 'MENUNGGU_VERIFIKASI':
+        primary = (
+          <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'WORK_VERIFY', caseId: c.id })}>
+            <ShieldCheck className="h-4 w-4" /> Verifikasi
+          </button>
+        );
+        break;
+      case 'SELESAI':
+        primary = (
+          <button type="button" className={`${BTN_GHOST} border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10`} onClick={() => onDialog({ kind: 'RESULT', caseId: c.id })}>
+            <Eye className="h-4 w-4 text-emerald-400" /> Lihat Hasil (Before &amp; After)
+          </button>
+        );
+        break;
+      default:
+        break;
+    }
   } else {
-    const next = actions.find((a) => !['REVIEW_ACCEPT', 'CLOSE_INVALID', 'REQUEST_INSPECTION', 'VERIFY_INSPECTION', 'REQUEST_REINSPECTION', 'SUBMIT_INSPECTION', 'COMPLETE_WORK_ORDER', 'RESOLVE', 'REQUEST_REWORK'].includes(a));
-    if (next) primary = <button type="button" className={BTN_BRAND} onClick={() => onDialog({ kind: 'PANEL', caseId: c.id, action: next })}>{ACTION_LABEL[next]}</button>;
+    // FE role
+    switch (statusKey) {
+      case 'MENUNGGU_FE':
+      case 'SEDANG_DIKERJAKAN':
+        primary = (
+          <button type="button" className={BTN_GOOD} onClick={() => onDialog({ kind: 'WORK_DONE', caseId: c.id })}>
+            <CheckCircle2 className="h-4 w-4" /> Sudah Selesai (Kirim Bukti Selesai)
+          </button>
+        );
+        break;
+      case 'PERLU_REVISI':
+        primary = (
+          <button type="button" className={BTN_GOOD} onClick={() => onDialog({ kind: 'WORK_DONE', caseId: c.id })}>
+            <CheckCircle2 className="h-4 w-4" /> Perbaiki &amp; Kirim Ulang Bukti
+          </button>
+        );
+        break;
+      case 'MENUNGGU_VERIFIKASI':
+        primary = (
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs font-semibold text-emerald-300">
+            ✓ Bukti Perbaikan Berhasil Dikirim
+          </div>
+        );
+        break;
+      case 'SELESAI':
+        primary = (
+          <button type="button" className={`${BTN_GHOST} border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10`} onClick={() => onDialog({ kind: 'RESULT', caseId: c.id })}>
+            <Eye className="h-4 w-4 text-emerald-400" /> Lihat Hasil Terverifikasi
+          </button>
+        );
+        break;
+      default:
+        break;
+    }
   }
-  const waiting =
-    !primary && !done
-      ? role === 'FE'
-        ? c.state === 'INSPECTED'
-          ? 'Hasil inspeksi terkirim · menunggu verifikasi M.O'
-          : workSent
-            ? 'Bukti perbaikan berhasil dikirim · menunggu verifikasi M.O'
-          : c.state === 'ACTION_RECOMMENDED'
-            ? 'Menunggu keputusan penanganan M.O'
-            : 'Menunggu tindakan peran lain'
-        : c.state === 'FIELD_INSPECTION_REQUESTED'
-          ? 'Menunggu F.E mengirim hasil inspeksi'
-          : c.state === 'INSPECTION_VERIFIED'
-            ? 'Menunggu rekomendasi F.E'
-            : c.state === 'IN_PROGRESS'
-              ? 'Menunggu bukti perbaikan F.E'
-              : 'Menunggu tindakan peran lain'
-      : null;
+
+  const waitingNotice = !primary && !done ? (
+    role === 'OPS' ? (
+      statusKey === 'MENUNGGU_FE' ? (
+        <span className="text-slate-400 text-xs">SPK diterbitkan · Menunggu F.E</span>
+      ) : statusKey === 'SEDANG_DIKERJAKAN' ? (
+        <span className="text-sky-300 text-xs">Sedang dikerjakan oleh F.E</span>
+      ) : statusKey === 'PERLU_REVISI' ? (
+        <span className="text-rose-300 text-xs">Perbaikan diulang oleh F.E</span>
+      ) : null
+    ) : (
+      statusKey === 'MENUNGGU_VERIFIKASI' ? (
+        <span className="text-amber-300 text-xs">Menunggu verifikasi O.M</span>
+      ) : null
+    )
+  ) : null;
 
   return (
-    <article className={`rounded-2xl border ${accent} bg-surface p-4 sm:p-5 ${highlight ? 'ring-2 ring-info/60' : ''}`}>
+    <article className={`rounded-card border ${statusMeta.borderAccent} bg-panel hover:border-line-active transition-all p-4 sm:p-5 shadow-sm ${highlight ? 'ring-2 ring-sky-500/60' : ''}`}>
       <div className="flex flex-col gap-4 md:flex-row">
-        <button type="button" onClick={() => r.photoUrl && onDialog({ kind: 'PHOTO', src: r.photoUrl, alt: `Foto laporan warga ${c.id}` })} className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl border border-line bg-canvas md:w-32" title="Perbesar foto">
-          {r.photoUrl ? <img src={r.photoUrl} alt={`Foto laporan ${c.id}`} className="h-full w-full object-cover" /> : <span className="text-xs text-fg-subtle">Tanpa foto</span>}
-          <span className="absolute left-1.5 top-1.5 max-w-[90%] truncate rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">{c.id}</span>
-        </button>
+        {/* THUMBNAIL / EVIDENCE COLUMN (LEFT) */}
+        <div className="shrink-0 w-full md:w-36 flex flex-col gap-1.5">
+          {afterPhoto ? (
+            <div className="grid grid-cols-2 gap-1.5 h-28 sm:h-32">
+              <button
+                type="button"
+                onClick={() => beforePhoto && onDialog({ kind: 'PHOTO', src: beforePhoto, alt: `Foto sebelum ${c.id}` })}
+                className="relative rounded-control overflow-hidden border border-line-subtle bg-card hover:border-line-active transition-colors cursor-pointer"
+                title="Perbesar foto sebelum"
+              >
+                <img src={beforePhoto} alt="Sebelum" className="w-full h-full object-cover" />
+                <span className="absolute bottom-1 left-1 rounded bg-black/80 px-1 py-0.2 text-[9px] font-bold text-rose-300">
+                  Sebelum
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onDialog({ kind: 'PHOTO', src: afterPhoto, alt: `Foto sesudah ${c.id}` })}
+                className="relative rounded-control overflow-hidden border border-emerald-500/40 bg-card hover:border-emerald-400 transition-colors cursor-pointer"
+                title="Perbesar foto sesudah"
+              >
+                <img src={afterPhoto} alt="Sesudah" className="w-full h-full object-cover" />
+                <span className="absolute bottom-1 left-1 rounded bg-emerald-950/90 px-1 py-0.2 text-[9px] font-bold text-emerald-300">
+                  Sesudah
+                </span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => beforePhoto && onDialog({ kind: 'PHOTO', src: beforePhoto, alt: `Foto laporan ${c.id}` })}
+              className="relative h-28 sm:h-32 w-full rounded-lg overflow-hidden border border-line-subtle bg-card hover:border-line-active transition-colors cursor-pointer"
+              title="Perbesar foto laporan"
+            >
+              {beforePhoto ? (
+                <img src={beforePhoto} alt={`Laporan ${c.id}`} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full grid place-items-center text-xs text-slate-500">Tanpa foto</div>
+              )}
+              <span className="absolute left-1.5 top-1.5 max-w-[90%] truncate rounded bg-black/80 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
+                {c.id}
+              </span>
+            </button>
+          )}
+          {afterPhoto && (
+            <span className="text-[10px] font-mono text-center text-slate-500 block truncate">
+              {c.id} · Before/After
+            </span>
+          )}
+        </div>
 
+        {/* DETAILS COLUMN (MIDDLE) */}
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-[11px] font-bold text-amber-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" /> {WORKFLOW_STATE_LABEL[c.state]}
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${statusMeta.badgeClass}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dotColor}`} /> {statusMeta.label}
             </span>
-            <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">{r.damageType}</span>
-            <span className="text-[11px] font-semibold text-fg-muted">
-              · {c.inspection?.severity ?? r.severity} <span className="font-normal text-fg-subtle">({c.inspection ? 'terukur F.E' : 'estimasi pelapor'})</span>
+            <span className="rounded border border-line-subtle bg-card px-1.5 py-0.5 font-mono text-[10px] text-ink-2">{r.damageType}</span>
+            <span className="text-[11px] font-semibold text-slate-400">
+              · {c.inspection?.severity ?? r.severity} <span className="font-normal text-slate-500">({c.inspection ? 'terukur F.E' : 'estimasi pelapor'})</span>
             </span>
-            {isOverdue(c) && <span className="rounded-full border border-status-heavy/50 bg-status-heavy/10 px-2 py-0.5 text-[11px] font-bold text-rose-200">Lewat tenggat</span>}
+            {isOverdue(c) && <span className="rounded-full border border-rose-500/50 bg-rose-500/10 px-2 py-0.5 text-[11px] font-bold text-rose-300">Lewat tenggat</span>}
             {c.dataStatus === 'SYNTHETIC' && <span className="rounded border border-amber-500/30 px-1.5 text-[10px] text-amber-200">data contoh</span>}
           </div>
-          <h3 className="text-base font-bold leading-snug">{r.damageTypeLabel} — {r.segmentName}</h3>
-          <p className="flex items-center gap-1.5 text-xs text-fg-muted">
-            <MapPin className="h-3.5 w-3.5 shrink-0" /> {r.corridor}
-            <span className="font-mono">({r.coordinates[0].toFixed(4)}, {r.coordinates[1].toFixed(4)})</span>
+
+          <h3 className="text-sm font-bold text-slate-100 leading-snug">{r.damageTypeLabel} — {r.segmentName}</h3>
+          <p className="flex items-center gap-1.5 text-xs text-slate-400">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" /> {r.corridor}
+            <span className="font-mono text-slate-400">({r.coordinates[0].toFixed(4)}, {r.coordinates[1].toFixed(4)})</span>
           </p>
-          <p className="line-clamp-2 text-sm text-fg/90">“{r.description}”</p>
-          <p className="text-[11px] text-fg-subtle">
+          <p className="line-clamp-2 text-xs text-slate-300 italic">“{r.description}”</p>
+          <p className="text-[11px] text-slate-500">
             Estimasi pelapor: {r.estimatedDepthCm} cm · {r.estimatedAreaM2} m²
             {c.inspection && <> · Terukur F.E: {c.inspection.measuredDepthCm ?? '—'} cm · {c.inspection.measuredAreaM2 ?? '—'} m²</>}
           </p>
 
           {c.assignment && (
-            <div className="mt-2 rounded-lg border border-line bg-canvas/60 p-3 text-xs">
+            <div className="mt-2 rounded-lg border border-line-subtle bg-card p-2.5 text-xs text-ink-2">
               <div className="flex flex-wrap justify-between gap-2">
                 <span>
-                  <b>SPK {c.assignment.id}</b> · F.E: {actorName(c.assignment.engineerId)} · Prioritas:{' '}
-                  <b className="text-amber-300">{PRIORITY[PRIORITY_OF[r.severity] ?? 'MEDIUM']}</b>
+                  <b>SPK {c.assignment.id}</b> · Petugas: <b>{actorName(c.assignment.engineerId)}</b> · Prioritas:{' '}
+                  <b className="text-[#E8B52B]">{PRIORITY[PRIORITY_OF[r.severity] ?? 'MEDIUM']}</b>
                 </span>
-                <span className={isOverdue(c) ? 'font-bold text-rose-300' : 'text-fg-muted'}>Tenggat: {fmt(c.assignment.dueAt)}</span>
+                <span className={isOverdue(c) ? 'font-bold text-rose-300' : 'text-slate-400'}>Batas: {fmt(c.assignment.dueAt)}</span>
               </div>
-              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-fg-subtle">Instruksi dari Operations Manager</p>
-              <p className="text-fg/90">{c.assignment.instructions}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Instruksi Lapangan</p>
+              <p className="text-slate-300 line-clamp-2">{c.assignment.instructions}</p>
             </div>
           )}
+
           {rework && (
-            <p role="status" className="rounded-lg border border-status-heavy/40 bg-status-heavy/10 p-2.5 text-xs text-rose-100">
-              <b>M.O meminta perbaikan ulang:</b> {rework.reason}
+            <p role="status" className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-2 text-xs text-rose-200">
+              <b>Alasan perbaikan ulang dari O.M:</b> {rework.reason}
             </p>
           )}
-          {done && c.workOrder?.completionPhotoUrl && <p className="text-xs font-semibold text-emerald-300">✓ Selesai &amp; terverifikasi M.O</p>}
+
+          {statusKey === 'MENUNGGU_VERIFIKASI' && wo && (
+            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-2 text-xs text-indigo-200">
+              <b>Catatan F.E ({actorName(wo.completedBy || '')}):</b> “{wo.completionNote || 'Pekerjaan perbaikan selesai'}” · {wo.completedAt ? fmt(wo.completedAt) : ''}
+            </div>
+          )}
+
+          {done && (
+            <p className="text-xs font-semibold text-emerald-300 flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Selesai &amp; terverifikasi Operations Manager
+            </p>
+          )}
+
           {returned && (
-            <p role="status" className="rounded-lg border border-brand/40 bg-brand/10 p-2.5 text-xs text-amber-100">
-              <b>M.O meminta inspeksi ulang:</b> {returned.reason}
+            <p role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
+              <b>O.M meminta inspeksi ulang:</b> {returned.reason}
             </p>
           )}
-          <p className="text-[11px] text-fg-subtle">
-            Pelapor: <span className="text-fg-muted">{r.reporterName}</span> · {fmt(c.createdAt)} · v{c.version}
+
+          <p className="text-[11px] text-slate-500">
+            Pelapor: <span className="text-slate-400">{r.reporterName}</span> · {fmt(c.createdAt)} · v{c.version}
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 md:w-64">
+        {/* ACTIONS COLUMN (RIGHT) */}
+        <div className="flex shrink-0 flex-col gap-2 md:w-60 justify-center">
           {primary}
-          {waiting && <p className="rounded-lg border border-line bg-elevated px-3 py-2.5 text-center text-xs text-fg-muted">{waiting}</p>}
-          {role === 'FE' && !done && (
-            <button type="button" className={BTN_GHOST} onClick={() => onDialog({ kind: 'NAV', caseId: c.id })}><Navigation className="h-4 w-4" /> Navigasi ke Lokasi</button>
+
+          {/* Special secondary fast validation for O.M in Menunggu Peninjauan */}
+          {role === 'OPS' && statusKey === 'MENUNGGU_PENINJAUAN' && onFastAccept && (
+            <button
+              type="button"
+              className={BTN_GHOST}
+              onClick={onFastAccept}
+              title="Validasi laporan ini agar berpindah ke Belum Ditugaskan"
+            >
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Validasi Laporan
+            </button>
           )}
-          <button type="button" className={BTN_GHOST} onClick={() => onDialog({ kind: 'PANEL', caseId: c.id, action: null })}>
-            {done ? <Eye className="h-4 w-4" /> : <History className="h-4 w-4" />} {done ? 'Lihat Hasil & Riwayat' : 'Detail & Riwayat'}
+
+          {waitingNotice && (
+            <div className="rounded-lg border border-[#202B3B] bg-[#0A101D] px-3 py-2 text-center text-xs text-slate-400">
+              {waitingNotice}
+            </div>
+          )}
+
+          {role === 'FE' && !done && (
+            <button
+              type="button"
+              className={`${BTN_GHOST} hover:border-sky-500/50 hover:text-sky-300 transition-colors cursor-pointer`}
+              onClick={() => {
+                if (onStartNavigation) {
+                  onStartNavigation(c);
+                } else {
+                  onDialog({ kind: 'NAV', caseId: c.id });
+                }
+              }}
+              title="Buka Navigasi Rute Langsung di Tab Peta Sistem"
+            >
+              <Navigation className="h-4 w-4 text-cyan-400 animate-pulse" /> Navigasi ke Lokasi
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={done ? `${BTN_GHOST} border-emerald-500/40 text-emerald-200` : BTN_GHOST}
+            onClick={() => onDialog(done ? { kind: 'RESULT', caseId: c.id } : { kind: 'PANEL', caseId: c.id, action: null })}
+          >
+            {done ? <Eye className="h-4 w-4 text-emerald-400" /> : <History className="h-4 w-4" />}
+            <span>{done ? (role === 'FE' ? 'Lihat Hasil Terverifikasi' : 'Lihat Transparansi Mutu') : 'Detail & Riwayat'}</span>
           </button>
         </div>
       </div>
@@ -404,26 +622,125 @@ const CaseCard: React.FC<{
   );
 };
 
-const Modal: React.FC<{ title: string; subtitle?: React.ReactNode; icon?: React.ReactNode; onClose: () => void; wide?: boolean; children: React.ReactNode }> = ({ title, subtitle, icon, onClose, wide, children }) => {
+/** Lets "Batal" inside a modal go through the same discard check as Escape and the close button. */
+const ModalClose = createContext<(() => void) | null>(null);
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Dialog shell. Focus moves into the dialog (first field, else first button), Tab stays inside,
+ * and focus returns to where it was on close. With `dirty`, closing (Escape, backdrop, ×, Batal)
+ * first asks before throwing away unsent input; with `busy`, it cannot close mid-request.
+ */
+const Modal: React.FC<{
+  title: string;
+  subtitle?: React.ReactNode;
+  icon?: React.ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+  maxWidthClass?: string;
+  dirty?: boolean;
+  busy?: boolean;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, subtitle, icon, onClose, wide, maxWidthClass, dirty = false, busy = false, footer, children }) => {
+  const panel = useRef<HTMLDivElement>(null);
+  const [confirming, setConfirming] = useState(false);
+  const titleId = useId();
+  const requestClose = () => {
+    if (busy) return;
+    if (dirty && !confirming) return setConfirming(true);
+    onClose();
+  };
+  const closeRef = useRef(requestClose);
+  closeRef.current = requestClose;
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const before = document.activeElement as HTMLElement | null;
+    const root = panel.current;
+    const first = root?.querySelector<HTMLElement>('input:not([type="file"]):not([disabled]), select, textarea') ?? root?.querySelector<HTMLElement>(FOCUSABLE);
+    first?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeRef.current();
+      } else if (e.key === 'Tab' && root) {
+        const items = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+        if (!items.length) return;
+        const [head, tail] = [items[0], items[items.length - 1]];
+        if (e.shiftKey && document.activeElement === head) {
+          e.preventDefault();
+          tail.focus();
+        } else if (!e.shiftKey && document.activeElement === tail) {
+          e.preventDefault();
+          head.focus();
+        }
+      }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (before && document.contains(before)) before.focus();
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
-      <div className={`max-h-[92vh] w-full ${wide ? 'max-w-3xl' : 'max-w-xl'} overflow-y-auto rounded-2xl border border-line bg-surface p-5 text-fg shadow-2xl`} onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-start gap-3 border-b border-line pb-4">
-          {icon && <span className="rounded-xl border border-brand/40 bg-brand/10 p-2.5 text-brand">{icon}</span>}
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-bold uppercase tracking-wide">{title}</h2>
-            {subtitle && <p className="mt-0.5 font-mono text-[11px] text-fg-muted">{subtitle}</p>}
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/75 p-3 sm:p-5 backdrop-blur-sm" onClick={requestClose}>
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={`max-h-[min(88vh,820px)] w-full ${maxWidthClass ?? (wide ? 'max-w-3xl' : 'max-w-xl')} flex flex-col overflow-hidden rounded-2xl border border-line bg-surface text-fg shadow-2xl`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header - Fixed & Pinned */}
+        <div className="shrink-0 flex items-center justify-between gap-3 border-b border-line px-5 sm:px-6 py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {icon && (
+              <span className="rounded-xl border border-brand/40 bg-brand/10 p-2 text-brand shrink-0">
+                {icon}
+              </span>
+            )}
+            <div className="min-w-0">
+              <h2 id={titleId} className="text-sm font-bold uppercase tracking-wide truncate">
+                {title}
+              </h2>
+              {subtitle && <p className="mt-0.5 font-mono text-[11px] text-fg-muted truncate">{subtitle}</p>}
+            </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-fg-muted hover:bg-white/[0.06] hover:text-fg" aria-label="Tutup">
+          <button
+            type="button"
+            onClick={requestClose}
+            disabled={busy}
+            className="rounded-full p-1.5 text-fg-muted hover:bg-white/[0.06] hover:text-fg disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+            aria-label="Tutup"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
-        {children}
+
+        {confirming && (
+          <div role="alertdialog" aria-label="Buang isian?" className="shrink-0 mx-5 sm:mx-6 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/50 bg-brand/10 px-3 py-2.5 text-sm">
+            <span>Isian di formulir ini belum dikirim dan akan hilang. Buang isian?</span>
+            <span className="flex gap-2">
+              <button type="button" className={BTN_GHOST} onClick={() => setConfirming(false)}>Lanjut mengisi</button>
+              <button type="button" className={BTN_DANGER} onClick={onClose}>Buang &amp; tutup</button>
+            </span>
+          </div>
+        )}
+
+        {/* Modal Body - Scrollable only if needed */}
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 sm:p-6">
+          <ModalClose.Provider value={requestClose}>{children}</ModalClose.Provider>
+        </div>
+
+        {/* Pinned Footer (if provided as prop) */}
+        {footer && (
+          <div className="shrink-0 border-t border-line bg-surface px-5 sm:px-6 py-3.5">
+            <ModalClose.Provider value={requestClose}>{footer}</ModalClose.Provider>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -437,6 +754,42 @@ const Summary: React.FC<{ c: ReportCase }> = ({ c }) => (
   </dl>
 );
 
+const SpkSummary: React.FC<{ c: ReportCase }> = ({ c }) => {
+  const coords = c.report.coordinates;
+  const coordsStr = coords && coords.length >= 2 ? `(${coords[0].toFixed(4)}, ${coords[1].toFixed(4)})` : '';
+
+  return (
+    <div className="rounded-xl border border-line bg-canvas/60 p-3.5 text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-2.5 border-b border-line/60">
+        <div className="sm:w-[32%] shrink-0">
+          <span className="block font-mono text-[10px] uppercase tracking-wider text-fg-subtle">Jenis Kerusakan</span>
+          <span className="mt-1 inline-block font-bold text-brand text-sm tracking-wide">
+            {c.report.damageTypeLabel}
+          </span>
+        </div>
+        <div className="sm:flex-1 min-w-0">
+          <span className="block font-mono text-[10px] uppercase tracking-wider text-fg-subtle">Lokasi &amp; Ruas Jalan</span>
+          <p className="mt-1 text-fg/90 font-medium leading-relaxed truncate sm:whitespace-normal" title={c.report.segmentName}>
+            {c.report.segmentName}
+            {c.report.corridor && <span className="text-fg-muted font-normal"> · {c.report.corridor}</span>}
+            {coordsStr && (
+              <span className="font-mono text-[11px] text-fg-subtle ml-1.5 tabular-nums">
+                {coordsStr}
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+      <div className="pt-2.5">
+        <span className="block font-mono text-[10px] uppercase tracking-wider text-fg-subtle mb-1">Deskripsi Warga</span>
+        <p className="italic text-fg-muted text-xs leading-relaxed">
+          &ldquo;{c.report.description || 'Laporan kerusakan jalan dari warga.'}&rdquo;
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const useSubmit = (onClose: () => void) => {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -446,7 +799,8 @@ const useSubmit = (onClose: () => void) => {
     for (const [i, step] of steps.entries()) {
       const out = await step();
       if (out.ok === false) {
-        setErr(i > 0 ? `Sebagian tersimpan (${i} dari ${steps.length} langkah); langkah berikutnya gagal: ${out.error} Coba kirim lagi.` : out.error);
+        const text = friendlyError(out.code, out.error);
+        setErr(i > 0 ? `Sebagian tersimpan (${i} dari ${steps.length} langkah); langkah berikutnya gagal: ${text}` : text);
         setBusy(false);
         return;
       }
@@ -458,15 +812,18 @@ const useSubmit = (onClose: () => void) => {
   return { busy, err, submit };
 };
 
-const Footer: React.FC<{ err: string | null; children: React.ReactNode; onClose: () => void }> = ({ err, children, onClose }) => (
+const Footer: React.FC<{ err: string | null; children: React.ReactNode; onClose: () => void }> = ({ err, children, onClose }) => {
+  const requestClose = useContext(ModalClose) ?? onClose;
+  return (
   <>
     {err && <p role="alert" className="mt-3 rounded-lg border border-status-heavy/40 bg-status-heavy/10 px-3 py-2 text-xs text-rose-200">{err}</p>}
     <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-line pt-4">
-      <button type="button" className={BTN_GHOST} onClick={onClose}>Batal</button>
+      <button type="button" className={BTN_GHOST} onClick={requestClose}>Batal</button>
       {children}
     </div>
   </>
-);
+  );
+};
 
 /** M.O: accept the report (if still in review) and assign the field inspection — two audited steps. */
 const SpkModal: React.FC<{ c: ReportCase; engineers: EngineerSummary[]; onRun: (cmd: WorkflowCommand) => Promise<ReportMutationOutcome>; onClose: () => void }> = ({ c, engineers, onRun, onClose }) => {
@@ -497,54 +854,171 @@ const SpkModal: React.FC<{ c: ReportCase; engineers: EngineerSummary[]; onRun: (
   };
 
   return (
-    <Modal title="Terbitkan Surat Perintah Kerja (SPK)" subtitle={<>Disposisi laporan: <span className="text-brand">{c.id}</span></>} icon={<HardHat className="h-5 w-5" />} onClose={onClose}>
-      <div className="space-y-4">
-        <Summary c={c} />
-        {c.state === 'NEEDS_REVIEW' && <p className="text-xs text-fg-muted">Laporan ini akan <b>diterima</b> lalu <b>ditugaskan</b>; keduanya tercatat di riwayat dengan alasan di bawah.</p>}
+    <Modal
+      title="Terbitkan Surat Perintah Kerja (SPK)"
+      subtitle={<>Disposisi laporan: <span className="text-brand font-mono">{c.id}</span></>}
+      icon={<HardHat className="h-5 w-5" />}
+      onClose={onClose}
+      maxWidthClass="max-w-[960px]"
+      busy={busy}
+      dirty={!!(instructions.trim() || reason.trim())}
+      footer={
         <div>
-          <span className={LABEL}>Tingkat prioritas</span>
-          <div className="grid grid-cols-3 gap-2">
-            {(Object.keys(PRIORITY) as (keyof typeof PRIORITY)[]).map((p) => (
-              <button key={p} type="button" onClick={() => setPriority(p)} aria-pressed={priority === p} className={`rounded-lg border px-3 py-2 text-xs font-bold ${priority === p ? 'border-brand bg-brand/15 text-brand' : 'border-line bg-canvas text-fg-muted'}`}>
-                {PRIORITY[p]}
-              </button>
-            ))}
+          {err && (
+            <p role="alert" className="mb-3 rounded-lg border border-status-heavy/40 bg-status-heavy/10 px-3 py-2 text-xs text-rose-200">
+              {err}
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              className="h-9 px-4 rounded-lg border border-line bg-elevated hover:bg-white/[0.06] text-fg text-xs font-semibold transition-colors cursor-pointer"
+              onClick={onClose}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="h-9 px-4 rounded-lg bg-brand hover:bg-brand-hover text-navy font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              disabled={!ready || busy}
+              onClick={go}
+            >
+              <HardHat className="h-4 w-4" />
+              <span>{busy ? 'Mengirim…' : 'Terbitkan SPK & Tugaskan F.E'}</span>
+            </button>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block"><span className={LABEL}>Jenis tugas</span>
-            <select className={INPUT} value={taskType} onChange={(e) => setTaskType(e.target.value)}>
-              <option>Survei Kerusakan</option><option>Pengukuran Detail</option><option>Uji Defleksi (FWD)</option>
-            </select>
+      }
+    >
+      <div className="space-y-4">
+        {/* SECTION 1 — INFORMASI LAPORAN */}
+        <SpkSummary c={c} />
+        {c.state === 'NEEDS_REVIEW' && (
+          <p className="text-xs text-fg-muted -mt-1">
+            Laporan ini akan <b className="text-fg">diterima</b> lalu <b className="text-fg">ditugaskan</b>; keduanya tercatat di riwayat dengan alasan di bawah.
+          </p>
+        )}
+
+        {/* SECTION 2 — FORM PENUGASAN (DUA KOLOM VERTIKAL) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          {/* KOLOM KIRI — PRIORITAS DAN PENANGANAN */}
+          <div className="space-y-3.5">
+            {/* 1. Tingkat Prioritas */}
+            <div>
+              <span className={LABEL}>Tingkat Prioritas</span>
+              <div className="grid grid-cols-3 gap-2">
+                {(Object.keys(PRIORITY) as (keyof typeof PRIORITY)[]).map((p) => {
+                  const isSelected = priority === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPriority(p)}
+                      aria-pressed={isSelected}
+                      className={`h-[38px] rounded-lg border px-3 py-2 text-xs font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-brand bg-brand/15 text-brand shadow-sm ring-1 ring-brand/40'
+                          : 'border-line bg-canvas text-fg-muted hover:border-line-active hover:text-fg'
+                      }`}
+                    >
+                      {PRIORITY[p]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Metode */}
+            <label className="block">
+              <span className={LABEL}>Metode</span>
+              <select className={INPUT} value={method} onChange={(e) => setMethod(e.target.value)}>
+                <option>Visual + Instrumen</option>
+                <option>Visual</option>
+                <option>Instrumen</option>
+              </select>
+            </label>
+
+            {/* 3. Petugas Field Engineer */}
+            <label className="block">
+              <span className={LABEL}>Petugas Field Engineer (F.E)</span>
+              <select className={INPUT} value={engineerId} onChange={(e) => setEngineerId(e.target.value)}>
+                {engineers.length === 0 && <option value="">Tidak ada F.E terdaftar</option>}
+                {engineers.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} — {e.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* KOLOM KANAN — PEKERJAAN DAN JADWAL */}
+          <div className="space-y-3.5">
+            {/* 1. Jenis Tugas */}
+            <label className="block">
+              <span className={LABEL}>Jenis Tugas</span>
+              <select className={INPUT} value={taskType} onChange={(e) => setTaskType(e.target.value)}>
+                <option>Survei Kerusakan</option>
+                <option>Pengukuran Detail</option>
+                <option>Uji Defleksi (FWD)</option>
+              </select>
+            </label>
+
+            {/* 2. Estimasi Waktu Kerja */}
+            <label className="block">
+              <span className={LABEL}>Estimasi Waktu Kerja (Jam)</span>
+              <input
+                type="number"
+                min="0.5"
+                step="0.5"
+                className={INPUT}
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+                placeholder="2"
+              />
+            </label>
+
+            {/* 3. Batas Waktu Inspeksi */}
+            <label className="block">
+              <span className={LABEL}>Batas Waktu Inspeksi</span>
+              <input
+                type="date"
+                className={INPUT}
+                value={due}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setDue(e.target.value)}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* SECTION 3 — CATATAN TEKNIS DAN ALASAN PENUGASAN */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          {/* Kolom Kiri — Instruksi Teknis & Catatan Lapangan */}
+          <label className="block">
+            <span className={LABEL}>Instruksi Teknis &amp; Catatan Lapangan</span>
+            <textarea
+              className={`${INPUT} min-h-[84px] max-h-36 resize-y`}
+              rows={3}
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="Contoh: ukur kedalaman dan luas, foto tepi lubang."
+            />
           </label>
-          <label className="block"><span className={LABEL}>Metode</span>
-            <select className={INPUT} value={method} onChange={(e) => setMethod(e.target.value)}>
-              <option>Visual + Instrumen</option><option>Visual</option><option>Instrumen</option>
-            </select>
-          </label>
-          <label className="block"><span className={LABEL}>Estimasi waktu kerja (jam)</span>
-            <input type="number" min="0.5" step="0.5" className={INPUT} value={hours} onChange={(e) => setHours(e.target.value)} />
-          </label>
-          <label className="block"><span className={LABEL}>Batas waktu inspeksi</span>
-            <input type="date" className={INPUT} value={due} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDue(e.target.value)} />
-          </label>
-          <label className="block"><span className={LABEL}>Petugas Field Engineer (F.E)</span>
-            <select className={INPUT} value={engineerId} onChange={(e) => setEngineerId(e.target.value)}>
-              {engineers.length === 0 && <option value="">Tidak ada F.E terdaftar</option>}
-              {engineers.map((e) => <option key={e.id} value={e.id}>{e.name} — {e.title}</option>)}
-            </select>
+
+          {/* Kolom Kanan — Alasan Penugasan */}
+          <label className="block">
+            <span className={LABEL}>Alasan Penugasan (Tercatat di Riwayat)</span>
+            <textarea
+              className={`${INPUT} min-h-[84px] max-h-36 resize-y`}
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Contoh: foto dan lokasi jelas, koridor prioritas."
+            />
           </label>
         </div>
-        <label className="block"><span className={LABEL}>Instruksi teknis &amp; catatan lapangan</span>
-          <textarea className={INPUT} rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Contoh: ukur kedalaman dan luas, foto tepi lubang." />
-        </label>
-        <label className="block"><span className={LABEL}>Alasan penugasan (tercatat di riwayat)</span>
-          <input className={INPUT} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Contoh: foto dan lokasi jelas, koridor prioritas." />
-        </label>
       </div>
-      <Footer err={err} onClose={onClose}>
-        <button type="button" className={BTN_BRAND} disabled={!ready || busy} onClick={go}><HardHat className="h-4 w-4" /> {busy ? 'Mengirim…' : 'Terbitkan SPK & Tugaskan F.E'}</button>
-      </Footer>
     </Modal>
   );
 };
@@ -596,7 +1070,7 @@ const EvidenceModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) => 
   const ready = notes.trim() && photo;
 
   return (
-    <Modal title="Kirim hasil inspeksi & bukti" subtitle={<>Dikirim ke <span className="text-brand">Operations Manager</span> untuk diverifikasi · {c.id}</>} icon={<Camera className="h-5 w-5" />} onClose={onClose}>
+    <Modal busy={busy} title="Kirim hasil inspeksi & bukti" subtitle={<>Dikirim ke <span className="text-brand">Operations Manager</span> untuk diverifikasi · {c.id}</>} icon={<Camera className="h-5 w-5" />} onClose={onClose}>
       <div className="space-y-4">
         <BeforeAfter
           before={c.report.photoUrl}
@@ -659,7 +1133,7 @@ const VerifyModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) => Pr
   const { busy, err, submit } = useSubmit(onClose);
   const i = c.inspection;
   return (
-    <Modal title="Verifikasi mutu hasil inspeksi oleh M.O" subtitle={<>Laporan: <span className="text-brand">{c.id}</span>{c.assignment && <> · Penugasan {c.assignment.id}</>}</>} icon={<ShieldCheck className="h-5 w-5" />} onClose={onClose} wide>
+    <Modal title="Verifikasi mutu hasil inspeksi oleh M.O" subtitle={<>Laporan: <span className="text-brand">{c.id}</span>{c.assignment && <> · Penugasan {c.assignment.id}</>}</>} icon={<ShieldCheck className="h-5 w-5" />} onClose={onClose} wide busy={busy} dirty={!!reason.trim()}>
       <div className="space-y-4">
         <BeforeAfter before={c.report.photoUrl} after={i?.evidencePhotoUrl} />
         {i && (
@@ -716,7 +1190,7 @@ const WorkDoneModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) => 
   const last = c.workOrder?.submissions?.at(-1);
   const rework = last?.decision === 'REWORK_REQUESTED' ? last : null;
   return (
-    <Modal title="Kirim bukti perbaikan selesai" subtitle={<>Dikirim ke <span className="text-brand">Operations Manager</span> untuk diverifikasi · {c.id}{c.workOrder && ` · ${c.workOrder.id}`}</>} icon={<Camera className="h-5 w-5" />} onClose={onClose}>
+    <Modal busy={busy} dirty={!!photo || !!note.trim()} title="Kirim bukti perbaikan selesai" subtitle={<>Dikirim ke <span className="text-brand">Operations Manager</span> untuk diverifikasi · {c.id}{c.workOrder && ` · ${c.workOrder.id}`}</>} icon={<Camera className="h-5 w-5" />} onClose={onClose}>
       <div className="space-y-4">
         {rework && <p className="rounded-lg border border-status-heavy/40 bg-status-heavy/10 p-2.5 text-xs text-rose-100"><b>Alasan perbaikan ulang dari M.O:</b> {rework.reason}</p>}
         <BeforeAfter
@@ -733,15 +1207,35 @@ const WorkDoneModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) => 
           {photo && <button type="button" className="text-fg-muted underline" onClick={() => setPhoto(null)}>Ganti / hapus foto</button>}
         </div>
         {photoErr && <p role="alert" className="text-xs text-rose-300">{photoErr}</p>}
+        {!photo && (
+          <button
+            type="button"
+            id="btn-sample-after-photo"
+            onClick={async () => {
+              try {
+                const res = await fetch('/PavementPinn/test-fixtures/test-after.jpg');
+                const blob = await res.blob();
+                const reader = new FileReader();
+                reader.onload = (e) => setPhoto(String(e.target?.result));
+                reader.readAsDataURL(blob);
+              } catch (err) {
+                console.error(err);
+              }
+            }}
+            className="w-full py-1.5 px-3 rounded-lg border border-dashed border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition-colors cursor-pointer"
+          >
+            ✓ Gunakan Foto Sampel Hasil Perbaikan (Aspal Baru Mulus)
+          </button>
+        )}
         <label className="block"><span className={LABEL}>Catatan penyelesaian &amp; spesifikasi perbaikan</span>
-          <textarea className={INPUT} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: patching AC-WC 5 cm, dipadatkan, tepi dirapikan." />
+          <textarea id="textarea-fe-completion-note" className={INPUT} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: patching AC-WC 5 cm, dipadatkan, tepi dirapikan." />
         </label>
         <p className="font-mono text-[11px] text-fg-muted">
           Lokasi laporan: {c.report.coordinates[0].toFixed(5)}, {c.report.coordinates[1].toFixed(5)} · Waktu kirim dicatat server. Lokasi foto tidak diverifikasi otomatis.
         </p>
       </div>
       <Footer err={err} onClose={onClose}>
-        <button type="button" className={BTN_GOOD} disabled={!photo || sameAsBefore || !note.trim() || busy} onClick={() => void submit([() => onRun({ action: 'COMPLETE_WORK_ORDER', reason: note.trim(), completionPhotoUrl: photo! })])}>
+        <button id="btn-fe-kirim-bukti-selesai" type="button" className={BTN_GOOD} disabled={!photo || sameAsBefore || !note.trim() || busy} onClick={() => void submit([() => onRun({ action: 'COMPLETE_WORK_ORDER', reason: note.trim(), completionPhotoUrl: photo! })])}>
           {busy ? 'Mengirim…' : 'Kirim Bukti Perbaikan ke M.O'}
         </button>
       </Footer>
@@ -749,22 +1243,48 @@ const WorkDoneModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) => 
   );
 };
 
-/** M.O: compare before with the F.E repair photo, then verify (final) or ask for rework. */
+/** M.O: compare before with the F.E repair photo, complete checklist, then verify or ask for rework. */
 const WorkVerifyModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) => Promise<ReportMutationOutcome>; onClose: () => void }> = ({ c, onRun, onClose }) => {
   const [reason, setReason] = useState('');
+  const [checklist, setChecklist] = useState({
+    treatment: false,
+    elevation: false,
+    siteClean: false,
+  });
+  const allChecked = checklist.treatment && checklist.elevation && checklist.siteClean;
   const { busy, err, submit } = useSubmit(onClose);
   const wo = c.workOrder;
   const subs = wo?.submissions ?? [];
   const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
+
   return (
-    <Modal title="Verifikasi mutu perbaikan oleh M.O" subtitle={<>Laporan: <span className="text-brand">{c.id}</span>{wo && <> · Perintah kerja {wo.id}</>}</>} icon={<ShieldCheck className="h-5 w-5" />} onClose={onClose} wide>
+    <Modal busy={busy} dirty={!!reason.trim()} title="Verifikasi Mutu Perbaikan oleh O.M" subtitle={<>Laporan: <span className="text-[#E8B52B] font-mono">{c.id}</span>{wo && <> · Perintah Kerja <span className="font-mono">{wo.id}</span></>}</>} icon={<ShieldCheck className="h-5 w-5 text-[#E8B52B]" />} onClose={onClose} wide>
       <div className="space-y-4">
+        {/* 1. INFORMASI TUGAS */}
+        <div className="rounded-xl border border-line-subtle bg-card p-3 text-xs space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-semibold text-white text-sm">{c.report.damageTypeLabel} — {c.report.segmentName}</span>
+            <span className="font-mono text-slate-400">({c.report.coordinates[0].toFixed(5)}, {c.report.coordinates[1].toFixed(5)})</span>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-300">
+            <span>Petugas Pelaksana: <b className="text-emerald-400">{wo?.completedBy ? actorName(wo.completedBy) : (c.assignment?.engineerId ? actorName(c.assignment.engineerId) : '—')}</b></span>
+            {c.recommendation && <span>Metode SPK: <b className="text-slate-100">{c.recommendation.treatment}</b></span>}
+            {c.assignment && <span>Prioritas: <b className="text-[#E8B52B]">URGENT / PRIORITY</b></span>}
+          </div>
+          {c.assignment?.instructions && (
+            <p className="text-slate-400 pt-0.5 border-t border-[#202B3B]/60 mt-1">
+              <span className="font-semibold text-slate-300">Instruksi Awal:</span> {c.assignment.instructions}
+            </p>
+          )}
+        </div>
+
+        {/* 2. PERBANDINGAN BUKTI (BEFORE & AFTER SLIDER) */}
         <BeforeAfterSlider
           before={c.report.photoUrl}
           after={wo?.completionPhotoUrl}
           beforeAlt="Foto laporan warga (R.E)"
           afterAlt="Foto sesudah perbaikan (F.E)"
-          afterBadge="Menunggu verifikasi M.O"
+          afterBadge="Menunggu verifikasi O.M"
           onZoom={(src, alt) => setZoom({ src, alt })}
         />
         {zoom && (
@@ -772,43 +1292,125 @@ const WorkVerifyModal: React.FC<{ c: ReportCase; onRun: (cmd: WorkflowCommand) =
             <img src={zoom.src} alt={zoom.alt} className="max-h-[90vh] max-w-full rounded-lg object-contain" />
           </button>
         )}
-        <div className="space-y-2 rounded-xl border border-line bg-canvas/60 p-3 text-xs">
+
+        {/* 3. CATATAN PELAKSANAAN F.E */}
+        <div className="space-y-1.5 rounded-xl border border-line-subtle bg-panel p-3 text-xs">
           <div className="flex flex-wrap justify-between gap-2">
-            <span className="font-mono text-fg-subtle">FIELD ENGINEER PELAKSANA</span>
-            <span className="font-semibold text-emerald-300">● {wo?.completedBy ? actorName(wo.completedBy) : '—'}</span>
+            <span className="font-mono text-ink-3">CATATAN PENYELESAIAN F.E</span>
+            <span className="text-ink-3">Dikirim {wo?.completedAt ? fmt(wo.completedAt) : '—'}</span>
           </div>
-          <p className="rounded-lg bg-surface p-2.5 italic">“{wo?.completionNote ?? '—'}”</p>
-          <p className="text-fg-muted">Bukti dikirim {wo?.completedAt ? fmt(wo.completedAt) : '—'} · Lokasi laporan {c.report.coordinates[0].toFixed(5)}, {c.report.coordinates[1].toFixed(5)}</p>
-          {c.recommendation && <p>Penanganan disetujui: <b>{c.recommendation.treatment}</b></p>}
-          {c.assignment && <p className="text-fg-muted">Instruksi awal: {c.assignment.instructions}</p>}
+          <p className="rounded-lg bg-card border border-line-subtle p-2.5 italic text-ink">“{wo?.completionNote ?? 'Pekerjaan perbaikan selesai.'}”</p>
         </div>
+
         {subs.length > 1 && (
-          <details className="rounded-xl border border-line p-3 text-xs">
-            <summary className="cursor-pointer font-semibold">Riwayat bukti ({subs.length} pengiriman)</summary>
+          <details className="rounded-xl border border-[#202B3B] bg-[#0A101D] p-3 text-xs">
+            <summary className="cursor-pointer font-semibold text-slate-300">Riwayat bukti ({subs.length} pengiriman)</summary>
             <ol className="mt-2 space-y-2">
               {subs.map((s, i) => (
                 <li key={s.at} className="flex gap-3">
                   <img src={s.photoUrl} alt={`Bukti perbaikan ke-${i + 1}`} className="h-12 w-16 rounded object-cover" />
                   <span>
-                    {fmt(s.at)} · {s.decision === 'REWORK_REQUESTED' ? `diminta ulang: ${s.reason}` : s.decision === 'VERIFIED' ? 'terverifikasi' : 'menunggu keputusan'}
+                    {fmt(s.at)} · {s.decision === 'REWORK_REQUESTED' ? `diminta revisi: ${s.reason}` : s.decision === 'VERIFIED' ? 'terverifikasi' : 'menunggu keputusan'}
                     <br />
-                    <span className="text-fg-muted">{s.note}</span>
+                    <span className="text-slate-400">{s.note}</span>
                   </span>
                 </li>
               ))}
             </ol>
           </details>
         )}
-        <label className="block"><span className={LABEL}>Alasan keputusan (wajib, tercatat di riwayat)</span>
-          <textarea className={INPUT} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Contoh: permukaan rata dan tepi rapi / tepi tambalan belum rata." />
+
+        {/* 4. CHECKLIST VERIFIKASI MUTU LAPANGAN */}
+        <div className="space-y-2 rounded-xl border border-line-subtle bg-card p-3 text-xs">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-slate-200 flex items-center gap-1.5">
+              <ClipboardCheck className="h-4 w-4 text-[#E8B52B]" /> Checklist Verifikasi Mutu Lapangan
+            </p>
+            <button
+              type="button"
+              id="btn-verify-all-checklist"
+              onClick={() => setChecklist({ treatment: true, elevation: true, siteClean: true })}
+              className="text-[11px] text-amber-300 hover:text-amber-200 underline cursor-pointer"
+            >
+              ✓ Centang Semua Kriteria Mutu
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-400">Centang seluruh kriteria hasil pemeriksaan bukti sebelum menyetujui:</p>
+          <div className="space-y-2 pt-1">
+            <label className="flex items-start gap-2.5 cursor-pointer text-slate-200 hover:text-white">
+              <input
+                type="checkbox"
+                id="checkbox-verify-treatment"
+                className="mt-0.5 rounded border-slate-600 text-amber-500 focus:ring-amber-400"
+                checked={checklist.treatment}
+                onChange={(e) => setChecklist((prev) => ({ ...prev, treatment: e.target.checked }))}
+              />
+              <span>Pekerjaan perbaikan sesuai metode instruksi SPK ({c.recommendation?.treatment || 'Standar Teknis Aspal'})</span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer text-slate-200 hover:text-white">
+              <input
+                type="checkbox"
+                id="checkbox-verify-elevation"
+                className="mt-0.5 rounded border-slate-600 text-amber-500 focus:ring-amber-400"
+                checked={checklist.elevation}
+                onChange={(e) => setChecklist((prev) => ({ ...prev, elevation: e.target.checked }))}
+              />
+              <span>Elevasi permukaan perbaikan rata dan menyatu rapi tanpa tonjolan atau cekungan tajam</span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer text-slate-200 hover:text-white">
+              <input
+                type="checkbox"
+                id="checkbox-verify-site-clean"
+                className="mt-0.5 rounded border-slate-600 text-amber-500 focus:ring-amber-400"
+                checked={checklist.siteClean}
+                onChange={(e) => setChecklist((prev) => ({ ...prev, siteClean: e.target.checked }))}
+              />
+              <span>Area kerja telah dibersihkan dari sisa puing/material agregat &amp; jalur aman dilalui kendaraan</span>
+            </label>
+          </div>
+        </div>
+
+        {/* 5. ALASAN KEPUTUSAN */}
+        <label className="block">
+          <span className={LABEL}>Alasan Keputusan / Catatan Verifikasi (Wajib jika Minta Revisi)</span>
+          <textarea
+            id="textarea-verify-reason"
+            className={INPUT}
+            rows={2}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Contoh: Permukaan tambalan rata rapi, sambungan aspal rapat. / Tepi perbaikan masih bergelombang, mohon dipadatkan ulang."
+          />
         </label>
       </div>
       <Footer err={err} onClose={onClose}>
-        <button type="button" className={BTN_DANGER} disabled={!reason.trim() || busy} onClick={() => void submit([() => onRun({ action: 'REQUEST_REWORK', reason: reason.trim() })])}>
-          <RotateCcw className="h-4 w-4" /> Minta Perbaikan Ulang
+        <button
+          type="button"
+          id="btn-om-minta-revisi"
+          className={BTN_DANGER}
+          disabled={!reason.trim() || busy}
+          title={!reason.trim() ? 'Wajib isi alasan revisi' : undefined}
+          onClick={() => void submit([() => onRun({ action: 'REQUEST_REWORK', reason: reason.trim() })])}
+        >
+          <RotateCcw className="h-4 w-4" /> Minta Revisi
         </button>
-        <button type="button" className={BTN_GOOD} disabled={!reason.trim() || busy} onClick={() => void submit([() => onRun({ action: 'RESOLVE', reason: reason.trim() })])}>
-          <ShieldCheck className="h-4 w-4" /> Setujui &amp; Verifikasi Perbaikan
+        <button
+          type="button"
+          id="btn-om-setujui-verifikasi"
+          className={BTN_GOOD}
+          disabled={!allChecked || busy}
+          title={!allChecked ? 'Lengkapi seluruh checklist verifikasi terlebih dahulu' : undefined}
+          onClick={() =>
+            void submit([
+              () =>
+                onRun({
+                  action: 'RESOLVE',
+                  reason: reason.trim() || 'Pekerjaan perbaikan telah diperiksa dan disetujui sesuai standar operasional.'
+                })
+            ])
+          }
+        >
+          <ShieldCheck className="h-4 w-4" /> Setujui Verifikasi
         </button>
       </Footer>
     </Modal>

@@ -65,7 +65,7 @@ export const ExecutivePolicyDashboard: React.FC<ExecutivePolicyDashboardProps> =
     : 45.2;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="w-full min-w-0 space-y-4">
       {/* Banner */}
       <div className="bg-white/5 border border-white/10 p-5 rounded-2xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">

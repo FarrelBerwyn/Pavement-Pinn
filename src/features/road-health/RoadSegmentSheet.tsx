@@ -135,7 +135,11 @@ export const RoadSegmentSheet: React.FC<RoadSegmentSheetProps> = ({
       <section className="text-xs leading-relaxed text-slate-400 space-y-2">
         <h3 className="font-semibold text-slate-300">{en ? 'Data status' : 'Status data'}</h3>
         <p>
-          {en
+          {segment.geometryStatus === 'DIGITISED'
+            ? en
+              ? 'Segment attributes are synthetic demo data. Road geometry follows verified OpenStreetMap road centerline. Field inspection data is not available.'
+              : 'Atribut ruas adalah data demo sintetis. Geometri jalan mengikuti trase centerline OpenStreetMap terverifikasi. Data inspeksi lapangan belum tersedia.'
+            : en
             ? 'Segment attributes are synthetic demo data. The line on the map is illustrative geometry, not a surveyed alignment. No field inspection data is available.'
             : 'Atribut ruas adalah data demo sintetis. Garis pada peta adalah geometri ilustratif, bukan trase hasil survei. Data inspeksi lapangan belum tersedia.'}
         </p>

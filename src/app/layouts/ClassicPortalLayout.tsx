@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Map, LayoutDashboard, Activity, X } from 'lucide-react';
 import { Navbar } from './Navbar';
-import { LeafletMap } from '../../components/maps/LeafletMap';
+import { PavementMap } from '../../components/maps/PavementMap';
 import { SimulationPanel } from '../../components/simulation-viewer/SimulationPanel';
 import { FieldEngineerDashboard } from '../../features/fwd/FieldEngineerDashboard';
 import { OperationsManagerDashboard } from '../../features/wim/OperationsManagerDashboard';
@@ -54,13 +54,22 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
   };
 
   const [isCommunityReportCardOpen, setIsCommunityReportCardOpen] = useState<boolean>(false);
+  const [mapEntryKey, setMapEntryKey] = useState<number>(1);
+  const prevActiveTabRef = React.useRef<ClassicTab>(activeTab);
+
+  React.useEffect(() => {
+    if (activeTab === 'MAP' && prevActiveTabRef.current !== 'MAP') {
+      setMapEntryKey((prev) => prev + 1);
+    }
+    prevActiveTabRef.current = activeTab;
+  }, [activeTab]);
 
   const handleToggleCommunityReportCard = () => {
     setIsCommunityReportCardOpen((prev) => !prev);
   };
 
   return (
-    <div className="h-screen h-[100dvh] w-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+    <div className="h-full w-full overflow-hidden bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Navbar Header */}
       <Navbar
         activeRole={activeRole}
@@ -71,6 +80,9 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
           } else if (tab === 'AUDIT') {
             openAuditTrail();
           } else {
+            if (tab === 'MAP') {
+              setMapEntryKey((prev) => prev + 1);
+            }
             setActiveTab(tab);
           }
         }}
@@ -86,7 +98,7 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
       {/* Main View Area (Full Screen Base Map + Floating Glass Overlays) */}
       <main className="relative flex-1 w-full h-full min-h-0 overflow-hidden bg-slate-950">
         {/* Full-Screen Base Geospasial Map */}
-        <LeafletMap
+        <PavementMap
           roadSegments={roadSegments}
           selectedSegment={selectedSegment}
           onSelectSegment={setSelectedSegment}
@@ -99,6 +111,9 @@ export const ClassicPortalLayout: React.FC<ClassicPortalLayoutProps> = ({ active
           currentAccount={currentAccount}
           isCommunityReportCardOpen={isCommunityReportCardOpen}
           onToggleCommunityReportCard={handleToggleCommunityReportCard}
+          compact={false}
+          isTabActive={activeTab === 'MAP'}
+          entryAnimationKey={mapEntryKey}
         />
 
         {/* Floating Feature Panel Overlay (When DASHBOARD or SIMULATOR tab is active) */}

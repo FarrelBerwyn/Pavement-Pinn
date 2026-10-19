@@ -4,7 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server/index.ts",
+    "dev": "tsx scripts/dev/launch.ts",
+    "dev:restart": "tsx scripts/dev/launch.ts --restart",
+    "dev:server": "tsx server/index.ts",
+    "dev:status": "tsx scripts/dev/status.ts",
+    "dev:check": "tsx scripts/dev/status.ts --check",
     "build": "vite build && esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",

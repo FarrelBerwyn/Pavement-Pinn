@@ -5,13 +5,14 @@ import { usePageContext } from '../../app/pageContext';
 import { useRouter } from '../../app/router';
 import { sanitizeNextPath } from '../../app/guards/routeAccess';
 import { useAppState } from '../../app/providers/AppStateProvider';
-import { isAnonymousAccount } from '../../app/providers/SessionProvider';
+import { isAnonymousAccount, useSession } from '../../app/providers/SessionProvider';
 import { USER_ACCOUNTS } from '../../features/authentication/demoAccounts';
 import { ROLE_LABELS } from '../../features/authentication/roleLabels';
 import { DEMO_ACCESS_ENABLED } from '../../features/authentication/demoAccess';
 import { DemoAccessPanel } from '../../features/authentication/DemoAccessPanel';
 import { loginErrorMessage, validateLoginFields, type LoginFieldErrors } from '../../features/authentication/loginMessages';
 import { WorkflowApiError, type LoginCredentials } from '../../services/api/workflowClient';
+import { PinnVideoBackground } from '../../components/ui/PinnVideoBackground';
 
 /**
  * Route: /login/ — sign in with a username (or email) and password.
@@ -23,6 +24,8 @@ import { WorkflowApiError, type LoginCredentials } from '../../services/api/work
  */
 export const LoginPage: React.FC = () => {
   const { currentAccount, completeLogin, logout } = usePageContext();
+  // Why the previous session ended (2-hour limit), shown until the next sign-in.
+  const { endedNotice } = useSession();
   const { query, navigateTo } = useRouter();
   const { workflow } = useAppState();
 
@@ -80,70 +83,138 @@ export const LoginPage: React.FC = () => {
 
   const signedIn = !isAnonymousAccount(currentAccount);
   const inputClass = (invalid: boolean) =>
-    `block w-full rounded-md border bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500 ${
-      invalid ? 'border-red-500' : 'border-slate-300 hover:border-slate-400'
+    `block w-full h-12 rounded-[12px] border bg-[#111318] px-3.5 text-sm text-[#F5F5F7] placeholder:text-[#6F7380] transition-colors focus:outline-none disabled:bg-[#111318]/50 disabled:text-[#6F7380] disabled:cursor-not-allowed ${
+      invalid
+        ? 'border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/40'
+        : 'border-[#30333A] hover:border-[#424652] focus:border-[#F5BC24] focus:ring-1 focus:ring-[#F5BC24]/40'
     }`;
 
   return (
-    <div className="fixed inset-0 z-[2000] overflow-y-auto bg-slate-100 text-slate-900 font-sans">
-      <div className="min-h-full lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
-        {/* Brand panel (wide screens) */}
-        <aside className="hidden lg:flex flex-col justify-between bg-surface px-12 py-10 text-white">
-          <div className="flex items-center gap-3">
-            <img src={logoImg} alt="" className="h-10 w-10 rounded-md object-cover" />
+    <div className="fixed inset-0 z-[2000] overflow-y-auto bg-[#101114] text-[#F5F5F7] font-sans antialiased selection:bg-[#F5BC24]/30 selection:text-[#F5F5F7]">
+      <div className="min-h-full lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)]">
+        {/* Brand panel (wide screens) with Editorial Overlay & Typography */}
+        <aside className="hero-banner hidden lg:block">
+          {/* Layer 0: Globe background */}
+          <div className="hero-banner__image">
+            <PinnVideoBackground hideOverlay={true} objectPosition="50% 35%" />
+          </div>
+
+          {/* Layer 1: Smooth Black to Transparent Gradient Overlay */}
+          <div className="hero-copy-overlay" aria-hidden="true" />
+
+          {/* Layer 2: Editorial Branding (Top-Left) */}
+          <div className="absolute top-10 left-[5.5%] z-[2] flex items-center gap-3">
+            <img src={logoImg} alt="PAVEMENT-PINN Logo" className="h-10 w-10 rounded-md object-cover ring-1 ring-[#F5BC24]/40 shadow-md" />
             <div>
-              <p className="text-lg font-bold tracking-wide">PAVEMENT-PINN</p>
-              <p className="text-xs text-blue-200">Road Infrastructure Intelligence Platform</p>
+              <p className="text-base font-bold tracking-wider text-[#F5F5F7] uppercase">PAVEMENT-PINN</p>
+              <p className="text-xs text-[#F5BC24] font-medium tracking-wide">Road Infrastructure Intelligence Platform</p>
             </div>
           </div>
-          <div className="max-w-md">
-            <h2 className="text-2xl font-semibold leading-snug">Pemantauan kondisi jalan, pelaporan kerusakan, dan analisis perkerasan dalam satu sistem.</h2>
-            <p className="mt-4 text-sm leading-relaxed text-blue-100/80">
+
+          {/* Layer 2: Editorial Copy Group (Anchored at Bottom-Left) */}
+          <div className="hero-copy">
+            {/* Minimalist Editorial Eyebrow Label (No dot, pure editorial) */}
+            <div className="hero-copy__eyebrow">
+              PHYSICS-INFORMED NEURAL NETWORK
+            </div>
+
+            {/* Editorial Headline: Assertive weight, measured size, poetic line breaks */}
+            <h2 className="hero-copy__headline">
+              <span className="block">Pemantauan kondisi jalan.</span>
+              <span className="block">Pelaporan kerusakan.</span>
+              <span className="block">Analisis perkerasan dalam satu sistem.</span>
+            </h2>
+
+            {/* Editorial Description */}
+            <p className="hero-copy__description">
               Untuk insinyur lapangan, manajer operasional, pengambil kebijakan, dan masyarakat pelapor.
             </p>
           </div>
-          <p className="text-xs text-blue-200/70">Lingkungan demonstrasi. Data dan akun bersifat contoh.</p>
         </aside>
 
-        <main className="flex min-h-full items-center justify-center px-4 py-8 sm:px-8">
-          <div className="w-full max-w-md">
-            {/* Brand header (phones and tablets) */}
-            <div className="mb-6 flex items-center gap-3 lg:hidden">
-              <img src={logoImg} alt="" className="h-10 w-10 rounded-md object-cover" />
-              <div>
-                <p className="text-base font-bold tracking-wide text-[#0b1f3a]">PAVEMENT-PINN</p>
-                <p className="text-xs text-slate-600">Road Infrastructure Intelligence Platform</p>
+        {/* Right Panel: Login Form (Apple-Inspired Dark Mode) */}
+        <main className="flex min-h-full items-center justify-center bg-[#101114] px-5 py-10 sm:px-8 lg:px-12">
+          <div className="w-full max-w-[480px]">
+            {/* Brand header (phones and tablets) with Editorial Gradient Overlay */}
+            <div className="hero-banner relative mb-6 overflow-hidden rounded-[20px] border border-[#30333A]/60 bg-black p-5 text-white shadow-lg lg:hidden">
+              <div className="hero-banner__image">
+                <PinnVideoBackground
+                  hideOverlay={true}
+                  objectPosition="50% 40%"
+                />
+              </div>
+              <div className="hero-copy-overlay" aria-hidden="true" />
+              <div className="relative z-[2]">
+                <div className="flex items-center gap-3 mb-3.5">
+                  <img src={logoImg} alt="PAVEMENT-PINN Logo" className="h-9 w-9 rounded-md object-cover ring-1 ring-[#F5BC24]/40" />
+                  <div>
+                    <p className="text-sm font-bold tracking-wide text-white uppercase">PAVEMENT-PINN</p>
+                    <p className="text-[11px] text-[#F5BC24] font-medium">Road Infrastructure Intelligence Platform</p>
+                  </div>
+                </div>
+                <div className="mb-2 text-[11px] font-semibold tracking-[0.04em] text-[#F5BC24] uppercase">
+                  PHYSICS-INFORMED NEURAL NETWORK
+                </div>
+                <h2 className="text-[20px] sm:text-[22px] font-medium leading-[1.12] tracking-[-0.025em] text-[#F1F1EE]">
+                  <span className="block">Pemantauan kondisi jalan.</span>
+                  <span className="block">Pelaporan kerusakan.</span>
+                  <span className="block">Analisis perkerasan dalam satu sistem.</span>
+                </h2>
+                <p className="mt-2 text-[13.5px] font-normal leading-[1.5] text-[#A6A8AE]">
+                  Untuk insinyur lapangan, manajer operasional, pengambil kebijakan, dan masyarakat pelapor.
+                </p>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h1 className="text-xl font-semibold text-slate-900">Masuk</h1>
-              <p className="mt-1 text-sm text-slate-600">Gunakan akun yang diberikan untuk peran Anda.</p>
+            {/* Login Card */}
+            <div className="rounded-[24px] border border-[#30333A] bg-[#191B20] p-7 sm:p-9 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              {/* 1. Judul & 2. Deskripsi */}
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-[#F5F5F7]">Masuk</h1>
+                <p className="mt-2 text-sm leading-relaxed text-[#A1A1AA]">
+                  Gunakan akun yang diberikan untuk peran Anda.
+                </p>
+              </div>
 
+              {/* Status Session jika sudah login */}
               {signedIn && (
-                <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                  Saat ini masuk sebagai <strong>{currentAccount.name}</strong> ({ROLE_LABELS[currentAccount.role]}).{' '}
-                  <button type="button" onClick={logout} className="font-semibold text-[#1d4ed8] underline underline-offset-2 cursor-pointer">
+                <div className="mt-5 flex items-center justify-between rounded-[12px] border border-[#30333A] bg-[#111318] px-3.5 py-2.5 text-xs text-[#A1A1AA]">
+                  <span>
+                    Saat ini masuk sebagai <strong className="text-[#F5F5F7] font-semibold">{currentAccount.name}</strong> ({ROLE_LABELS[currentAccount.role]})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="ml-2 font-medium text-[#F5BC24] hover:text-[#FFD052] underline underline-offset-2 cursor-pointer transition-colors"
+                  >
                     Keluar
                   </button>
-                </p>
+                </div>
               )}
 
               {workflow.mode === 'OFFLINE_DEMO' && (
-                <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <div className="mt-4 rounded-[12px] border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-200/90 leading-relaxed">
                   Build statis tanpa server: kredensial diperiksa di browser dan tidak memberikan keamanan.
-                </p>
+                </div>
+              )}
+
+              {endedNotice && !formError && (
+                <div role="status" className="mt-4 rounded-[12px] border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs font-medium text-amber-100 leading-relaxed">
+                  {endedNotice}
+                </div>
               )}
 
               {formError && (
-                <div role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                <div role="alert" className="mt-4 rounded-[12px] border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs font-medium text-red-200 leading-relaxed">
                   {formError}
                 </div>
               )}
 
-              <form noValidate onSubmit={onSubmit} className="mt-5 space-y-4" aria-busy={submitting}>
+              {/* Form */}
+              <form noValidate onSubmit={onSubmit} className="mt-6 space-y-4" aria-busy={submitting}>
+                {/* 3. Email atau nama pengguna */}
                 <div>
-                  <label htmlFor="login-identifier" className="mb-2 block text-sm font-medium text-slate-800">
+                  <label htmlFor="login-identifier" className="mb-2 block text-xs font-semibold tracking-wide text-[#A1A1AA]">
                     Email atau nama pengguna
                   </label>
                   <input
@@ -160,17 +231,19 @@ export const LoginPage: React.FC = () => {
                     onChange={(e) => setUsername(e.target.value)}
                     aria-invalid={!!fieldErrors.username}
                     aria-describedby={fieldErrors.username ? 'login-identifier-error' : undefined}
+                    placeholder="nama@instansi.go.id atau username"
                     className={inputClass(!!fieldErrors.username)}
                   />
                   {fieldErrors.username && (
-                    <p id="login-identifier-error" className="mt-1 text-xs text-red-700">
+                    <p id="login-identifier-error" className="mt-1.5 text-xs text-red-400 font-medium">
                       {fieldErrors.username}
                     </p>
                   )}
                 </div>
 
+                {/* 4. Kata sandi */}
                 <div>
-                  <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-slate-800">
+                  <label htmlFor="login-password" className="mb-2 block text-xs font-semibold tracking-wide text-[#A1A1AA]">
                     Kata sandi
                   </label>
                   <div className="relative">
@@ -185,6 +258,7 @@ export const LoginPage: React.FC = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       aria-invalid={!!fieldErrors.password}
                       aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+                      placeholder="Masukkan kata sandi"
                       className={`${inputClass(!!fieldErrors.password)} pr-11`}
                     />
                     <button
@@ -193,51 +267,60 @@ export const LoginPage: React.FC = () => {
                       aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                       aria-pressed={showPassword}
                       aria-controls="login-password"
-                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-slate-500 hover:text-slate-800 cursor-pointer"
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#858995] hover:text-[#F5F5F7] transition-colors cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {fieldErrors.password && (
-                    <p id="login-password-error" className="mt-1 text-xs text-red-700">
+                    <p id="login-password-error" className="mt-1.5 text-xs text-red-400 font-medium">
                       {fieldErrors.password}
                     </p>
                   )}
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-white hover:bg-[#13305a] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
-                >
-                  {submitting && <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
-                  {submitting ? 'Memeriksa…' : 'Masuk ke Sistem'}
-                </button>
+                {/* 5. Tombol utama: Masuk ke Sistem */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[#F5BC24] px-4 text-sm font-bold tracking-wide text-[#11110F] transition-all hover:bg-[#FFD052] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                  >
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin text-[#11110F] motion-reduce:animate-none" aria-hidden="true" />}
+                    <span>{submitting ? 'Memeriksa…' : 'Masuk ke Sistem'}</span>
+                  </button>
+                </div>
               </form>
 
-              <div className="mt-6 space-y-3 border-t border-slate-200 pt-5">
+              {/* 6. Divider */}
+              <div className="my-6 border-t border-[#30333A]" />
+
+              {/* 7. Tombol sekunder: Akses akun demo & 8. Link publik */}
+              <div className="space-y-3.5">
                 {DEMO_ACCESS_ENABLED && (
                   <button
                     ref={demoButtonRef}
                     type="button"
                     onClick={() => setDemoOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 cursor-pointer"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-[#30333A] bg-[#111318] px-4 text-sm font-medium text-[#F5F5F7] transition-all hover:border-[#424652] hover:bg-[#15171D] cursor-pointer"
                   >
-                    Akses akun demo
-                    <span className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-bold tracking-wide text-amber-800">DEMO</span>
+                    <span>Akses akun demo</span>
+                    <span className="rounded-full border border-[#F5BC24]/40 bg-[#F5BC24]/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-[#F5BC24]">
+                      DEMO
+                    </span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => navigateTo('dashboard')}
-                  className="w-full text-center text-sm font-medium text-[#1d4ed8] underline-offset-2 hover:underline cursor-pointer"
+                  className="w-full text-center text-xs font-medium text-[#A1A1AA] hover:text-[#F5BC24] transition-colors cursor-pointer"
                 >
                   Lihat peta publik tanpa masuk
                 </button>
               </div>
             </div>
 
-            <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
+            <p className="mt-5 text-center text-xs leading-relaxed text-[#858995]">
               Autentikasi di lingkungan ini adalah mode demo, bukan autentikasi produksi.
             </p>
           </div>

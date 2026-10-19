@@ -31,6 +31,7 @@ import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
 import { BeforeAfterSlider } from '../../components/ui/BeforeAfterSlider';
 import { canEditReport } from '../rbac/accessPolicy';
+import { assetUrl, NO_COVERAGE_PATH, reportPhotoCaption } from '../../domain/reports/datasetImages';
 
 export type SheetSnapPoint = 'PEEK' | 'HALF' | 'FULL';
 
@@ -57,6 +58,7 @@ interface ReportDetailBottomSheetProps {
   onOpenEditModal?: (report: DamageReport) => void;
   reviewsMap: Record<string, ReportReview[]>;
   onAddReview: (reportId: string, review: ReportReview) => void;
+  onStartNavigation?: (report: DamageReport) => void;
 }
 
 export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = ({
@@ -71,11 +73,11 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
   onOpenSPK,
   onOpenEditModal,
   reviewsMap,
-  onAddReview
+  onAddReview,
+  onStartNavigation
 }) => {
   // Snap position: 'HALF' (half-expanded ~50% screen) or 'FULL' (fully-expanded 88% screen)
   const [snapPoint, setSnapPoint] = useState<SheetSnapPoint>('HALF');
-  const [detailsTab, setDetailsTab] = useState<'COMPARISON' | 'TELEMETRY' | 'OVERVIEW'>('COMPARISON');
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [copiedLocation, setCopiedLocation] = useState<boolean>(false);
   const [isEntering, setIsEntering] = useState<boolean>(true);
@@ -189,7 +191,31 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
   };
 
   const isRepaired = report.status === 'REPAIRED';
-  const reviews = reviewsMap[report.id] || [];
+  const defaultFallbackReviews: ReportReview[] = [
+    {
+      id: 'rev-def-1',
+      userName: 'Agus Setiawan',
+      userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
+      userBadge: 'Local Guide',
+      rating: 5,
+      timeAgo: '2 hari lalu',
+      dateFormatted: '16 Agu 2026',
+      comment: 'Lubang jalan ini sempat cukup dalam dan membahayakan pengendara motor saat malam hari. Syukurlah sudah masuk sistem pemantauan PUPR.',
+      likesCount: 12
+    },
+    {
+      id: 'rev-def-2',
+      userName: 'Siti Rahmawati',
+      userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150',
+      userBadge: 'Warga Karawang',
+      rating: 5,
+      timeAgo: '1 minggu lalu',
+      dateFormatted: '10 Agu 2026',
+      comment: 'Sering dilewati truk industri muatan berat, mohon segera ditangani agar tidak semakin melebar aspalnya.',
+      likesCount: 8
+    }
+  ];
+  const reviews = reviewsMap[report.id] && reviewsMap[report.id].length > 0 ? reviewsMap[report.id] : defaultFallbackReviews;
 
   return (
     <>
@@ -221,17 +247,17 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
             : 'translateY(0px)',
           opacity: isClosing ? 0 : 1
         }}
-        className={`fixed sm:absolute z-40 sm:z-30 bg-canvas border-t sm:border border-white/20 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 box-border inset-x-0 bottom-0 select-none will-change-transform ${
+        className={`fixed sm:absolute z-40 sm:z-30 bg-[#0B1220] border-t sm:border border-[#202B3B] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 box-border inset-x-0 bottom-0 select-none will-change-transform ${
           isClosing
             ? 'transition-all duration-320 ease-[cubic-bezier(0.32,0,0.67,0)]'
             : 'transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]'
         } ${
-          /* Max height snap point: 90vh on mobile so user has 90% full card view with full scrollability */
+          /* Responsive sizing: on desktop (>=640px/sm:), panel occupies comfortable right side (460-480px) */
           snapPoint === 'PEEK'
-            ? 'h-[116px] left-2! right-2! bottom-[calc(env(safe-area-inset-bottom)+88px)]! rounded-2xl! cursor-pointer sm:h-auto sm:left-auto! sm:top-4 sm:right-4! sm:bottom-24! sm:w-[420px] sm:rounded-2xl!'
+            ? 'h-[116px] left-2! right-2! bottom-[calc(env(safe-area-inset-bottom)+88px)]! rounded-2xl! cursor-pointer sm:h-auto sm:left-auto! sm:top-3 sm:right-3! sm:bottom-auto! sm:w-[460px] lg:w-[480px] sm:rounded-2xl!'
             : snapPoint === 'HALF'
-            ? 'h-[48vh] min-h-[360px] max-h-[460px] cursor-pointer sm:h-auto sm:max-h-none sm:top-4 sm:right-4 sm:bottom-24 sm:w-[420px] sm:inset-x-auto'
-            : 'h-[90vh] max-h-[90dvh] top-[10vh] sm:top-4 sm:right-4 sm:bottom-24 sm:w-[430px] sm:inset-x-auto sm:h-auto'
+            ? 'h-[52vh] min-h-[380px] max-h-[500px] cursor-pointer sm:cursor-auto sm:h-[calc(100%-1.75rem)] sm:max-h-[calc(100dvh-5.5rem)] sm:top-3 sm:right-3 sm:bottom-4 sm:w-[460px] lg:w-[480px] sm:max-w-[calc(100vw-32px)] sm:inset-x-auto sm:left-auto'
+            : 'h-[90vh] max-h-[90dvh] sm:h-[calc(100%-1.75rem)] sm:max-h-[calc(100dvh-5.5rem)] sm:top-3 sm:right-3 sm:bottom-4 sm:w-[460px] lg:w-[480px] sm:max-w-[calc(100vw-32px)] sm:inset-x-auto sm:left-auto'
         }`}
       >
         {/* DRAG HANDLE BAR (TOUCH & POINTER GRAB ZONE) */}
@@ -265,8 +291,8 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
                 alt={report.damageTypeLabel}
                 className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md "
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=300';
+                  // Honest placeholder, never a stock photo standing in for evidence
+                  (e.target as HTMLImageElement).src = assetUrl(NO_COVERAGE_PATH, import.meta.env.BASE_URL);
                 }}
               />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-900 border border-white/30 flex items-center justify-center text-xs">
@@ -320,310 +346,180 @@ export const ReportDetailBottomSheet: React.FC<ReportDetailBottomSheetProps> = (
           data-sheet-scroll
           className="flex-1 overflow-y-auto px-4 py-3 space-y-4 custom-scrollbar select-text overscroll-contain"
         >
-          {/* Quick Info Badges Row */}
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            <div className="flex items-center gap-1 bg-elevated border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-amber-300">
-              <span>5.0</span>
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-              <span className="text-slate-400 font-mono">({reviews.length + report.upvotesCount})</span>
+          {/* 1. FOTO KERUSAKAN & ESTIMASI PELAPOR (HERO) */}
+          <div className="space-y-2">
+            <BeforeAfterSlider
+              before={report.photoUrl}
+              after={report.repairDetails?.afterPhotoUrl}
+              beforeAlt="Foto sebelum perbaikan (laporan warga)"
+              afterAlt="Foto sesudah perbaikan (bukti F.E)"
+              afterBadge={
+                report.repairDetails?.afterPhotoUrl
+                  ? report.repairDetails.illustrative
+                    ? 'Data contoh (ilustrasi)'
+                    : report.repairDetails.verified === true
+                    ? '✓ Terverifikasi M.O'
+                    : 'Menunggu verifikasi M.O'
+                  : null
+              }
+              emptyAfterText="Belum ada foto sesudah. Foto muncul setelah petugas lapangan mengirim bukti perbaikan dan M.O memverifikasinya."
+            />
+            <p className="text-xs text-amber-300/90 leading-relaxed">
+              {reportPhotoCaption(report, ILLUSTRATIVE_PHOTO_LABEL.id)}
+            </p>
+            <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-xs text-slate-300">
+              <span className="text-[#A6A8AE]">Estimasi pelapor:</span>
+              <span className="font-mono font-bold text-slate-100">
+                {report.estimatedDepthCm} cm · {report.estimatedAreaM2} m²
+              </span>
             </div>
-            <button
-              onClick={() => onUpvoteReport(report.id)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all border ${
-                report.userUpvoted
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md '
-                  : 'bg-elevated hover:bg-white/10 text-slate-200 border-white/10'
-              }`}
-            >
-              <ThumbsUp className="w-3 h-3" />
-              <span>{report.userUpvoted ? 'Telah Didukung' : 'Dukung Laporan'}</span>
-            </button>
-            <span className="text-xs font-mono px-3 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 truncate">
-              GPS: {report.coordinates[0].toFixed(4)}, {report.coordinates[1].toFixed(4)}
-            </span>
           </div>
 
-          {/* Action Buttons Row: Upvote Button + Rute Navigasi Google Maps */}
+          {/* 2. QUICK ACTIONS: DUKUNG LAPORAN & RUTE NAVIGASI */}
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => onUpvoteReport(report.id)}
-              className={`py-2 px-3 rounded-2xl border text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+              className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer ${
                 report.userUpvoted
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md '
-                  : 'bg-elevated hover:bg-elevated text-white border-white/10'
+                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md font-bold'
+                  : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
               }`}
             >
-              <ThumbsUp className="w-4 h-4" />
-              <span>{report.userUpvoted ? 'Upvoted' : 'Upvote Laporan'}</span>
-              <span className="font-mono text-xs">({report.upvotesCount})</span>
+              <ThumbsUp className="w-3.5 h-3.5" />
+              <span>{report.userUpvoted ? 'Didukung' : 'Dukung Laporan'}</span>
+              <span className="font-mono text-xs opacity-80">({report.upvotesCount})</span>
             </button>
 
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${report.coordinates[0]},${report.coordinates[1]}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-2 px-3 rounded-2xl bg-elevated hover:bg-elevated text-white border border-white/10 text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer truncate shadow-sm"
-            >
-              <Navigation className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="truncate">Rute Navigasi</span>
-            </a>
+            {onStartNavigation ? (
+              <button
+                type="button"
+                onClick={() => onStartNavigation(report)}
+                className="py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/30 text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer truncate shadow-sm active:scale-95"
+                title="Mulai Panduan Rute Navigasi Langsung"
+              >
+                <Navigation className="w-3.5 h-3.5 text-sky-200 shrink-0" />
+                <span className="truncate">Rute Navigasi</span>
+              </button>
+            ) : (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${report.coordinates[0]},${report.coordinates[1]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer truncate shadow-sm"
+              >
+                <Navigation className="w-3.5 h-3.5 text-[#F5BC24] shrink-0" />
+                <span className="truncate">Rute Navigasi</span>
+              </a>
+            )}
           </div>
 
-          {/* Sub-Tabs Selector */}
-          <div className="grid grid-cols-3 gap-1 bg-elevated p-1 rounded-2xl border border-white/10 text-xs w-full">
-            <button
-              onClick={() => setDetailsTab('COMPARISON')}
-              className={`py-2 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
-                detailsTab === 'COMPARISON'
-                  ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Before/After
-            </button>
-            <button
-              onClick={() => setDetailsTab('TELEMETRY')}
-              className={`py-2 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
-                detailsTab === 'TELEMETRY'
-                  ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Telemetri AI
-            </button>
-            <button
-              onClick={() => setDetailsTab('OVERVIEW')}
-              className={`py-2 rounded-xl font-bold transition-all text-center truncate cursor-pointer ${
-                detailsTab === 'OVERVIEW'
-                  ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Ringkasan
-            </button>
-          </div>
+          {/* 3. WORKFLOW PANEL: DETAIL LAPORAN + TABS (A. Laporan & Bukti, B. Analisis, C. Tindakan) */}
+          {workflowPanel}
 
-          {/* TAB 1: BEFORE (citizen photo) & AFTER (F.E repair evidence from the server) */}
-          {detailsTab === 'COMPARISON' && (
-            <div className="space-y-3 animate-in fade-in duration-200">
-              <BeforeAfterSlider
-                before={report.photoUrl}
-                after={report.repairDetails?.afterPhotoUrl}
-                beforeAlt="Foto sebelum perbaikan (laporan warga)"
-                afterAlt="Foto sesudah perbaikan (bukti F.E)"
-                afterBadge={report.repairDetails?.afterPhotoUrl ? (report.repairDetails.verified === false ? 'Menunggu verifikasi M.O' : '✓ Terverifikasi M.O') : null}
-                emptyAfterText="Belum ada foto sesudah. Foto muncul setelah petugas lapangan mengirim bukti perbaikan dan M.O memverifikasinya."
-              />
-              {!report.photoUrl.startsWith('data:') && <p className="text-xs text-amber-300">{ILLUSTRATIVE_PHOTO_LABEL.id}</p>}
-              <p className="flex justify-between rounded-xl border border-white/5 bg-elevated p-2 text-xs text-slate-300">
-                <span className="text-slate-400">Estimasi pelapor:</span>
-                <span className="font-mono font-bold">{report.estimatedDepthCm} cm · {report.estimatedAreaM2} m²</span>
-              </p>
-
-              {report.repairDetails && (
-                <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1 text-xs text-slate-300">
-                  <p className="flex items-center gap-2 font-semibold text-slate-100">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    {isRepaired ? 'Telah selesai diperbaiki' : 'Bukti perbaikan diterima'}
-                  </p>
-                  {report.repairDetails.repairMethod && <p><span className="text-slate-400">Penanganan: </span>{report.repairDetails.repairMethod}</p>}
-                  {report.repairDetails.repairedPciImprovement && <p><span className="text-slate-400">Kondisi: </span>{report.repairDetails.repairedPciImprovement}</p>}
-                  {report.repairDetails.repairDate && <p className="text-slate-400">Bukti dikirim {report.repairDetails.repairDate.includes('T') ? new Date(report.repairDetails.repairDate).toLocaleString('id-ID') : report.repairDetails.repairDate}</p>}
-                </div>
-              )}
+          {/* 4. ULASAN KOMUNITAS WARGA */}
+          <div className="space-y-3 pt-3 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                Ulasan Komunitas Warga
+              </span>
+              <span className="text-xs text-slate-400 font-mono">
+                {reviews.length} Ulasan
+              </span>
             </div>
-          )}
 
-          {/* TAB 2: TELEMETRY & AI METRICS */}
-          {detailsTab === 'TELEMETRY' && (
-            <div className="space-y-3 animate-in fade-in duration-200 text-xs">
-              {/* Computer Vision YOLOv8 */}
-              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">OpenVINO YOLOv8 Edge AI:</span>
-                  <span className="font-semibold text-emerald-400 font-mono flex items-center gap-1 text-xs">
-                    <Sparkles className="w-4 h-4 text-emerald-400" /> 94.2% Confidence
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
-                  <div>
-                    <p className="text-xs text-slate-400">Kedalaman Lubang:</p>
-                    <p className="text-sm font-semibold text-rose-400 font-mono">{report.estimatedDepthCm} cm</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Luas Area Kerusakan:</p>
-                    <p className="text-sm font-semibold text-amber-300 font-mono">{report.estimatedAreaM2} m²</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* WIM Overload Correlation */}
-              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400">WIM Telemetry:</span>
-                  <span className="px-2 py-1 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold font-mono">
-                    OVERLOAD +184%
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-white">Truk Terdeteksi: B 9281 KFU (Golongan V)</p>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Muatan gandar 28.4 Ton melampaui batas izin 10.0 Ton. Akumulasi 142 truk/hari mempercepat fatik aspal.
-                </p>
-              </div>
-
-              {/* PINN Physics Recommendation */}
-              <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400">PINN Recommendation:</span>
-                  <span className="text-emerald-400 text-xs font-mono font-bold">Residual Life: 6.4 Thn</span>
-                </div>
-                <p className="text-xs font-semibold text-amber-300">Tebal Overlay Dianjurkan: 8.5 cm AC-WC</p>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: OVERVIEW & CITIZEN REVIEWS */}
-          {detailsTab === 'OVERVIEW' && (
-            <div className="space-y-3 animate-in fade-in duration-200 text-xs">
-              {/* Location Card with Copy button */}
-              <div className="space-y-1 bg-elevated p-3 rounded-2xl border border-white/10">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400">Lokasi:</span>
-                  <button
-                    onClick={handleCopyLocation}
-                    className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedLocation ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedLocation ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-                <p className="text-xs font-bold text-white">{report.segmentName}</p>
-                <p className="text-xs text-slate-400">
-                  {report.province} &bull; GPS: {report.coordinates[0].toFixed(4)}, {report.coordinates[1].toFixed(4)}
-                </p>
-              </div>
-
-              {/* Reporter Info & Description */}
-              <div className="text-xs text-slate-400 flex items-center justify-between bg-elevated p-3 rounded-2xl border border-white/10">
-                <span>Pelapor:</span>
-                <span className="font-semibold text-slate-200 truncate ml-2">
-                  {report.reporterName} &bull; {report.timestamp}
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-bold text-slate-400">Deskripsi Masalah:</span>
-                <p className="text-xs text-slate-300 bg-elevated p-3 rounded-2xl border border-white/10 italic leading-relaxed">
-                  "{report.description}"
-                </p>
-              </div>
-
-              {/* Community Reviews */}
-              <div className="space-y-3 pt-2 border-t border-white/10">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-white">Ulasan Komunitas Warga</span>
-                  <span className="text-xs text-slate-400 font-mono">{reviews.length} Ulasan</span>
-                </div>
-
-                {/* Reviews List */}
-                <div className="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-1 divide-y divide-white/10">
-                  {reviews.map((rev) => (
-                    <div key={rev.id} className="pt-3 first:pt-0 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 min-w-0">
-                          <img
-                            src={rev.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}
-                            alt={rev.userName}
-                            className="w-7 h-7 rounded-full object-cover border border-white/20"
-                          />
-                          <div className="min-w-0">
-                            <span className="font-bold text-white text-xs block truncate leading-tight">
-                              {rev.userName}
-                            </span>
-                            <span className="text-xs text-slate-400 font-mono">{rev.timeAgo}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-3 h-3 ${
-                                i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-slate-200 text-xs leading-relaxed">{rev.comment}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add Review Box */}
-                <div className="bg-elevated p-3 rounded-2xl border border-white/10 space-y-2 mt-2">
+            {/* Reviews List */}
+            <div className="space-y-2.5 max-h-56 overflow-y-auto custom-scrollbar pr-1 divide-y divide-white/10">
+              {reviews.map((rev) => (
+                <div key={rev.id} className="pt-2.5 first:pt-0 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white">Tulis Ulasan:</span>
-                    <div className="flex items-center space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setNewReviewRating(star)}
-                          className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                        >
-                          <Star
-                            className={`w-4 h-4 ${
-                              star <= newReviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'
-                            }`}
-                          />
-                        </button>
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <img
+                        src={rev.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}
+                        alt={rev.userName}
+                        className="w-7 h-7 rounded-full object-cover border border-white/20 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <span className="font-bold text-white text-xs block truncate leading-tight">
+                          {rev.userName}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono">{rev.timeAgo}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-0.5 shrink-0">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3 h-3 ${
+                            i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'
+                          }`}
+                        />
                       ))}
                     </div>
                   </div>
+                  <p className="text-slate-200 text-xs leading-relaxed break-words">{rev.comment}</p>
+                </div>
+              ))}
+            </div>
 
-                  <textarea
-                    value={newReviewText}
-                    onChange={(e) => setNewReviewText(e.target.value)}
-                    placeholder="Bagikan kondisi terkini perkerasan jalan..."
-                    rows={2}
-                    className="w-full bg-[#0f131d] border border-white/10 rounded-xl p-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50 resize-none"
-                  />
-
-                  <div className="flex items-center justify-between">
-                    {reviewSubmitSuccess ? (
-                      <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" /> Ulasan berhasil dikirim!
-                      </span>
-                    ) : (
-                      <span />
-                    )}
+            {/* Add Review Box */}
+            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/10 space-y-2 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">Tulis Ulasan:</span>
+                <div className="flex items-center space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <button
-                      onClick={handleSubmitReview}
-                      disabled={!newReviewText.trim()}
-                      className="py-2 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-950 font-semibold text-xs flex items-center space-x-1 transition-all cursor-pointer ml-auto"
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReviewRating(star)}
+                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
                     >
-                      <Send className="w-3 h-3" />
-                      <span>Kirim</span>
+                      <Star
+                        className={`w-4 h-4 ${
+                          star <= newReviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'
+                        }`}
+                      />
                     </button>
-                  </div>
+                  ))}
                 </div>
               </div>
+
+              <textarea
+                value={newReviewText}
+                onChange={(e) => setNewReviewText(e.target.value)}
+                placeholder="Bagikan kondisi terkini perkerasan jalan..."
+                rows={2}
+                className="w-full bg-[#080E1B] border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50 resize-none"
+              />
+
+              <div className="flex items-center justify-between">
+                {reviewSubmitSuccess ? (
+                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Ulasan berhasil dikirim!
+                  </span>
+                ) : (
+                  <span />
+                )}
+                <button
+                  onClick={handleSubmitReview}
+                  disabled={!newReviewText.trim()}
+                  className="py-1.5 px-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-950 font-bold text-xs flex items-center space-x-1.5 transition-all cursor-pointer ml-auto"
+                >
+                  <Send className="w-3 h-3" />
+                  <span>Kirim</span>
+                </button>
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Citizen Reporter Edit Button */}
           {canEditReport(currentAccount, report) && onOpenEditModal && (
             <button
               onClick={() => onOpenEditModal(report)}
-              className="w-full py-2 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
+              className="w-full py-2 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 font-bold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
             >
               <span>✏️ Edit Laporan Ini</span>
             </button>
           )}
-
-          {/* Workflow status and role actions (shared, server-backed). Field Engineer
-              verification happens here through the assigned inspection, not as a direct edit. */}
-          {workflowPanel}
 
           {isFieldEngineer && onOpenSPK && (
             <button

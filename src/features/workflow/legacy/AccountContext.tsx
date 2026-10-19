@@ -1,15 +1,10 @@
-/**
- * Account context at the top of "Tim & Tugas" / "Tugas Saya", as on the original dashboard:
- * who is signed in (name, role, agency) and what is on their plate, counted from the same
- * server cases the board lists. Each figure opens the tab that holds those cases.
- */
 import React from 'react';
 import type { ReportCase } from '../../../domain/workflow/model';
 import type { GatewayMode } from '../../../services/api/workflowClient';
-import { fieldStage } from '../../work-orders/fieldStages';
+import { canonicalStatusOf, CanonicalStatusKey } from '../../../domain/workflow/canonicalStatus';
 import { isOverdue } from '../queues';
 
-export type BoardTab = 'TODO' | 'ACTIVE' | 'DONE' | 'ALL';
+export type BoardTab = CanonicalStatusKey | 'ALL';
 
 export interface AccountInfo {
   name: string;
@@ -24,39 +19,122 @@ interface Tile {
   value: number | string;
   hint: string;
   tab?: BoardTab;
-  tone?: 'warn' | 'good' | 'info' | 'neutral';
+  tone?: 'warn' | 'good' | 'info' | 'danger' | 'neutral';
 }
 
 const TONE: Record<NonNullable<Tile['tone']>, string> = {
-  warn: 'text-amber-300',
-  good: 'text-emerald-300',
-  info: 'text-sky-300',
-  neutral: 'text-fg'
+  warn: 'text-amber-400',
+  good: 'text-emerald-400',
+  info: 'text-sky-400',
+  danger: 'text-rose-400',
+  neutral: 'text-slate-200'
 };
 
 function opsTiles(cases: ReportCase[]): Tile[] {
-  const n = (f: (c: ReportCase) => boolean) => cases.filter(f).length;
-  const real = n((c) => c.dataStatus !== 'SYNTHETIC');
+  const n = (key: CanonicalStatusKey) => cases.filter((c) => canonicalStatusOf(c) === key).length;
+  const realCount = cases.filter((c) => c.dataStatus !== 'SYNTHETIC').length;
+
   return [
-    { label: 'Perlu ditinjau', value: n((c) => c.state === 'NEEDS_REVIEW'), hint: `${n((c) => c.state === 'NEEDS_REVIEW' && c.dataStatus !== 'SYNTHETIC')} laporan warga nyata`, tab: 'TODO', tone: 'warn' },
-    { label: 'Siap diterbitkan SPK', value: n((c) => c.state === 'VERIFIED'), hint: 'Sudah diterima, belum ditugaskan', tab: 'TODO', tone: 'warn' },
-    { label: 'Perlu verifikasi Anda', value: n((c) => c.state === 'INSPECTED' || c.state === 'ACTION_RECOMMENDED' || (c.state === 'IN_PROGRESS' && c.workOrder?.status === 'COMPLETED')), hint: 'Hasil inspeksi, rekomendasi, bukti perbaikan', tab: 'ACTIVE', tone: 'info' },
-    { label: 'Menunggu F.E', value: n((c) => c.state === 'FIELD_INSPECTION_REQUESTED' || (c.state === 'INSPECTION_VERIFIED' && c.inspection?.verdict === 'CONFIRMED') || (c.state === 'IN_PROGRESS' && c.workOrder?.status !== 'COMPLETED')), hint: `${n((c) => isOverdue(c))} lewat tenggat`, tab: 'ACTIVE', tone: 'neutral' },
-    { label: 'Selesai', value: n((c) => c.state === 'RESOLVED' || c.state === 'CLOSED'), hint: `${real} laporan nyata · ${cases.length - real} data contoh`, tab: 'DONE', tone: 'good' }
+    {
+      label: 'Menunggu Peninjauan',
+      value: n('MENUNGGU_PENINJAUAN'),
+      hint: `${cases.filter((c) => canonicalStatusOf(c) === 'MENUNGGU_PENINJAUAN' && c.dataStatus !== 'SYNTHETIC').length} laporan warga`,
+      tab: 'MENUNGGU_PENINJAUAN',
+      tone: 'warn'
+    },
+    {
+      label: 'Belum Ditugaskan',
+      value: n('BELUM_DITUGASKAN'),
+      hint: 'Valid, siap terbit SPK',
+      tab: 'BELUM_DITUGASKAN',
+      tone: 'neutral'
+    },
+    {
+      label: 'Menunggu F.E',
+      value: n('MENUNGGU_FE'),
+      hint: `${cases.filter((c) => canonicalStatusOf(c) === 'MENUNGGU_FE' && isOverdue(c)).length} lewat batas waktu`,
+      tab: 'MENUNGGU_FE',
+      tone: 'info'
+    },
+    {
+      label: 'Sedang Dikerjakan',
+      value: n('SEDANG_DIKERJAKAN'),
+      hint: 'Tugas aktif di lapangan',
+      tab: 'SEDANG_DIKERJAKAN',
+      tone: 'info'
+    },
+    {
+      label: 'Menunggu Verifikasi',
+      value: n('MENUNGGU_VERIFIKASI'),
+      hint: 'Bukti perbaikan dari F.E',
+      tab: 'MENUNGGU_VERIFIKASI',
+      tone: 'warn'
+    },
+    {
+      label: 'Perlu Revisi',
+      value: n('PERLU_REVISI'),
+      hint: 'Pekerjaan diulang F.E',
+      tab: 'PERLU_REVISI',
+      tone: 'danger'
+    },
+    {
+      label: 'Selesai',
+      value: n('SELESAI'),
+      hint: `${realCount} nyata · ${cases.length - realCount} contoh`,
+      tab: 'SELESAI',
+      tone: 'good'
+    }
   ];
 }
 
 function fieldTiles(cases: ReportCase[]): Tile[] {
-  const stages = cases.map((c) => fieldStage(c));
-  const n = (f: (key: string, tab: string) => boolean) => stages.filter((s) => f(s.key, s.tab)).length;
-  const open = cases.filter((c) => c.assignment && c.state === 'FIELD_INSPECTION_REQUESTED').sort((a, b) => Date.parse(a.assignment!.dueAt) - Date.parse(b.assignment!.dueAt));
-  const next = open[0]?.assignment?.dueAt;
+  const n = (key: CanonicalStatusKey) => cases.filter((c) => canonicalStatusOf(c) === key).length;
+  const openTasks = cases.filter((c) => c.assignment && c.state === 'FIELD_INSPECTION_REQUESTED').sort((a, b) => Date.parse(a.assignment!.dueAt) - Date.parse(b.assignment!.dueAt));
+  const nextDue = openTasks[0]?.assignment?.dueAt;
+
   return [
-    { label: 'Belum dimulai', value: n((_, tab) => tab === 'TODO'), hint: `${n((k) => k === 'REINSPECTION' || k === 'REWORK')} diminta ulang M.O`, tab: 'TODO', tone: 'warn' },
-    { label: 'Giliran Anda', value: n((k) => k === 'RECOMMEND'), hint: 'Perlu rekomendasi penanganan', tab: 'ACTIVE', tone: 'info' },
-    { label: 'Menunggu M.O', value: n((k) => k === 'INSPECTION_SENT' || k === 'REPAIR_SENT' || k === 'DECISION' || k === 'WORK_ORDER' || k === 'NOT_CONFIRMED'), hint: 'Sudah dikirim, menunggu keputusan', tab: 'ACTIVE', tone: 'neutral' },
-    { label: 'Selesai', value: n((_, tab) => tab === 'DONE'), hint: 'Terverifikasi M.O atau ditutup', tab: 'DONE', tone: 'good' },
-    { label: 'Tenggat terdekat', value: next ? new Date(next).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '—', hint: `${cases.filter((c) => isOverdue(c)).length} lewat tenggat`, tab: 'TODO', tone: cases.some((c) => isOverdue(c)) ? 'warn' : 'neutral' }
+    {
+      label: 'Menunggu F.E',
+      value: n('MENUNGGU_FE'),
+      hint: 'SPK baru belum dimulai',
+      tab: 'MENUNGGU_FE',
+      tone: 'warn'
+    },
+    {
+      label: 'Sedang Dikerjakan',
+      value: n('SEDANG_DIKERJAKAN'),
+      hint: 'Dalam pelaksanaan Anda',
+      tab: 'SEDANG_DIKERJAKAN',
+      tone: 'info'
+    },
+    {
+      label: 'Menunggu Verifikasi',
+      value: n('MENUNGGU_VERIFIKASI'),
+      hint: 'Bukti terkirim ke O.M',
+      tab: 'MENUNGGU_VERIFIKASI',
+      tone: 'neutral'
+    },
+    {
+      label: 'Perlu Revisi',
+      value: n('PERLU_REVISI'),
+      hint: 'Diminta perbaikan ulang O.M',
+      tab: 'PERLU_REVISI',
+      tone: 'danger'
+    },
+    {
+      label: 'Selesai',
+      value: n('SELESAI'),
+      hint: 'Disetujui & ditutup',
+      tab: 'SELESAI',
+      tone: 'good'
+    },
+    {
+      label: 'Batas Terdekat',
+      value: nextDue ? new Date(nextDue).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '—',
+      hint: `${cases.filter((c) => isOverdue(c)).length} lewat batas waktu`,
+      tab: 'MENUNGGU_FE',
+      tone: cases.some((c) => isOverdue(c)) ? 'danger' : 'neutral'
+    }
   ];
 }
 
@@ -70,33 +148,33 @@ export const AccountContext: React.FC<{
 }> = ({ role, account, cases, mode, syncedAt, onTab }) => {
   const tiles = role === 'OPS' ? opsTiles(cases) : fieldTiles(cases);
   return (
-    <section className="grid grid-cols-1 gap-4 rounded-2xl border border-line bg-navy p-4 sm:p-5 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]" aria-label="Konteks akun">
+    <section className="grid grid-cols-1 gap-4 rounded-xl border border-[#202B3B] bg-[#080E1B] p-4 sm:p-5 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] shadow-sm" aria-label="Konteks akun">
       <div className="flex items-start gap-3">
-        {account?.avatarUrl && <img src={account.avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full border border-line object-cover" />}
+        {account?.avatarUrl && <img src={account.avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full border border-[#202B3B] object-cover" />}
         <div className="min-w-0">
-          <span className="rounded-md border border-brand/40 bg-brand/10 px-2 py-0.5 font-mono text-[10px] font-bold text-brand">
+          <span className="rounded-md border border-[#E8B52B]/40 bg-[#E8B52B]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#E8B52B]">
             {role === 'OPS' ? 'OPERATIONS MANAGER · M.O' : 'FIELD ENGINEER · F.E'}
           </span>
-          <p className="mt-1.5 truncate font-bold text-fg">{account?.name ?? '—'}</p>
-          <p className="truncate text-xs text-fg-muted">{account?.title}</p>
-          <p className="truncate text-xs text-fg-muted">{account?.agency}</p>
-          <p className="mt-1.5 text-[11px] text-fg-subtle">
+          <p className="mt-1.5 truncate font-bold text-slate-100">{account?.name ?? '—'}</p>
+          <p className="truncate text-xs text-slate-400">{account?.title}</p>
+          <p className="truncate text-xs text-slate-400">{account?.agency}</p>
+          <p className="mt-1.5 text-[11px] text-slate-500">
             {mode === 'SERVER' ? 'Data server bersama · dimuat ulang tiap 15 detik' : 'DEMO OFFLINE di browser ini'}
             {syncedAt && <> · terakhir {new Date(syncedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</>}
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+      <div className={`grid gap-2 ${role === 'OPS' ? 'grid-cols-2 sm:grid-cols-4 xl:grid-cols-7' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6'}`}>
         {tiles.map((t) => (
           <button
             key={t.label}
             type="button"
             onClick={() => t.tab && onTab(t.tab)}
-            className="rounded-xl border border-line bg-surface p-3 text-left transition-colors hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+            className="rounded-xl border border-[#202B3B] bg-[#0E1726] hover:bg-[#131F33] p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60 cursor-pointer"
           >
-            <span className="block text-[11px] font-semibold text-fg-muted">{t.label}</span>
+            <span className="block text-[11px] font-semibold text-slate-400 truncate">{t.label}</span>
             <span className={`mt-1 block text-2xl font-bold tabular-nums ${TONE[t.tone ?? 'neutral']}`}>{t.value}</span>
-            <span className="mt-0.5 block text-[11px] leading-snug text-fg-subtle">{t.hint}</span>
+            <span className="mt-0.5 block text-[11px] leading-snug text-slate-500 truncate">{t.hint}</span>
           </button>
         ))}
       </div>

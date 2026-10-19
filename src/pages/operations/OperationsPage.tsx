@@ -41,7 +41,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'PETA_POS_WIM' || activeNav === 'MAP') {
     return (
-      <div className="w-full h-full overflow-hidden bg-[#e8ecf1]">
+      <div className="w-full h-full overflow-hidden bg-workspace">
         <OperationsPosWimMapView
           currentAccount={currentAccount}
           roadSegments={roadSegments}
@@ -64,7 +64,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'BERANDA_OPERASI') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace">
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}
@@ -86,12 +86,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'DASHBOARD') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
-        {/* "Where should we act now?" — the shared report queue comes first. */}
-        <WorkflowQueueSection />
-        <DataNotice label="SIMULASI">
-          Telemetri WIM, plat nomor, dan tombol penindakan (BATM, ETLE, pengalihan rute) di bawah adalah data dan aksi simulasi; tidak terhubung ke sistem penindakan nyata. AI tidak menilang atau memblokir kendaraan.
-        </DataNotice>
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace">
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}
@@ -113,7 +108,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'MONITORING_KONDISI_JALAN' || activeNav === 'MONITORING_POS_WIM' || activeNav === 'MONITORING_ODOL' || activeNav === 'MONITORING_CUACA_BANJIR' || activeNav === 'TINDAKAN_REKAYASA') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-canvas">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace text-ink">
         <DataNotice label="SIMULASI">
           Data WIM, plat nomor, korelasi beban, dan tombol penindakan pada halaman ini adalah simulasi demo, bukan pengukuran atau tindakan nyata.
         </DataNotice>
@@ -149,7 +144,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ activeNav, setIs
 
   if (activeNav === 'ALERTS' || activeNav === 'TINDAKAN_PERINGATAN' || activeNav === 'WEATHER_FLOOD' || activeNav === 'TRAFFIC_ENG') {
     return (
-      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-surface">
+      <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace">
         <OperationsHomeView
           currentAccount={currentAccount}
           roadSegments={roadSegments}

@@ -1,0 +1,34 @@
+# Input provenance (sha256)
+664c6a7fc57545e9386b930c2a2fb282d221c5eb3d1a144f8f4ea410773b2b88 *pavement_pinn_v3_code.zip
+1cdc4229f308b9dc42d76f2cca59c189d8984bc115686eab118d07591220b6ab *PAVEMENT-PINN_v3_Dokumen_Induk.pdf
+06a7635c18785a439c38c547b032e6483f09660fc5e2b2e9dcfbf9004744b535 *AGENTS.md
+
+# ZIP listing (unzip -lv) — extracted only to an isolated temp directory, never into the repository
+Archive:  C:/Users/MSI/Downloads/pavement_pinn_v3_code.zip
+ Length   Method    Size  Cmpr    Date    Time   CRC-32   Name
+--------  ------  ------- ---- ---------- ----- --------  ----
+       0  Stored        0   0% 2026-10-15 15:11 00000000  pavement_pinn_v3_code/
+    2511  Defl:N     1299  48% 2026-10-15 15:11 e737753a  pavement_pinn_v3_code/train_yolo.py
+    2219  Defl:N     1143  49% 2026-10-15 15:11 6d48caeb  pavement_pinn_v3_code/gen_mlet_dataset.py
+     757  Defl:N      486  36% 2026-10-15 15:11 372754a4  pavement_pinn_v3_code/README.md
+    1755  Defl:N      842  52% 2026-10-15 15:11 8e13da95  pavement_pinn_v3_code/trust_gate.py
+    3474  Defl:N     1773  49% 2026-10-15 15:11 f0514216  pavement_pinn_v3_code/slm_brief.py
+    5581  Defl:N     2464  56% 2026-10-15 15:11 361598de  pavement_pinn_v3_code/train_pi_surrogate.py
+    2655  Defl:N     1226  54% 2026-10-15 15:11 07c9b74c  pavement_pinn_v3_code/test_core.py
+    7492  Defl:N     3433  54% 2026-10-15 15:11 83d4905c  pavement_pinn_v3_code/pavement_core.py
+    2272  Defl:N     1087  52% 2026-10-15 15:11 22e3da09  pavement_pinn_v3_code/bench_tools.py
+    2535  Defl:N     1254  51% 2026-10-15 15:11 9c04625e  pavement_pinn_v3_code/mc_life.py
+--------          -------  ---                            -------
+   31251            15007  52%                            11 files
+
+# sha256 of extracted reference files
+986f6ef2838ba36e9207583433e73731d4e1a6d687998359ecd1a5c997b7785d *README.md
+1b96a214c5c0244d4e9168e748807777bccfb262712b39e744dbe5e63110e165 *bench_tools.py
+761e8b076c4433f7d3567af3ff235b29c0dba3e012e1792113a318403029353c *gen_mlet_dataset.py
+7abef261fb98db3e43f464fa867f408d0a6fa0fa7aa4e2c6c060f377bfd6bb2d *mc_life.py
+675a7c0ae18c4c9723d90d7f73e0f4eb280c5aea8623c9b390f97306cd3a463a *pavement_core.py
+63bf9dfced264ddbebedbff230ca8eedf06325aea7a046cf1679b165cff547cb *slm_brief.py
+fe76e8f8f2f83a291c7d3f58615bf0a34f8dad442897612f80491b9e03edfed4 *test_core.py
+8febfb99762b2d6f18177ac2000ce0373b69443183f74e8c76c3fb2dfae928e1 *train_pi_surrogate.py
+d3a5e5968dedbe7481c54b57e922790bd620898af5d70bc90d5fec7348646e55 *train_yolo.py
+0896f865887b25119c38a13c124b4100acdb2959b1845802c2df1c5c5eb86068 *trust_gate.py

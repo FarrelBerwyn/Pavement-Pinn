@@ -100,16 +100,39 @@ test('demoLoginFor reverses the mapping for every demo account', () => {
   }
 });
 
-test('server gateway: a named account never gets a session from its id alone', async () => {
+test('server gateway: a named account never gets a session from its id alone', async (t) => {
   store.clear();
+  // Stand-in for the server: the session is whatever cookie the browser holds (none, then
+  // one for a different account); logout calls are recorded.
+  let cookieActor: { id: string; role: string; kind: string } | null = null;
+  const calls: string[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    calls.push(`${init?.method ?? 'GET'} ${url}`);
+    if (url.endsWith('/api/auth/me')) {
+      return cookieActor
+        ? new Response(JSON.stringify({ success: true, actor: cookieActor }), { status: 200 })
+        : new Response(JSON.stringify({ success: false, error: { code: 'UNAUTHENTICATED', message: 'No valid session.' } }), { status: 401 });
+    }
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  }) as typeof fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
   const gateway = new HttpWorkflowGateway();
-  // No login happened in this tab: resuming an official account must fail before any request.
+  // No login (no session cookie): resuming an official account fails on the server's answer.
   assert.equal(await code(gateway.useAccount({ id: 'USR-007', role: 'POLICY_MAKER' })), 'UNAUTHENTICATED');
-  // A token stored for a different account is not reused for this one either.
+  // A session that belongs to a different account is not reused for this one,
+  // and a token left in tab storage is not presented for a named account either.
+  cookieActor = { id: 'USR-004', role: 'FIELD_ENGINEER', kind: 'DEMO_ACCOUNT' };
   store.set('pavement-pinn.workflow-session', JSON.stringify({ key: 'demo:USR-004', token: 'whatever' }));
   assert.equal(await code(gateway.useAccount({ id: 'USR-007', role: 'POLICY_MAKER' })), 'UNAUTHENTICATED');
-  gateway.logout();
   assert.equal(store.has('pavement-pinn.workflow-session'), false);
+  // Logout ends the session on the server too.
+  await gateway.logout();
+  assert.ok(calls.some((c) => c === 'POST /api/auth/logout'), calls.join(', '));
 });
 
 test('static build gateway: login, refresh, logout and wrong credentials', async () => {

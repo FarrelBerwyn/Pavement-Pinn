@@ -1,5 +1,6 @@
 import React from 'react';
-import { Map as MapIcon, BarChart2 } from 'lucide-react';
+import { BarChart2 } from 'lucide-react';
+import { PageOverlay } from '../../components/ui/PageOverlay';
 import { usePageContext } from '../../app/pageContext';
 
 /**
@@ -12,69 +13,54 @@ export const AnalyticsPage: React.FC = () => {
   const { setActiveNav } = usePageContext();
 
   return (
-    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-canvas p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-amber-400 text-slate-950 rounded-2xl font-semibold">
-              <BarChart2 className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-white">National Pavement Health & Telemetry Analytics</h2>
-              <p className="text-xs text-slate-400">Aggregated PCI Distribution, ODOL Truck Correlations & Damage Frequency</p>
-            </div>
+    <PageOverlay
+      icon={<BarChart2 />}
+      title="National Pavement Health & Telemetry Analytics"
+      subtitle="Aggregated PCI Distribution, ODOL Truck Correlations & Damage Frequency"
+      backLabel="Back to Map"
+      onBack={() => setActiveNav('MAP')}
+    >
+      {/* Analytics Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-surface border border-white/10 rounded-2xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-white flex items-center justify-between">
+            <span>Road Health Index</span>
+            <span className="text-emerald-400 font-mono">78%</span>
+          </h3>
+          <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+            <div className="bg-emerald-500 h-full rounded-full" style={{ width: '78%' }} />
           </div>
-          <button
-            onClick={() => setActiveNav('MAP')}
-            className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-semibold text-xs flex items-center space-x-2 shadow-lg "
-          >
-            <MapIcon className="w-4 h-4" />
-            <span>Back to Map</span>
-          </button>
+          <p className="text-xs text-slate-400">
+            78% of audited national corridors are currently in good-to-moderate condition.
+          </p>
         </div>
 
-        {/* Analytics Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-surface border border-white/10 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white flex items-center justify-between">
-              <span>Road Health Index</span>
-              <span className="text-emerald-400 font-mono">78%</span>
-            </h3>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div className="bg-emerald-500 h-full rounded-full" style={{ width: '78%' }} />
-            </div>
-            <p className="text-xs text-slate-400">
-              78% of audited national corridors are currently in good-to-moderate condition.
-            </p>
+        <div className="bg-surface border border-white/10 rounded-2xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-white flex items-center justify-between">
+            <span>Critical Damage Hotspots</span>
+            <span className="text-rose-400 font-mono">24 Locations</span>
+          </h3>
+          <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+            <div className="bg-rose-500 h-full rounded-full" style={{ width: '24%' }} />
           </div>
+          <p className="text-xs text-slate-400">
+            High concentration along Jalur Pantura Jawa and Trans-Sumatra corridors.
+          </p>
+        </div>
 
-          <div className="bg-surface border border-white/10 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white flex items-center justify-between">
-              <span>Critical Damage Hotspots</span>
-              <span className="text-rose-400 font-mono">24 Locations</span>
-            </h3>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div className="bg-rose-500 h-full rounded-full" style={{ width: '24%' }} />
-            </div>
-            <p className="text-xs text-slate-400">
-              High concentration along Jalur Pantura Jawa and Trans-Sumatra corridors.
-            </p>
+        <div className="bg-surface border border-white/10 rounded-2xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-white flex items-center justify-between">
+            <span>WIM Overload Attribution</span>
+            <span className="text-amber-400 font-mono">82.4%</span>
+          </h3>
+          <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+            <div className="bg-amber-400 h-full rounded-full" style={{ width: '82.4%' }} />
           </div>
-
-          <div className="bg-surface border border-white/10 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white flex items-center justify-between">
-              <span>WIM Overload Attribution</span>
-              <span className="text-amber-400 font-mono">82.4%</span>
-            </h3>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div className="bg-amber-400 h-full rounded-full" style={{ width: '82.4%' }} />
-            </div>
-            <p className="text-xs text-slate-400">
-              Over 82% of rapid asphalt fatigue failure is correlated directly with ODOL heavy vehicle passes.
-            </p>
-          </div>
+          <p className="text-xs text-slate-400">
+            Over 82% of rapid asphalt fatigue failure is correlated directly with ODOL heavy vehicle passes.
+          </p>
         </div>
       </div>
-    </div>
+    </PageOverlay>
   );
 };

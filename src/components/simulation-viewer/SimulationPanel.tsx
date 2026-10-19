@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   RoadSegment,
   SimulationParams,
@@ -145,7 +145,7 @@ export const SimulationPanel: React.FC<SimulationPanelProps> = ({
   }, [activeRole]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="w-full min-w-0 space-y-4">
       {/* Title Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 p-5 rounded-2xl border border-white/10 shadow-2xl">
         <div>

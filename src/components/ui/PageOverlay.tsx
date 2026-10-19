@@ -16,25 +16,34 @@ interface PageOverlayProps {
  */
 export const PageOverlay: React.FC<PageOverlayProps> = ({ icon, title, subtitle, backLabel = 'Back to Map', onBack, children }) => {
   return (
-    <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-w,0px)] z-40 bg-canvas p-4 sm:p-8 overflow-y-auto animate-in fade-in duration-200 text-slate-100 select-text">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-amber-400/10 text-amber-300 flex items-center justify-center shrink-0 [&>svg]:w-5 [&>svg]:h-5">{icon}</div>
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold text-white truncate">{title}</h2>
-              {subtitle && <p className="text-sm text-slate-400 truncate">{subtitle}</p>}
-            </div>
+    <div className="w-full h-full min-w-0 bg-workspace text-ink px-4 sm:px-5 py-5 pb-8 overflow-y-auto custom-scrollbar space-y-4 animate-in fade-in duration-150 select-text">
+      {/* Header Panel matching M.O Dashboard Pusat Operasi Jalan header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-panel border border-line-subtle px-4 py-3 sm:px-5 rounded-card">
+        <div className="flex items-center space-x-3.5 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-card border border-line-subtle text-[#E8B52B] flex items-center justify-center shrink-0 [&>svg]:w-4.5 [&>svg]:h-4.5">
+            {icon}
           </div>
-          <button
-            onClick={onBack}
-            className="h-10 px-4 rounded-xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-slate-100 text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
-          >
-            <MapIcon className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">{backLabel}</span>
-          </button>
+          <div className="min-w-0">
+            <h1 className="text-[20px] font-semibold text-ink tracking-tight leading-tight truncate">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="text-[11px] text-ink-2 mt-0.5 truncate">
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
+        <button
+          onClick={onBack}
+          className="h-8 px-3 rounded-control border border-line-subtle bg-card hover:bg-raised text-ink text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shrink-0 self-start sm:self-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60"
+        >
+          <MapIcon className="w-3.5 h-3.5 text-[#E8B52B]" />
+          <span>{backLabel}</span>
+        </button>
+      </div>
 
+      <div className="w-full min-w-0 space-y-4">
         {children}
       </div>
     </div>

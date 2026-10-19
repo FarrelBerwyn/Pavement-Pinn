@@ -6,6 +6,7 @@
  * in exactly one place.
  */
 import type { DamageReport, RoadConditionCategory, RoadSegment } from '../../types';
+import { getCanonicalRoadGeometry } from '../../domain/geo/canonicalRoadGeometry';
 
 export type LngLat = [number, number];
 
@@ -41,7 +42,14 @@ export interface FeatureCollection<G, P> {
 
 export type SegmentCollection = FeatureCollection<
   { type: 'LineString'; coordinates: LngLat[] },
-  { id: string; name: string; color: string; condition: RoadConditionCategory }
+  {
+    id: string;
+    name: string;
+    color: string;
+    condition: RoadConditionCategory;
+    geometrySource?: string;
+    geometryStatus?: string;
+  }
 >;
 
 export type ReportCollection = FeatureCollection<
@@ -49,22 +57,36 @@ export type ReportCollection = FeatureCollection<
   { id: string; severity: DamageReport['severity'] }
 >;
 
-/** Segments with fewer than two points have no line to draw and are left out. */
 export function segmentsToGeoJson(segments: RoadSegment[]): SegmentCollection {
   return {
     type: 'FeatureCollection',
     features: segments
-      .filter((segment) => segment.polyline.length > 1)
-      .map((segment) => ({
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: segment.polyline.map(toLngLat) },
-        properties: {
-          id: segment.id,
-          name: segment.name,
-          color: CONDITION_COLOR[segment.conditionCategory],
-          condition: segment.conditionCategory
-        }
-      }))
+      .filter((segment) => {
+        const canonical = getCanonicalRoadGeometry(segment.id);
+        const ptCount = canonical?.geometry.coordinates.length ?? segment.geometry?.coordinates?.length ?? segment.polyline.length;
+        return ptCount > 1;
+      })
+      .map((segment) => {
+        const canonical = getCanonicalRoadGeometry(segment.id);
+        const coordinates: LngLat[] =
+          canonical && canonical.geometry.coordinates.length > 1
+            ? (canonical.geometry.coordinates as unknown as LngLat[])
+            : segment.geometry && segment.geometry.coordinates.length > 1
+            ? (segment.geometry.coordinates as LngLat[])
+            : segment.polyline.map(toLngLat);
+        return {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates },
+          properties: {
+            id: segment.id,
+            name: segment.name,
+            color: CONDITION_COLOR[segment.conditionCategory],
+            condition: segment.conditionCategory,
+            geometrySource: canonical?.geometrySource ?? segment.geometrySource,
+            geometryStatus: canonical?.geometryStatus ?? segment.geometryStatus
+          }
+        };
+      })
   };
 }
 

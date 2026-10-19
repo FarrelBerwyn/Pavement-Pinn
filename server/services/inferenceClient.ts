@@ -29,3 +29,19 @@ export async function callInference(method: "GET" | "POST", path: string, payloa
     return { ok: false, status: 503, unavailable: true, message: error?.name === "TimeoutError" ? "Inference service timed out." : "Inference service is not reachable." };
   }
 }
+
+/** Binary POST (image or video bytes) to the inference service. */
+export async function callInferenceBytes(path: string, bytes: Buffer, contentType: string, timeoutMs = 60_000): Promise<InferenceReply> {
+  try {
+    const res = await fetch(`${inferenceUrl()}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": contentType },
+      body: new Uint8Array(bytes),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    const body = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, body };
+  } catch (error: any) {
+    return { ok: false, status: 503, unavailable: true, message: error?.name === "TimeoutError" ? "Inference service timed out." : "Inference service is not reachable." };
+  }
+}

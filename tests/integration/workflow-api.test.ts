@@ -17,6 +17,7 @@ import { FileCaseStore } from '../../server/repositories/fileCaseStore';
 import { MemoryCaseStore } from '../../src/domain/workflow/service';
 import { INITIAL_COMMUNITY_REPORTS } from '../../src/data/mock/communityReports';
 import { demoLoginFor } from '../../src/data/reference/demoCredentials';
+import { bodyWithSession } from '../helpers/sessionCookie';
 
 // 1x1 transparent PNG.
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
@@ -51,7 +52,7 @@ async function call(method: string, p: string, body?: unknown, token?: string, e
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extraHeaders },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
-  return { status: res.status, body: (await res.json()) as any };
+  return { status: res.status, body: await bodyWithSession(res) };
 }
 
 const credentialsFor = (accountId: string) => {
@@ -272,7 +273,7 @@ test('a failed write returns 503 and leaves the stored case unchanged', async ()
   await runtime.ready;
   const s = await listen(createApp({ workflow: runtime }));
   try {
-    const opsTok = ((await (await fetch(`${s.base}/api/auth/demo-session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentialsFor('USR-008')) })).json()) as any).token;
+    const opsTok = (await bodyWithSession(await fetch(`${s.base}/api/auth/demo-session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentialsFor('USR-008')) }))).token;
     const before = ((await (await fetch(`${s.base}/api/workflow/reports?limit=1`, { headers: { Authorization: `Bearer ${opsTok}` } })).json()) as any).items[0].case;
     store.failNextCommit = true;
     const r = await fetch(`${s.base}/api/workflow/reports/${before.id}/transitions`, {

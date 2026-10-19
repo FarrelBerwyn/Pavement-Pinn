@@ -1,0 +1,46 @@
+{"pages":74,"pageSizes":{"595x842":64,"842x595":10},"figures":9,"tables":40,"equations":16,"toc":61}
+PASS  page count stable between passes  [74 vs 74]
+PASS  every TOC entry resolved to a page
+PASS  TOC page numbers match final PDF headings  [0 mismatches]
+PASS  present: Chapter 1 —
+PASS  present: Chapter 2 —
+PASS  present: Chapter 3 —
+PASS  present: Chapter 4 —
+PASS  present: Chapter 5 —
+PASS  present: Chapter 6 —
+PASS  present: Chapter 7 —
+PASS  present: Chapter 8 —
+PASS  present: Chapter 9 —
+PASS  present: Chapter 10 —
+PASS  present: Chapter 11 —
+PASS  present: Chapter 12 —
+PASS  present: Chapter 13 —
+PASS  present: Chapter 14 —
+PASS  present: Appendix A —
+PASS  present: Appendix B —
+PASS  present: Appendix C —
+PASS  present: Appendix D —
+PASS  present: Appendix E —
+PASS  present: Appendix F —
+PASS  present: Appendix G —
+PASS  present: Appendix H —
+PASS  present: Executive Summary
+PASS  present: Document Control
+PASS  no raw LaTeX commands in HTML
+PASS  no leftover placeholder page numbers
+PASS  no "undefined" text in PDF
+PASS  no TODO/TBD/lorem placeholders
+PASS  findings counts 5/15/8/3  [P0=5 P1=15 P2=8 P3=3]
+PASS  report figures match evidence log: "median 0.047"
+PASS  report figures match evidence log: "median 0.067"
+PASS  report figures match evidence log: "median 0.019"
+PASS  report figures match evidence log: "median 0.025"
+PASS  report figures match evidence log: "engine et=20 ev=17 | ref2 et=435 ev=1174"
+PASS  report figures match evidence log: "ALL REFERENCE-SOLVER CHECKS PASS"
+PASS  report figures match evidence log: "LAYERED CONSISTENCY CHECKS PASS"
+PASS  report figures match evidence log: "eps_t > 200 ue: engine 3 | ref 2-layer 1"
+PASS  report figures match evidence log: "eps_v > 350 ue: engine 0 | ref 2-layer 1"
+PASS  no secret-like strings
+PASS  A4 portrait and landscape pages only  [{"595x842":64,"842x595":10}]
+PASS  no blank pages
+PASS  no horizontal overflow (no clipping, no shrink-to-fit)

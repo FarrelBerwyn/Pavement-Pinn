@@ -11,8 +11,9 @@ import type { ReportDraft } from "../../src/domain/reports/reportFactory";
 import { hashClaimToken, newClaimToken } from "../auth/sessionTokens";
 import { rateLimit } from "../middleware/rateLimit";
 import { checkPhotoReference } from "../services/photoValidation";
+import { attachCvAnalysis } from "../services/cvAttach";
 import type { WorkflowRuntime } from "../services/workflowRuntime";
-import { actorFrom } from "../auth/actor";
+import { actorFrom, clearSessionCookie, credentialFrom, sessionFrom, setSessionCookie } from "../auth/actor";
 import { verifyDemoLogin } from "../auth/demoLogin";
 import { segmentById } from "../services/segments";
 import { assessSegment, snapshotOf } from "../../src/domain/intelligence/assessment";
@@ -24,10 +25,11 @@ import { personOf } from "../../src/domain/identity/people";
  * report cases; everyone else gets the public projection.
  */
 
-type ErrorCode = "UNAUTHENTICATED" | "FORBIDDEN" | "VALIDATION" | "NOT_FOUND" | "VERSION_CONFLICT" | "INVALID_TRANSITION" | "STORAGE" | "DISABLED";
+type ErrorCode = "UNAUTHENTICATED" | "SESSION_EXPIRED" | "FORBIDDEN" | "VALIDATION" | "NOT_FOUND" | "VERSION_CONFLICT" | "INVALID_TRANSITION" | "STORAGE" | "DISABLED";
 
 const STATUS: Record<ErrorCode, number> = {
   UNAUTHENTICATED: 401,
+  SESSION_EXPIRED: 401,
   FORBIDDEN: 403,
   VALIDATION: 400,
   NOT_FOUND: 404,
@@ -107,8 +109,11 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
     const account = USER_ACCOUNTS.find((a) => a.id === result.accountId);
     if (!account) return sendError(res, "STORAGE", "Demo account catalogue is inconsistent.");
     const actor: Actor = { id: account.id, role: account.role, kind: "DEMO_ACCOUNT" };
-    const { token, expiresAt } = signer.issue(actor);
-    res.json({ success: true, token, expiresAt, actor, authentication: "DEMO_CREDENTIALS (local demo only, not production authentication)" });
+    const { token, expiresAt, issuedAt } = signer.issue(actor);
+    // The signed-in session rides in an HttpOnly cookie, so a refresh or a new tab resumes it
+    // and page scripts never hold it. The deadline is absolute: issuedAt + 2 hours.
+    setSessionCookie(req, res, token, expiresAt);
+    res.json({ success: true, expiresAt, issuedAt, actor, authentication: "DEMO_CREDENTIALS (local demo only, not production authentication)" });
   };
   router.post(SPEC_PATHS.login, loginLimit, demoLoginHandler);
   // Older path of the same call; it now requires credentials too.
@@ -122,9 +127,29 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
   });
 
   router.get(WORKFLOW_API_PATHS.me, (req: Request, res: Response) => {
-    const actor = actorFrom(req, runtime);
-    if (!actor) return sendError(res, "UNAUTHENTICATED", "No valid session.");
-    res.json({ success: true, actor });
+    res.setHeader("Cache-Control", "no-store");
+    const session = sessionFrom(req, runtime);
+    if (session.ok === false) {
+      if (session.reason === "EXPIRED" || session.reason === "REVOKED") {
+        clearSessionCookie(req, res);
+        return sendError(res, "SESSION_EXPIRED", session.reason === "EXPIRED" ? "Session expired." : "Session ended.");
+      }
+      return sendError(res, "UNAUTHENTICATED", "No valid session.");
+    }
+    const { payload } = session;
+    res.json({
+      success: true,
+      actor: session.actor,
+      issuedAt: new Date(payload.iat * 1000).toISOString(),
+      expiresAt: new Date(Math.min(payload.exp, payload.iat + signer.maxAgeSeconds) * 1000).toISOString()
+    });
+  });
+
+  // Logout: the token stops working on the server at once (revoked), not just in this browser.
+  router.post(WORKFLOW_API_PATHS.logout, (req: Request, res: Response) => {
+    signer.revoke(credentialFrom(req));
+    clearSessionCookie(req, res);
+    res.json({ success: true });
   });
 
   // --- Reports --------------------------------------------------------------------
@@ -160,8 +185,17 @@ export function registerWorkflowRoutes(router: Router, runtime: WorkflowRuntime)
     const photo = checkPhotoReference(draft.photoUrl);
     if (photo.ok === false) return sendError(res, "VALIDATION", (photo as { message: string }).message);
     if (typeof draft.description !== "string" || draft.description.length > 2000) return sendError(res, "VALIDATION", "description must be text up to 2000 characters.");
+    // A CV analysis is cited by id and read from the server store; client-sent analysis data is dropped.
+    const cvId = (draft as { cvAnalysisId?: unknown }).cvAnalysisId;
+    let verifiedCv = undefined;
+    if (cvId !== undefined && cvId !== null) {
+      const attached = await attachCvAnalysis(runtime.cv, cvId, draft);
+      if (attached.ok === false) return sendError(res, "VALIDATION", (attached as { message: string }).message);
+      verifiedCv = attached.assessment;
+    }
     const claim = actor.kind === "ANONYMOUS" ? newClaimToken() : null;
-    const result = await service.submitReport(draft, actor, claim ? claim.hash : null);
+    const result = await service.submitReport(draft, actor, claim ? claim.hash : null, verifiedCv);
+    if (result.ok && verifiedCv) await runtime.cv.bind(verifiedCv.analysisId, result.value.id);
     if (result.ok && claim) {
       // The claim token is shown once; only its hash is stored.
       res.status(201).json({ success: true, report: viewFor(result.value, actor), claimToken: claim.token });

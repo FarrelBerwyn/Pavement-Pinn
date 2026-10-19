@@ -1,10 +1,29 @@
 /**
  * The report's workflow, as each role should see it: current state, the evidence that
  * matters for the next decision, the history, and only the actions this actor may take.
- * Every action goes to the workflow store and the panel shows success only after the
- * store saved it. Staff see the full case; citizens see public notes only.
+ * Redesigned into a Horizontal Master Layout with 3 Vertical Content Columns:
+ * - Kolom A: Laporan & Bukti
+ * - Kolom B: Analisis & Hasil Pemeriksaan
+ * - Kolom C: Tindakan & Riwayat
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  MapPin,
+  Maximize2,
+  X,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Layers,
+  ShieldCheck,
+  HardHat,
+  ChevronRight,
+  ExternalLink,
+  Calendar,
+  User,
+  Activity,
+  History
+} from 'lucide-react';
 import { loadDraft, saveDraft } from '../work-orders/inspectionDraft';
 import type { WorkflowAction, WorkflowState, ReportCase } from '../../domain/workflow/model';
 import type { PublicReportView } from '../../domain/workflow/projections';
@@ -29,34 +48,40 @@ export interface ReportWorkflowPanelProps {
   tone?: PanelTone;
   /** Open this action's form immediately (e.g. "Mulai Tugas" opens the inspection form). */
   initialAction?: WorkflowAction | null;
+  /** Close dialog callback if rendered in modal dialog */
+  onClose?: () => void;
+  /** If true, renders the complete workspace modal with overlay, sticky header & sticky footer */
+  isModal?: boolean;
 }
 
 /** One class set per surface, so both themes use the same brand yellow and muted status colours. */
 const SKIN = {
   dark: {
-    section: 'border-white/10 bg-slate-900/60 text-slate-200',
-    card: 'bg-white/[0.03] border-white/10',
+    section: 'border-line-subtle bg-card text-ink',
+    column: 'bg-panel border-line-subtle',
+    card: 'bg-white/[0.02] border-white/10',
     strong: 'text-slate-100',
     body: 'text-slate-300',
-    muted: 'text-slate-400',
+    muted: 'text-[#A6A8AE]',
     label: 'text-slate-300',
-    form: 'border-white/10 bg-slate-950/50',
-    input: 'bg-slate-900/80 border-white/15 text-slate-100 placeholder:text-slate-500',
+    form: 'border-white/10 bg-slate-950/70',
+    input: 'bg-slate-900/90 border-white/15 text-slate-100 placeholder:text-slate-500',
     ghost: 'text-slate-300 hover:bg-white/5',
     chip: 'bg-white/[0.04] border-white/15 text-slate-100 hover:bg-white/[0.08]',
     chipOn: 'bg-brand/15 border-brand/60 text-brand-hover',
-    link: 'text-brand hover:text-brand-hover',
+    link: 'text-[#F5BC24] hover:text-[#F5BC24]/80',
     line: 'border-white/10',
-    ok: 'text-emerald-200 bg-emerald-500/10 border-emerald-500/30',
-    err: 'text-rose-200 bg-rose-500/10 border-rose-500/30',
+    ok: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+    err: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
     tagDemo: 'border-amber-500/40 text-amber-200 bg-amber-500/10',
     tagObserved: 'border-emerald-500/40 text-emerald-200 bg-emerald-500/10',
     tagNeutral: 'border-slate-500/40 text-slate-300 bg-slate-700/30',
     note: 'text-amber-200'
   },
   light: {
-    section: 'border-slate-200 bg-white text-slate-700',
-    card: 'bg-slate-50 border-slate-200',
+    section: 'border-slate-200 bg-white text-slate-800',
+    column: 'bg-slate-50 border-slate-200',
+    card: 'bg-white border-slate-200',
     strong: 'text-slate-900',
     body: 'text-slate-700',
     muted: 'text-slate-500',
@@ -98,23 +123,37 @@ export function actorName(id: string): string {
 }
 
 export const StateBadge: React.FC<{ state: WorkflowState | string; tone?: PanelTone }> = ({ state, tone = 'dark' }) => (
-  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-semibold ${(tone === 'light' ? TONE_CLASS_LIGHT : TONE_CLASS)[stateTone(state)]}`}>
-    <span aria-hidden="true" className="w-2 h-2 rounded-full bg-current opacity-80" />
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${(tone === 'light' ? TONE_CLASS_LIGHT : TONE_CLASS)[stateTone(state)]}`}>
+    <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
     {WORKFLOW_STATE_LABEL[state as WorkflowState] ?? state}
   </span>
 );
 
 const DataTag: React.FC<{ children: React.ReactNode; tone?: 'demo' | 'observed' | 'neutral'; skin: Skin }> = ({ children, tone = 'neutral', skin }) => (
-  <span className={`inline-block px-2 py-1 rounded text-xs font-bold tracking-wide border ${tone === 'demo' ? skin.tagDemo : tone === 'observed' ? skin.tagObserved : skin.tagNeutral}`}>{children}</span>
+  <span className={`inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wide border ${tone === 'demo' ? skin.tagDemo : tone === 'observed' ? skin.tagObserved : skin.tagNeutral}`}>{children}</span>
 );
 
 const Field: React.FC<{ label: string; htmlFor: string; children: React.ReactNode; hint?: string; skin: Skin }> = ({ label, htmlFor, children, hint, skin }) => (
   <div className="space-y-1">
-    <label htmlFor={htmlFor} className={`block text-xs font-semibold ${skin.label}`}>
+    <label htmlFor={htmlFor} className={`block text-[11px] font-semibold ${skin.label}`}>
       {label}
     </label>
     {children}
-    {hint && <p className={`text-xs ${skin.muted}`}>{hint}</p>}
+    {hint && <p className={`text-[10.5px] ${skin.muted}`}>{hint}</p>}
+  </div>
+);
+
+/** Compact horizontal key-value row for editorial operational scanning with responsive wrapping */
+const InfoRow: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  border?: boolean;
+  valueClass?: string;
+  mono?: boolean;
+}> = ({ label, value, border = true, valueClass = 'text-slate-100 font-semibold', mono = false }) => (
+  <div className={`flex flex-wrap items-baseline justify-between gap-x-2.5 gap-y-0.5 py-1.5 text-xs min-w-0 ${border ? 'border-b border-white/5' : ''}`}>
+    <span className="text-[#A6A8AE] font-normal shrink-0">{label}</span>
+    <span className={`${valueClass} ${mono ? 'font-mono' : ''} text-right min-w-0 break-words flex-1`}>{value}</span>
   </div>
 );
 
@@ -199,15 +238,18 @@ const ActionForm: React.FC<{
   const needsReason = !['SUBMIT_INSPECTION', 'RECOMMEND_ACTION'].includes(action);
 
   return (
-    <form onSubmit={submit} className={`mt-2 space-y-2 rounded-xl border p-3 ${skin.form}`}>
-      <p className={`text-xs font-bold ${skin.strong}`}>{ACTION_LABEL[action]}</p>
+    <form onSubmit={submit} className={`space-y-2 rounded-xl border p-3.5 bg-black/40 border-white/10 ${skin.form}`}>
+      <div className="flex items-center justify-between pb-1 border-b border-white/10">
+        <p className={`text-xs font-bold text-[#F5BC24]`}>{ACTION_LABEL[action]}</p>
+        <span className="text-[10px] text-[#A6A8AE]">Form Tindakan</span>
+      </div>
 
       {action === 'REQUEST_INSPECTION' && (
         <>
           <Field skin={skin} label="Insinyur lapangan (F.E)" htmlFor={id('eng')}>
             <select id={id('eng')} className={inputClass} value={engineerId} onChange={(e) => setEngineerId(e.target.value)} required>
               {engineers.map((en) => (
-                <option key={en.id} value={en.id}>
+                <option key={en.id} value={en.id} className="bg-slate-900 text-white">
                   {en.name} — {en.agencyCode} ({en.id})
                 </option>
               ))}
@@ -230,8 +272,8 @@ const ActionForm: React.FC<{
               <option value="NOT_CONFIRMED">Tidak ditemukan kerusakan</option>
             </select>
           </Field>
-          <div className="flex items-center gap-2">
-            <input id={id('cv')} type="checkbox" checked={cvAccepted} onChange={(e) => setCvAccepted(e.target.checked)} className="accent-amber-500" />
+          <div className="flex items-center gap-2 pt-1">
+            <input id={id('cv')} type="checkbox" checked={cvAccepted} onChange={(e) => setCvAccepted(e.target.checked)} className="accent-amber-500 rounded" />
             <label htmlFor={id('cv')} className={`text-xs ${skin.label}`}>
               Jenis kerusakan pada laporan sudah benar ({caseData.report.damageTypeLabel})
             </label>
@@ -265,17 +307,17 @@ const ActionForm: React.FC<{
           </Field>
           {evidenceError && <p role="alert" className="text-xs text-red-300">{evidenceError}</p>}
           {evidence && (
-            <div className="flex items-start gap-2">
-              <img src={evidence} alt="Pratinjau foto bukti inspeksi" className="w-32 h-24 object-cover rounded-lg border border-line" />
-              <button type="button" onClick={() => setEvidence(null)} className={`text-xs underline ${skin.muted}`}>
+            <div className="flex items-start gap-2 pt-1">
+              <img src={evidence} alt="Pratinjau foto bukti inspeksi" className="w-28 h-20 object-cover rounded-lg border border-line" />
+              <button type="button" onClick={() => setEvidence(null)} className={`text-xs underline text-rose-400`}>
                 Hapus foto
               </button>
             </div>
           )}
-          <p className={`text-xs ${skin.muted}`} role="status">
+          <p className={`text-[11px] ${skin.muted}`} role="status">
             {savedAt
-              ? `Draf tersimpan di perangkat ini · ${new Date(savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}. Belum terkirim ke M.O.`
-              : 'Isian disimpan otomatis sebagai draf di perangkat ini sampai Anda mengirimnya.'}
+              ? `Draf tersimpan di perangkat ini · ${new Date(savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`
+              : 'Isian disimpan otomatis sebagai draf di perangkat ini.'}
           </p>
         </>
       )}
@@ -292,7 +334,7 @@ const ActionForm: React.FC<{
               <option value="URGENT">Mendesak</option>
             </select>
           </Field>
-          <Field skin={skin} label="Alasan teknis" htmlFor={id('rat')} hint="Penilaian ruas (RULE_BASED, belum tervalidasi) dilampirkan otomatis saat disimpan, lalu terlihat oleh M.O dan D.M.">
+          <Field skin={skin} label="Alasan teknis" htmlFor={id('rat')} hint="Penilaian ruas dilampirkan otomatis saat disimpan.">
             <textarea id={id('rat')} className={inputClass} rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} required />
           </Field>
         </>
@@ -306,31 +348,67 @@ const ActionForm: React.FC<{
 
       {needsReason && (
         <Field skin={skin} label="Alasan (tercatat di audit trail)" htmlFor={id('reason')}>
-          <textarea id={id('reason')} className={inputClass} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} required />
+          <textarea id={id('reason')} className={inputClass} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} required placeholder="Tulis alasan keputusan untuk riwayat audit" />
         </Field>
       )}
 
-      <div className="flex items-center justify-end gap-2 pt-1">
-        <button type="button" onClick={onCancel} disabled={busy} className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${skin.ghost} ${FOCUS}`}>
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+        <button type="button" onClick={onCancel} disabled={busy} className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${skin.ghost} ${FOCUS}`}>
           Batal
         </button>
-        <button type="submit" disabled={busy} aria-busy={busy} className={`px-3 py-2 rounded-lg text-xs font-bold bg-brand text-navy hover:bg-brand-hover active:bg-brand-press disabled:opacity-60 disabled:cursor-wait transition-colors ${FOCUS}`}>
-          {busy ? 'Menyimpan…' : 'Simpan & kirim'}
+        <button type="submit" disabled={busy} aria-busy={busy} className={`px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F5BC24] text-black hover:bg-[#F5BC24]/90 disabled:opacity-60 transition-colors ${FOCUS}`}>
+          {busy ? 'Menyimpan…' : 'Simpan & Kirim'}
         </button>
       </div>
     </form>
   );
 };
 
-export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, mode, engineers, onRun, onShowOnMap, compact, tone = 'dark', initialAction = null }) => {
+export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({
+  view,
+  mode,
+  engineers,
+  onRun,
+  onShowOnMap,
+  compact,
+  tone = 'dark',
+  initialAction = null,
+  onClose,
+  isModal = false
+}) => {
   const skin = SKIN[tone];
-  const [openAction, setOpenAction] = useState<WorkflowAction | null>(initialAction && view?.availableActions.includes(initialAction) ? initialAction : null);
+  const [openAction, setOpenAction] = useState<WorkflowAction | null>(
+    initialAction && view?.availableActions.includes(initialAction) ? initialAction : null
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; title: string } | null>(null);
+  const [mobileTab, setMobileTab] = useState<'A' | 'B' | 'C'>('A');
+
   const engineerName = useMemo(() => new Map(engineers.map((e) => [e.id, e.name])), [engineers]);
 
+  // Handle escape key to close modal or lightbox
+  useEffect(() => {
+    if (!isModal && !lightboxPhoto) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (lightboxPhoto) {
+          setLightboxPhoto(null);
+        } else if (onClose) {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isModal, lightboxPhoto, onClose]);
+
   if (!view) {
-    return <p className={`text-xs ${skin.muted}`}>Status alur kerja belum dimuat.</p>;
+    return (
+      <div className={`p-6 text-center text-xs ${skin.muted}`}>
+        Status alur kerja belum dimuat atau laporan tidak ditemukan.
+      </div>
+    );
   }
 
   const isStaff = view.audience === 'STAFF';
@@ -345,231 +423,752 @@ export const ReportWorkflowPanel: React.FC<ReportWorkflowPanelProps> = ({ view, 
     setBusy(false);
     if (outcome.ok === false) {
       const failure = outcome as { error: string; code: string };
-      setMessage({ tone: 'error', text: failure.code === 'VERSION_CONFLICT' ? 'Laporan baru saja diubah orang lain; data sudah dimuat ulang. Periksa lalu ulangi.' : failure.error });
+      setMessage({
+        tone: 'error',
+        text: failure.code === 'VERSION_CONFLICT'
+          ? 'Laporan baru saja diubah orang lain; data sudah dimuat ulang. Periksa lalu ulangi.'
+          : failure.error
+      });
       return;
     }
     setOpenAction(null);
-    setMessage({ tone: 'ok', text: `${ACTION_LABEL[command.action as WorkflowAction]} — tersimpan dan terkirim ke peran berikutnya.` });
+    setMessage({
+      tone: 'ok',
+      text: `${ACTION_LABEL[command.action as WorkflowAction]} — tersimpan dan terkirim ke peran berikutnya.`
+    });
   };
 
-  const assignmentOverdue = staffCase?.assignment && state === 'FIELD_INSPECTION_REQUESTED' && Date.parse(staffCase.assignment.dueAt) < Date.now();
-  const card = `rounded-xl border p-3 ${skin.card}`;
+  const assignmentOverdue =
+    staffCase?.assignment &&
+    state === 'FIELD_INSPECTION_REQUESTED' &&
+    Date.parse(staffCase.assignment.dueAt) < Date.now();
 
-  return (
-    <section aria-label="Status alur kerja laporan" className={`rounded-2xl border ${skin.section} ${compact ? 'p-3' : 'p-4'} space-y-3`}>
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+  // Primary action button in footer
+  const primaryActions = view.availableActions.filter((a) => a !== 'COMPLETE_WORK_ORDER');
+
+  // RENDER COLUMNS
+  const renderColumnA = () => (
+    <div className="space-y-4">
+      {/* 1. Header Section Laporan & Status */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
+        <div className="flex items-center justify-between pb-1 border-b border-white/5">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE]">
+            Ringkasan Laporan
+          </span>
           <StateBadge state={state} tone={tone} />
-          <span className={`text-xs font-mono ${skin.muted}`}>{view.case.id}</span>
-          {mode === 'OFFLINE_DEMO' && (
-            <DataTag skin={skin} tone="demo">
-              DEMO OFFLINE — tidak tersimpan di server
-            </DataTag>
+        </div>
+        <InfoRow label="ID Laporan" value={view.case.id} mono valueClass="text-[#F5BC24] font-bold" />
+        <InfoRow label="Waktu Masuk" value={fmt(view.case.report.createdAt)} />
+        <InfoRow
+          label="Sumber Data"
+          value={
+            staffCase?.dataStatus === 'SYNTHETIC'
+              ? 'Laporan Warga (Synthetic)'
+              : 'Laporan Warga (R.U / R.E)'
+          }
+          border={false}
+        />
+      </div>
+
+      {/* 2. Lokasi & Koordinat */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2.5">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE]">Lokasi Ruas</p>
+            <p className="text-xs font-semibold text-slate-100 mt-0.5">{view.case.report.segmentName}</p>
+          </div>
+          {onShowOnMap && (
+            <button
+              type="button"
+              onClick={onShowOnMap}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F5BC24]/10 border border-[#F5BC24]/30 text-[#F5BC24] hover:bg-[#F5BC24]/20 text-[11px] font-semibold transition-colors flex-shrink-0"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Lihat di peta</span>
+            </button>
           )}
-          {staffCase && staffCase.dataStatus === 'SYNTHETIC' && (
-            <DataTag skin={skin} tone="demo">
-              DATA CONTOH (SYNTHETIC)
+        </div>
+        <div className="flex items-center gap-2 pt-1 border-t border-white/5 text-[11px]">
+          <span className="text-[#A6A8AE]">Koordinat:</span>
+          <span className="font-mono text-slate-200 bg-white/5 px-2 py-0.5 rounded border border-white/10 select-all">
+            {view.case.report.coordinates[0].toFixed(5)}, {view.case.report.coordinates[1].toFixed(5)}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Foto Utama Bukti Warga */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE]">Foto Bukti Laporan</p>
+          {view.case.report.photoUrl && (
+            <button
+              type="button"
+              onClick={() =>
+                setLightboxPhoto({
+                  url: view.case.report.photoUrl!,
+                  title: `Foto Bukti Laporan — ${view.case.id}`
+                })
+              }
+              className="text-[11px] text-[#F5BC24] hover:underline inline-flex items-center gap-1 font-medium"
+            >
+              <Maximize2 className="w-3 h-3" /> Perbesar Foto
+            </button>
+          )}
+        </div>
+        {view.case.report.photoUrl ? (
+          <div
+            className="relative group rounded-lg overflow-hidden border border-white/10 bg-black/40 aspect-[4/3] flex items-center justify-center cursor-pointer"
+            onClick={() =>
+              setLightboxPhoto({
+                url: view.case.report.photoUrl!,
+                title: `Foto Bukti Laporan — ${view.case.id}`
+              })
+            }
+          >
+            <img
+              src={view.case.report.photoUrl}
+              alt={`Foto laporan warga ${view.case.id}`}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/75 border border-white/20 text-xs text-white shadow-lg">
+                <Maximize2 className="w-3.5 h-3.5" /> Klik untuk perbesar
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-white/10 p-6 text-center text-xs text-slate-400">
+            Tidak ada foto bukti dari pelapor.
+          </div>
+        )}
+      </div>
+
+      {/* 4. Rincian Kerusakan & Deskripsi Pelapor */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE] pb-1 border-b border-white/5">
+          Deskripsi &amp; Dimensi Estimasi
+        </p>
+        <InfoRow label="Jenis Kerusakan" value={view.case.report.damageTypeLabel} />
+        <InfoRow
+          label="Estimasi Dimensi"
+          value={`${view.case.report.estimatedDepthCm} cm / ${view.case.report.estimatedAreaM2} m²`}
+          mono
+        />
+        {view.case.report.description && (
+          <div className="pt-2">
+            <span className="text-[11px] text-[#A6A8AE]">Catatan Warga:</span>
+            <p className="mt-1 text-xs text-slate-300 italic bg-black/25 p-2.5 rounded-lg border border-white/5">
+              “{view.case.report.description}”
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderColumnB = () => (
+    <div className="space-y-4">
+      {/* 1. Penyaringan Otomatis (AI / CV) */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
+        <div className="flex items-center justify-between pb-1 border-b border-white/5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE]">
+            Penyaringan Otomatis (AI / CV)
+          </p>
+          {staffCase?.screening && (
+            <DataTag
+              skin={skin}
+              tone={staffCase.screening.modelStatus === 'REAL' ? 'observed' : 'demo'}
+            >
+              {staffCase.screening.modelStatus}
             </DataTag>
           )}
         </div>
-        {onShowOnMap && (
-          <button type="button" onClick={onShowOnMap} className={`text-xs font-semibold rounded px-1 ${skin.link} ${FOCUS}`}>
-            Lihat di peta
-          </button>
-        )}
-      </header>
 
-      {staffCase && (
-        <div className="grid gap-2 text-xs">
-          <div className={`${card} space-y-1`}>
-            <span className={`font-semibold ${skin.strong}`}>Laporan warga (R.E)</span>
-            <p className={skin.body}>
-              {staffCase.report.damageTypeLabel} · {staffCase.report.segmentName} · estimasi {staffCase.report.estimatedDepthCm} cm / {staffCase.report.estimatedAreaM2} m²
-            </p>
-            {staffCase.report.description && <p className={skin.muted}>{staffCase.report.description}</p>}
-            <p className={skin.muted}>
-              Lokasi: {staffCase.report.coordinates[0].toFixed(5)}, {staffCase.report.coordinates[1].toFixed(5)}
-            </p>
-            {staffCase.report.photoUrl && (
-              <img
-                src={staffCase.report.photoUrl}
-                alt="Foto laporan warga (R.E)"
-                className="mt-2 w-full max-h-72 object-contain rounded-lg border border-line bg-canvas"
-              />
+        {staffCase?.screening ? (
+          <div className="space-y-1.5">
+            <InfoRow
+              label="Kelas Terdeteksi"
+              value={staffCase.screening.detectedClass ?? 'Tidak ada deteksi model'}
+              mono
+            />
+            <InfoRow
+              label="Kepercayaan (Confidence)"
+              value={
+                staffCase.screening.confidence !== null
+                  ? `${(staffCase.screening.confidence * 100).toFixed(0)}% (${staffCase.screening.modelStatus})`
+                  : 'N/A'
+              }
+            />
+            {staffCase.screening.reasons.length > 0 && (
+              <div className="pt-1.5 border-t border-white/5">
+                <p className="text-[11px] text-[#A6A8AE] font-medium mb-1">Catatan Evaluasi Sistem:</p>
+                <ul className="text-xs text-slate-300 space-y-1 list-disc pl-4">
+                  {staffCase.screening.reasons.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
-          {staffCase.screening && (
-            <div className={`${card} space-y-1`}>
-              <div className="flex items-center gap-2">
-                <span className={`font-semibold ${skin.strong}`}>Penyaringan otomatis</span>
-                <DataTag skin={skin} tone={staffCase.screening.modelStatus === 'REAL' ? 'observed' : 'demo'}>
-                  {staffCase.screening.modelStatus}
-                </DataTag>
-              </div>
-              <p className={skin.body}>
-                {staffCase.screening.detectedClass ? `Kelas: ${staffCase.screening.detectedClass}` : 'Tidak ada keluaran model'}
-                {staffCase.screening.confidence !== null && ` · kepercayaan ${(staffCase.screening.confidence * 100).toFixed(0)}% (${staffCase.screening.modelStatus})`}
-              </p>
-              <ul className={`list-disc pl-4 space-y-1 ${skin.muted}`}>
-                {staffCase.screening.reasons.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {staffCase.assignment && (
-            <div className={card}>
-              <span className={`font-semibold ${skin.strong}`}>Penugasan inspeksi (M.O → F.E)</span>
-              <p className={skin.body}>
-                {engineerName.get(staffCase.assignment.engineerId) ?? actorName(staffCase.assignment.engineerId)} · batas {fmt(staffCase.assignment.dueAt)}
-                {assignmentOverdue && <span className="ml-1 font-bold text-rose-600">(lewat batas waktu)</span>}
-              </p>
-              <p className={skin.muted}>Ditugaskan oleh {actorName(staffCase.assignment.assignedBy)}</p>
-              {staffCase.assignment.instructions && <p className={skin.muted}>Instruksi: {staffCase.assignment.instructions}</p>}
-            </div>
-          )}
-          {staffCase.inspection && (
-            <div className={`${card} space-y-1`}>
-              <div className="flex items-center gap-2">
-                <span className={`font-semibold ${skin.strong}`}>Hasil inspeksi lapangan (F.E)</span>
-                <DataTag skin={skin} tone="observed">
-                  OBSERVED
-                </DataTag>
-              </div>
-              <p className={skin.body}>
-                {staffCase.inspection.verdict === 'CONFIRMED' ? 'Terkonfirmasi' : 'Tidak terkonfirmasi'} · {staffCase.inspection.severity}
-                {staffCase.inspection.measuredDepthCm !== null && ` · ${staffCase.inspection.measuredDepthCm} cm`}
-                {staffCase.inspection.measuredAreaM2 !== null && ` · ${staffCase.inspection.measuredAreaM2} m²`}
-              </p>
-              <p className={skin.muted}>
-                Klasifikasi laporan {staffCase.inspection.cvReview.accepted ? 'diterima' : `dikoreksi menjadi ${staffCase.inspection.cvReview.correctedClass}`}. {staffCase.inspection.notes}
-              </p>
-            </div>
-          )}
-          {staffCase.inspection && (
-            <div className={card}>
-              <span className={`font-semibold ${skin.strong}`}>Foto bukti inspeksi (F.E)</span>
-              {staffCase.inspection.evidencePhotoUrl ? (
-                <img src={staffCase.inspection.evidencePhotoUrl} alt="Foto bukti inspeksi (F.E)" className="mt-2 w-full max-h-72 object-contain rounded-lg border border-line bg-canvas" />
-              ) : (
-                <p className={skin.muted}>Belum ada foto bukti dari F.E.</p>
-              )}
-            </div>
-          )}
-          {(staffCase.inspectionReviews ?? []).length > 0 && (
-            <div className={card}>
-              <span className={`font-semibold ${skin.strong}`}>Verifikasi inspeksi (M.O)</span>
-              <ul className="mt-1 space-y-1">
-                {(staffCase.inspectionReviews ?? []).map((r) => (
-                  <li key={r.id} className={skin.body}>
-                    {r.decision === 'VERIFIED' ? 'Diverifikasi' : 'Inspeksi ulang diminta'} oleh {actorName(r.decidedBy)} · {fmt(r.decidedAt)} — <span className={skin.muted}>{r.reason}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {staffCase.recommendation && (
-            <div className={`${card} space-y-1`}>
-              <span className={`font-semibold ${skin.strong}`}>Rekomendasi penanganan (F.E)</span>
-              <p className={skin.body}>
-                {staffCase.recommendation.treatment} · {staffCase.recommendation.urgency}
-              </p>
-              <p className={skin.muted}>{staffCase.recommendation.rationale}</p>
-              {staffCase.recommendation.assessment ? (
-                <p className={skin.muted}>
-                  Penilaian: risiko {staffCase.recommendation.assessment.risk}, skor kondisi prototipe {staffCase.recommendation.assessment.conditionScorePrototype}{' '}
-                  <DataTag skin={skin} tone="demo">
-                    {staffCase.recommendation.assessment.engine}
-                  </DataTag>{' '}
-                  <DataTag skin={skin}>{staffCase.recommendation.assessment.validationStatus}</DataTag>
-                </p>
-              ) : (
-                <p className={skin.muted}>Tanpa lampiran penilaian ruas.</p>
-              )}
-            </div>
-          )}
-          {staffCase.approvals.length > 0 && (
-            <div className={card}>
-              <span className={`font-semibold ${skin.strong}`}>Keputusan penanganan (M.O)</span>
-              <ul className="mt-1 space-y-1">
-                {staffCase.approvals.map((a) => (
-                  <li key={a.id} className={skin.body}>
-                    {a.decision === 'APPROVED' ? 'Disetujui' : 'Dikembalikan'} oleh {actorName(a.decidedBy)} · {fmt(a.decidedAt)} — <span className={skin.muted}>{a.reason}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {staffCase.workOrder && (
-            <div className={card}>
-              <span className={`font-semibold ${skin.strong}`}>Perintah kerja internal {staffCase.workOrder.id}</span>
-              <p className={skin.body}>
-                Status: {staffCase.workOrder.status === 'COMPLETED' ? `bukti dikirim ${fmt(staffCase.workOrder.completedAt!)}` : 'sedang dikerjakan'}
-                {staffCase.workOrder.contractorNote && ` · ${staffCase.workOrder.contractorNote}`}
-              </p>
-              {staffCase.workOrder.completionPhotoUrl && (
-                <>
-                  <img src={staffCase.workOrder.completionPhotoUrl} alt="Foto sesudah perbaikan (F.E)" className="mt-2 w-full max-h-72 object-contain rounded-lg border border-line bg-canvas" />
-                  <p className={skin.body}>“{staffCase.workOrder.completionNote}” · {staffCase.state === 'RESOLVED' || staffCase.state === 'CLOSED' ? 'terverifikasi M.O' : staffCase.workOrder.status === 'COMPLETED' ? 'menunggu verifikasi M.O' : 'diminta perbaikan ulang'}</p>
-                </>
-              )}
-              <p className={`text-xs ${skin.note}`}>Catatan sistem, bukan dokumen SPK resmi pemerintah.</p>
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <p className="text-xs text-slate-400 py-1">
+            Penyaringan otomatis model komputer visi belum dijalankan.
+          </p>
+        )}
+      </div>
 
-      {view.availableActions.length > 0 && (
-        <div className="space-y-2">
-          <p className={`text-xs font-bold uppercase tracking-wider ${skin.muted}`}>Tindakan Anda</p>
-          <div className="flex flex-wrap gap-2">
-            {view.availableActions.filter((a) => a !== 'COMPLETE_WORK_ORDER').map((action) => (
-              <button
-                key={action}
-                type="button"
-                aria-expanded={openAction === action}
-                onClick={() => {
-                  setMessage(null);
-                  setOpenAction(openAction === action ? null : action);
-                }}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${FOCUS} ${openAction === action ? skin.chipOn : skin.chip}`}
-              >
-                {ACTION_LABEL[action]}
-              </button>
+      {/* 2. Hasil Inspeksi Lapangan (F.E) */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
+        <div className="flex items-center justify-between pb-1 border-b border-white/5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE]">
+            Hasil Inspeksi Lapangan (F.E)
+          </p>
+          {staffCase?.inspection && <DataTag skin={skin} tone="observed">OBSERVED</DataTag>}
+        </div>
+
+        {staffCase?.inspection ? (
+          <div className="space-y-1.5">
+            <InfoRow
+              label="Hasil Konfirmasi"
+              value={
+                staffCase.inspection.verdict === 'CONFIRMED'
+                  ? 'Kerusakan Terkonfirmasi'
+                  : 'Tidak Terkonfirmasi'
+              }
+              valueClass={
+                staffCase.inspection.verdict === 'CONFIRMED'
+                  ? 'text-emerald-400 font-semibold'
+                  : 'text-rose-400 font-semibold'
+              }
+            />
+            <InfoRow
+              label="Tingkat Keparahan"
+              value={staffCase.inspection.severity}
+              valueClass="text-[#F5BC24] font-bold"
+            />
+            <InfoRow
+              label="Dimensi Terukur"
+              value={`${staffCase.inspection.measuredDepthCm !== null ? `${staffCase.inspection.measuredDepthCm} cm` : '-'} / ${staffCase.inspection.measuredAreaM2 !== null ? `${staffCase.inspection.measuredAreaM2} m²` : '-'}`}
+              mono
+            />
+            <InfoRow
+              label="Klasifikasi CV"
+              value={
+                staffCase.inspection.cvReview.accepted
+                  ? 'Diterima sesuai laporan'
+                  : `Dikoreksi: ${staffCase.inspection.cvReview.correctedClass}`
+              }
+            />
+            {staffCase.inspection.notes && (
+              <div className="pt-2 border-t border-white/5">
+                <span className="text-[11px] text-[#A6A8AE]">Catatan Hasil Inspeksi:</span>
+                <p className="mt-1 text-xs text-slate-300 italic bg-black/25 p-2 rounded border border-white/5">
+                  “{staffCase.inspection.notes}”
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 py-1">
+            Belum ada hasil inspeksi lapangan dari Field Engineer.
+          </p>
+        )}
+      </div>
+
+      {/* 3. Rekomendasi Penanganan Teknis (F.E) */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE] pb-1 border-b border-white/5">
+          Rekomendasi Penanganan (F.E)
+        </p>
+
+        {staffCase?.recommendation ? (
+          <div className="space-y-1.5">
+            <InfoRow label="Rencana Tindakan" value={staffCase.recommendation.treatment} />
+            <InfoRow
+              label="Tingkat Urgensi"
+              value={staffCase.recommendation.urgency}
+              valueClass="text-amber-400 font-semibold"
+            />
+            {staffCase.recommendation.rationale && (
+              <div className="pt-1.5 border-t border-white/5">
+                <span className="text-[11px] text-[#A6A8AE]">Alasan Teknis:</span>
+                <p className="mt-0.5 text-xs text-slate-300">{staffCase.recommendation.rationale}</p>
+              </div>
+            )}
+            {staffCase.recommendation.assessment && (
+              <div className="pt-2 border-t border-white/5 space-y-1.5">
+                <p className="text-[11px] text-[#A6A8AE] font-semibold uppercase tracking-wider">
+                  Penilaian Ruas PINN
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                    <span className="text-[10px] text-[#A6A8AE] block">Risiko</span>
+                    <span className="font-bold text-amber-400">
+                      {staffCase.recommendation.assessment.risk}
+                    </span>
+                  </div>
+                  <div className="bg-white/[0.03] p-2 rounded-lg border border-white/5">
+                    <span className="text-[10px] text-[#A6A8AE] block">Skor Kondisi</span>
+                    <span className="font-bold text-slate-200">
+                      {staffCase.recommendation.assessment.conditionScorePrototype}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 pt-1 text-[10.5px]">
+                  <DataTag skin={skin} tone="demo">{staffCase.recommendation.assessment.engine}</DataTag>
+                  <DataTag skin={skin}>{staffCase.recommendation.assessment.validationStatus}</DataTag>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 py-1">
+            Belum ada rekomendasi penanganan teknis dari F.E.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderColumnC = () => (
+    <div className="h-full flex flex-col space-y-4">
+      {/* 1. Status Penanganan & Penugasan (Bagian Atas) */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2 flex-shrink-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE] pb-1 border-b border-white/5">
+          Status Penanganan &amp; Penugasan
+        </p>
+
+        {staffCase?.assignment ? (
+          <div className="space-y-1.5">
+            <InfoRow
+              label="Petugas F.E"
+              value={
+                engineerName.get(staffCase.assignment.engineerId) ??
+                actorName(staffCase.assignment.engineerId)
+              }
+              valueClass="text-slate-100 font-semibold"
+            />
+            <InfoRow
+              label="Batas Waktu"
+              value={
+                <span>
+                  {fmt(staffCase.assignment.dueAt)}
+                  {assignmentOverdue && (
+                    <span className="ml-1.5 text-rose-400 font-bold">(Lewat Batas)</span>
+                  )}
+                </span>
+              }
+              mono
+            />
+            <InfoRow
+              label="Ditugaskan Oleh"
+              value={actorName(staffCase.assignment.assignedBy)}
+              border={!staffCase.assignment.instructions}
+            />
+            {staffCase.assignment.instructions && (
+              <div className="pt-1 text-xs">
+                <span className="text-[11px] text-[#A6A8AE]">Instruksi Kerja:</span>
+                <p className="text-slate-300 italic mt-0.5">{staffCase.assignment.instructions}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 py-1">
+            Belum ada penugasan petugas untuk laporan ini.
+          </p>
+        )}
+
+        {/* SPK / Perintah Kerja */}
+        {staffCase?.workOrder && (
+          <div className="pt-2 border-t border-white/5 space-y-1">
+            <InfoRow label="Perintah Kerja (SPK)" value={staffCase.workOrder.id} mono valueClass="text-[#F5BC24] font-semibold" />
+            <InfoRow
+              label="Status Pekerjaan"
+              value={
+                staffCase.workOrder.status === 'COMPLETED'
+                  ? 'Selesai / Bukti Terkirim'
+                  : 'Sedang Dikerjakan'
+              }
+              border={false}
+            />
+            {staffCase.workOrder.contractorNote && (
+              <p className="text-[11px] text-slate-400 pt-1">Catatan: {staffCase.workOrder.contractorNote}</p>
+            )}
+          </div>
+        )}
+
+        {/* Verifikasi Mutu & Persetujuan M.O */}
+        {((staffCase?.inspectionReviews ?? []).length > 0 || (staffCase?.approvals ?? []).length > 0) && (
+          <div className="pt-2 border-t border-white/5 space-y-1.5">
+            {(staffCase?.inspectionReviews ?? []).map((r) => (
+              <div key={r.id} className="text-xs py-1 border-b border-white/5 last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#A6A8AE]">Verifikasi Inspeksi</span>
+                  <span className={`font-semibold ${r.decision === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {r.decision === 'VERIFIED' ? 'Diverifikasi' : 'Inspeksi Ulang'}
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-slate-300 mt-0.5">
+                  Oleh {actorName(r.decidedBy)} · {fmt(r.decidedAt)} {r.reason && `— “${r.reason}”`}
+                </p>
+              </div>
+            ))}
+            {(staffCase?.approvals ?? []).map((a) => (
+              <div key={a.id} className="text-xs py-1 border-b border-white/5 last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#A6A8AE]">Persetujuan Penanganan</span>
+                  <span className={`font-semibold ${a.decision === 'APPROVED' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {a.decision === 'APPROVED' ? 'Disetujui' : 'Dikembalikan'}
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-slate-300 mt-0.5">
+                  Oleh {actorName(a.decidedBy)} · {fmt(a.decidedAt)} {a.reason && `— “${a.reason}”`}
+                </p>
+              </div>
             ))}
           </div>
-          {view.availableActions.includes('COMPLETE_WORK_ORDER') && (
-            <p className={`text-xs ${skin.muted}`}>Bukti perbaikan (foto sesudah wajib) dikirim lewat tombol “Sudah Selesai” di halaman Tugas Saya.</p>
-          )}
-          {openAction && staffCase && (
-            <ActionForm key={openAction} action={openAction} engineers={engineers} caseData={staffCase} busy={busy} skin={skin} onSubmit={run} onCancel={() => setOpenAction(null)} />
-          )}
+        )}
+      </div>
+
+      {/* 2. Bukti Pekerjaan / Inspeksi (Foto Lapangan & Hasil Perbaikan) */}
+      {(staffCase?.inspection?.evidencePhotoUrl || staffCase?.workOrder?.completionPhotoUrl) && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2 flex-shrink-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE] pb-1 border-b border-white/5">
+            Bukti Pekerjaan &amp; Inspeksi Lapangan
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {staffCase?.inspection?.evidencePhotoUrl && (
+              <div
+                className="relative group rounded-lg overflow-hidden border border-white/10 bg-black/40 aspect-[4/3] cursor-pointer"
+                onClick={() =>
+                  setLightboxPhoto({
+                    url: staffCase.inspection!.evidencePhotoUrl!,
+                    title: `Foto Bukti Inspeksi F.E — ${staffCase.id}`
+                  })
+                }
+              >
+                <img
+                  src={staffCase.inspection.evidencePhotoUrl}
+                  alt="Foto bukti F.E"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/75 text-[9.5px] text-slate-200">
+                  Bukti F.E
+                </span>
+              </div>
+            )}
+            {staffCase?.workOrder?.completionPhotoUrl && (
+              <div
+                className="relative group rounded-lg overflow-hidden border border-white/10 bg-black/40 aspect-[4/3] cursor-pointer"
+                onClick={() =>
+                  setLightboxPhoto({
+                    url: staffCase.workOrder!.completionPhotoUrl!,
+                    title: `Foto Hasil Perbaikan (After) — ${staffCase.id}`
+                  })
+                }
+              >
+                <img
+                  src={staffCase.workOrder.completionPhotoUrl}
+                  alt="Foto perbaikan"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-[9.5px] text-emerald-300">
+                  Hasil Perbaikan
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {message && (
-        <p role={message.tone === 'error' ? 'alert' : 'status'} className={`text-xs rounded-lg px-3 py-2 border ${message.tone === 'error' ? skin.err : skin.ok}`}>
-          {message.text}
-        </p>
+      {/* 3. Inline Action Form jika dibuka */}
+      {openAction && staffCase && (
+        <div className="flex-shrink-0">
+          <ActionForm
+            action={openAction}
+            engineers={engineers}
+            caseData={staffCase}
+            busy={busy}
+            skin={skin}
+            onSubmit={run}
+            onCancel={() => setOpenAction(null)}
+          />
+        </div>
       )}
 
-      <details className="group" open={!compact}>
-        <summary className={`cursor-pointer text-xs font-semibold select-none ${skin.label}`}>Riwayat status</summary>
-        <ol className={`mt-2 space-y-2 border-l pl-3 ${skin.line}`}>
+      {/* 4. Riwayat Tindakan (Timeline Vertikal Ringkas dengan Scroll Internal) */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 flex-1 min-h-[200px] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/5 flex-shrink-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A6A8AE] flex items-center gap-1.5">
+            <History className="w-3.5 h-3.5 text-[#F5BC24]" />
+            <span>Riwayat Tindakan ({staffCase ? staffCase.history.length : (publicCase?.timeline?.length ?? 0)})</span>
+          </p>
+        </div>
+
+        {/* Scroll internal riwayat */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
           {(staffCase
-            ? [...staffCase.history].reverse().map((h) => ({ key: h.id, at: h.at, state: h.to, text: `${ACTION_LABEL[h.action]} · ${h.actor.role === 'SYSTEM' ? 'sistem' : actorName(h.actor.id)}${h.reason ? ` — ${h.reason}` : ''}` }))
-            : [...(publicCase?.timeline ?? [])].reverse().map((t, i) => ({ key: `${t.at}-${i}`, at: t.at, state: t.state, text: t.note }))
+            ? [...staffCase.history].reverse().map((h) => ({
+                key: h.id,
+                at: h.at,
+                state: h.to,
+                action: h.action,
+                actor: h.actor.role === 'SYSTEM' ? 'Sistem' : actorName(h.actor.id),
+                reason: h.reason
+              }))
+            : [...(publicCase?.timeline ?? [])].reverse().map((t, i) => ({
+                key: `${t.at}-${i}`,
+                at: t.at,
+                state: t.state,
+                action: null,
+                actor: 'Sistem',
+                reason: t.note
+              }))
           ).map((entry) => (
-            <li key={entry.key} className="text-xs">
-              <span className={`font-mono ${skin.muted}`}>{fmt(entry.at)}</span>
-              <span className="ml-2">
+            <div key={entry.key} className="relative pl-3.5 border-l border-white/15 text-xs pb-1">
+              <span className="absolute -left-[4.5px] top-1 w-2 h-2 rounded-full bg-[#F5BC24] ring-2 ring-[#12141A]" />
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="font-mono text-[10.5px] text-[#A6A8AE]">{fmt(entry.at)}</span>
                 <StateBadge state={entry.state} tone={tone} />
-              </span>
-              <p className={`mt-1 ${skin.body}`}>{entry.text}</p>
-            </li>
+              </div>
+              <p className="mt-1 font-semibold text-slate-100">
+                {entry.action ? ACTION_LABEL[entry.action] : ''}{' '}
+                <span className="text-[#A6A8AE] font-normal">· {entry.actor}</span>
+              </p>
+              {entry.reason && (
+                <p className="text-slate-400 mt-0.5 text-[11px] italic">“{entry.reason}”</p>
+              )}
+            </div>
           ))}
-        </ol>
-      </details>
+        </div>
+      </div>
+    </div>
+  );
+
+  // MODAL WRAPPER OR EMBEDDED CONTAINER
+  const content = (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* 1. UNIFIED SINGLE HEADER */}
+      <header className="flex items-center justify-between gap-2 border-b border-line-subtle px-4 py-3 bg-panel flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-100 whitespace-nowrap shrink-0">
+            DETAIL LAPORAN
+          </h2>
+          <span className="text-[#A6A8AE] shrink-0">·</span>
+          <span className="font-mono text-xs font-semibold text-[#F5BC24] bg-[#F5BC24]/10 px-2 py-0.5 rounded border border-[#F5BC24]/20 select-all truncate max-w-[130px] sm:max-w-[180px]">
+            {view.case.id}
+          </span>
+          {staffCase && staffCase.dataStatus === 'SYNTHETIC' && (
+            <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide border border-amber-500/30 text-amber-300 bg-amber-500/10 shrink-0">
+              SYNTHETIC
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <StateBadge state={state} tone={tone} />
+          {isModal && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="rounded-lg p-1.5 text-[#A6A8AE] hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Tutup Dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* TAB SWITCHER: Always visible in compact/panel mode on all viewports */}
+      <div
+        className={`flex items-center border-b border-line-subtle bg-panel px-3 py-2 gap-1.5 flex-shrink-0 sticky top-0 z-10 ${
+          isModal && !compact ? 'lg:hidden' : ''
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setMobileTab('A')}
+          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors text-center truncate ${
+            mobileTab === 'A'
+              ? 'bg-[#F5BC24] text-black font-bold shadow-sm'
+              : 'text-[#A6A8AE] hover:text-slate-100 hover:bg-white/5'
+          }`}
+        >
+          A. Laporan &amp; Bukti
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('B')}
+          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors text-center truncate ${
+            mobileTab === 'B'
+              ? 'bg-[#F5BC24] text-black font-bold shadow-sm'
+              : 'text-[#A6A8AE] hover:text-slate-100 hover:bg-white/5'
+          }`}
+        >
+          B. Analisis
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('C')}
+          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors text-center truncate ${
+            mobileTab === 'C'
+              ? 'bg-[#F5BC24] text-black font-bold shadow-sm'
+              : 'text-[#A6A8AE] hover:text-slate-100 hover:bg-white/5'
+          }`}
+        >
+          C. Tindakan ({staffCase ? staffCase.history.length : (publicCase?.timeline?.length ?? 0)})
+        </button>
+      </div>
+
+      {/* 2. MASTER BODY CONTENT */}
+      <div className="flex-1 min-h-0 bg-workspace">
+        {isModal && !compact ? (
+          <>
+            {/* WIDE MODAL DESKTOP: 3 COLUMNS SIDE-BY-SIDE */}
+            <div className="hidden lg:grid h-full grid-cols-[1.05fr_0.95fr_1.1fr] divide-x divide-line-subtle min-h-0">
+              <div className="min-h-0 overflow-y-auto custom-scrollbar p-5">
+                {renderColumnA()}
+              </div>
+              <div className="min-h-0 overflow-y-auto custom-scrollbar p-5">
+                {renderColumnB()}
+              </div>
+              <div className="min-h-0 overflow-y-auto custom-scrollbar p-5">
+                {renderColumnC()}
+              </div>
+            </div>
+
+            {/* WIDE MODAL MOBILE: ACTIVE TAB CONTENT */}
+            <div className="lg:hidden h-full overflow-y-auto custom-scrollbar p-4">
+              {mobileTab === 'A' && renderColumnA()}
+              {mobileTab === 'B' && renderColumnB()}
+              {mobileTab === 'C' && renderColumnC()}
+            </div>
+          </>
+        ) : (
+          /* PANEL / COMPACT: UNIFIED SINGLE-COLUMN TABBED VIEW ON ALL VIEWPORTS */
+          <div className="p-3.5 sm:p-4 space-y-3">
+            {mobileTab === 'A' && renderColumnA()}
+            {mobileTab === 'B' && renderColumnB()}
+            {mobileTab === 'C' && renderColumnC()}
+          </div>
+        )}
+      </div>
+
+      {/* 3. UNIFIED SINGLE FOOTER */}
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line-subtle px-5 py-3.5 bg-panel flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {isModal && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              Tutup
+            </button>
+          )}
+          {message && (
+            <span
+              role={message.tone === 'error' ? 'alert' : 'status'}
+              className={`text-xs px-2.5 py-1 rounded-md border ${
+                message.tone === 'error'
+                  ? 'text-rose-300 bg-rose-500/10 border-rose-500/30'
+                  : 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+              }`}
+            >
+              {message.text}
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons corresponding to workflow status and role */}
+        <div className="flex flex-wrap items-center gap-2">
+          {primaryActions.map((action) => (
+            <button
+              key={action}
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setMessage(null);
+                setMobileTab('C');
+                setOpenAction(openAction === action ? null : action);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                openAction === action
+                  ? 'bg-amber-400 text-black border border-amber-300 ring-2 ring-amber-400/30'
+                  : 'bg-[#F5BC24] text-black hover:bg-[#F5BC24]/90 active:scale-95'
+              }`}
+            >
+              {ACTION_LABEL[action]}
+            </button>
+          ))}
+          {view.availableActions.includes('COMPLETE_WORK_ORDER') && (
+            <span className="text-[11px] text-[#A6A8AE] italic">
+              Kirim bukti selesai lewat tombol “Sudah Selesai” di kartu tugas.
+            </span>
+          )}
+        </div>
+      </footer>
+
+      {/* LIGHTBOX PHOTO VIEWER */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-[2200] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-fadeIn"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between w-full mb-3 text-white">
+              <span className="text-sm font-semibold">{lightboxPhoto.title}</span>
+              <button
+                type="button"
+                onClick={() => setLightboxPhoto(null)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                aria-label="Tutup Pratinjau Foto"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <img
+              src={lightboxPhoto.url}
+              alt={lightboxPhoto.title}
+              className="max-w-full max-h-[80vh] object-contain rounded-xl border border-white/20 shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Return either modal wrapper or embedded section
+  if (isModal) {
+    return (
+      <div
+        className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 p-2 sm:p-4 md:p-6 backdrop-blur-sm animate-fadeIn"
+        onClick={onClose}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Detail Laporan ${view.case.id}`}
+          className="w-[95vw] max-w-[1400px] h-[88vh] max-h-[900px] min-h-[580px] rounded-panel border border-line-subtle bg-panel text-ink shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Status alur kerja laporan"
+      className={`rounded-2xl border ${skin.section} overflow-hidden shadow-xl`}
+    >
+      {content}
     </section>
   );
 };

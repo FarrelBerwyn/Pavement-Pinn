@@ -27,7 +27,7 @@ export const EngineeringPage: React.FC<EngineeringPageProps> = ({ searchQuery, s
     .sort((a, b) => Date.parse(a.assignment!.dueAt) - Date.parse(b.assignment!.dueAt));
 
   return (
-    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-canvas">
+    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace">
       <PavementPinnDashboard
         currentAccount={currentAccount}
         roadSegments={roadSegments}

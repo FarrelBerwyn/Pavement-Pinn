@@ -18,7 +18,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ policyNavTab, setPolicyN
   const { currentAccount, roadSegments, selectedSegment, onSelectSegment, communityReports, currentResult, onLaunchSimulation, setActiveNav } = usePageContext();
 
   return (
-    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-canvas">
+    <div className="w-full h-full overflow-y-auto custom-scrollbar bg-workspace text-ink">
       <WorkflowQueueSection />
       <DataNotice label="ILUSTRATIF">
         Angka anggaran, kerugian ekonomi, penghematan, dan proyeksi PCI pada tampilan eksekutif di bawah adalah nilai contoh dari prototipe, bukan keluaran model ekonomi atau PINN yang tervalidasi. Prioritas berbasis bukti ada pada tabel di atas.

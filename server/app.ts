@@ -2,6 +2,7 @@ import express, { Express } from "express";
 import { createApiRouter } from "./routes";
 import { WORKFLOW_API_PATHS } from "../src/types";
 import { createWorkflowRuntime, type WorkflowRuntime } from "./services/workflowRuntime";
+import { clearSessionCookie, sessionFrom } from "./auth/actor";
 
 export interface AppOptions {
   /** Workflow store, signer and settings. Defaults to an in-memory store (tests, quick starts). */
@@ -27,6 +28,20 @@ export function createApp(options: AppOptions = {}): Express {
   // Report bodies may carry one photo (base64, max 5 MB decoded); every other route keeps the 100 kB default.
   app.use([WORKFLOW_API_PATHS.reports, WORKFLOW_API_PATHS.content, "/api/reports"], express.json({ limit: "7mb" }));
   app.use(express.json());
+  // A request that carries a session the server no longer honours (past its 2-hour deadline,
+  // or logged out) is refused, never quietly served as a public visitor: the browser must sign
+  // in again. Login, logout and session-start calls are the way out, so they pass.
+  const sessionExits = new Set<string>([WORKFLOW_API_PATHS.login, WORKFLOW_API_PATHS.demoSession, WORKFLOW_API_PATHS.anonymousSession, WORKFLOW_API_PATHS.logout, WORKFLOW_API_PATHS.me]);
+  app.use("/api", function rejectEndedSessions(req, res, next) {
+    if (sessionExits.has(req.originalUrl.split("?")[0])) return next();
+    const session = sessionFrom(req, workflow);
+    if (session.ok === false && (session.reason === "EXPIRED" || session.reason === "REVOKED")) {
+      clearSessionCookie(req, res);
+      res.status(401).json({ success: false, error: { code: "SESSION_EXPIRED", message: "Sesi Anda telah berakhir. Silakan login kembali." } });
+      return;
+    }
+    next();
+  });
   app.use(createApiRouter(workflow));
 
   return app;

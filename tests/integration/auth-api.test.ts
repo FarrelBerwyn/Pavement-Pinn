@@ -10,6 +10,7 @@ import { createApp } from '../../server/app';
 import { createWorkflowRuntime } from '../../server/services/workflowRuntime';
 import { DEMO_CREDENTIALS } from '../../src/data/reference/demoCredentials';
 import { USER_ACCOUNTS } from '../../src/data/reference/demoAccounts';
+import { bodyWithSession } from '../helpers/sessionCookie';
 
 let server: Server;
 let base = '';
@@ -32,12 +33,12 @@ after(async () => {
 
 async function post(p: string, body: unknown, at = base) {
   const r = await fetch(at + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  return { status: r.status, body: (await r.json()) as any };
+  return { status: r.status, body: await bodyWithSession(r) };
 }
 
 async function me(token: string) {
   const r = await fetch(base + '/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-  return { status: r.status, body: (await r.json()) as any };
+  return { status: r.status, body: await bodyWithSession(r) };
 }
 
 test('each demo credential signs in as its own account and role', async () => {

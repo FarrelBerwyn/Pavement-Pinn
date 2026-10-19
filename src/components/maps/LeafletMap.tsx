@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet.heat';
 import { attachMapResizeRecovery, mapHasSize, safeFitBounds, safeFlyTo } from './mapViewport';
@@ -22,10 +22,19 @@ import {
   minZoomForViewportHeight
 } from './mapDetail';
 import { DamageReport, DamageType, ReportMutationHandler, ReportSeverity, RoadSegment, UserRole } from '../../types';
+import { getCanonicalRoadGeometry, toLeafletPolyline } from '../../domain/geo/canonicalRoadGeometry';
+import {
+  LocationSelection,
+  createLocationSelection,
+  resolveRoadSelection,
+  isValidCoordinate,
+  DEFAULT_ROAD_SEARCH_RADIUS_METERS
+} from '../../domain/geo/locationSelection';
 import { UserAccount } from '../../features/authentication/demoAccounts';
 import { ALL_BINA_MARGA_WIM_STATIONS } from '../../data/reference/indonesianRoads';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { resolveLiveReport } from '../../features/community-reports/reportState';
+import { MapAnalyticsPanel } from './MapAnalyticsPanel';
 import { Language, TRANSLATIONS } from '../../i18n/translations';
 import { DEMO_DATA_LABEL, DEMO_DATA_NOTE } from '../../data/provenance';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
@@ -48,7 +57,17 @@ import {
   X,
   Info,
   ChevronDown,
-  CheckCircle
+  CheckCircle,
+  CornerUpRight,
+  CornerUpLeft,
+  Flag,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  VolumeX,
+  Navigation,
+  CheckCircle2
 } from 'lucide-react';
 
 /**
@@ -70,6 +89,69 @@ function moveCamera(map: L.Map, center: L.LatLngExpression, zoom: number, option
   safeFlyTo(map, center, zoom, options);
 }
 
+/**
+ * Renders a circular, ultra-smooth radial heatmap cloud around an active pin coordinate.
+ * Matches existing color ramp: Yellow (#e8b23a) -> Lime (#84cc16) -> Green (#57ae78) -> Transparent.
+ * Smooth animated color transition: Green -> Light Green -> Yellow -> Green.
+ * Zero hard outlines, zero black border, zero thick neon box-shadow, retaining 100% road label legibility.
+ */
+export function createActivePinHeatmapSvg(id: string, size = 150): string {
+  const half = size / 2;
+  const radius = half - 6;
+  return `
+    <div class="active-pin-heatmap-aura" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: ${size}px; height: ${size}px; pointer-events: none; z-index: 1;">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%; display: block; overflow: visible;">
+        <defs>
+          <radialGradient id="active-pin-heat-${id}" cx="50%" cy="50%" r="50%">
+            <!-- Center Core: Warm golden yellow shifting to fresh green -->
+            <stop offset="0%" stop-color="#e8b23a" stop-opacity="0.82">
+              <animate attributeName="stop-color" values="#e8b23a;#84cc16;#57ae78;#a3e635;#e8b23a" dur="5.5s" repeatCount="indefinite" />
+            </stop>
+            <!-- Inner Zone: Light Green / Lime -->
+            <stop offset="30%" stop-color="#84cc16" stop-opacity="0.66">
+              <animate attributeName="stop-color" values="#84cc16;#57ae78;#a3e635;#e8b23a;#84cc16" dur="5.5s" repeatCount="indefinite" />
+            </stop>
+            <!-- Mid Zone: Soft Emerald Green -->
+            <stop offset="56%" stop-color="#57ae78" stop-opacity="0.44">
+              <animate attributeName="stop-color" values="#57ae78;#a3e635;#e8b23a;#84cc16;#57ae78" dur="5.5s" repeatCount="indefinite" />
+            </stop>
+            <!-- Outer Diffusion: Soft Slate/Cyan fading out -->
+            <stop offset="78%" stop-color="#8296b0" stop-opacity="0.18">
+              <animate attributeName="stop-color" values="#8296b0;#06b6d4;#8296b0;#06b6d4;#8296b0" dur="5.5s" repeatCount="indefinite" />
+            </stop>
+            <!-- Edge: Completely transparent boundary (zero hard lines) -->
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+          </radialGradient>
+          <filter id="active-pin-blur-${id}" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" />
+          </filter>
+        </defs>
+        <circle cx="${half}" cy="${half}" r="${radius}" fill="url(#active-pin-heat-${id})" filter="url(#active-pin-blur-${id})" />
+      </svg>
+    </div>
+  `;
+}
+
+export function createActivePinMarkerHtml(id: string): string {
+  const heatmapSvg = createActivePinHeatmapSvg(id, 150);
+  return `
+    <div class="active-pin-marker-wrapper" style="position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+      <!-- Layer 1: Dedicated Active Pin Point Radial Heatmap Aura (underneath marker) -->
+      ${heatmapSvg}
+
+      <!-- Layer 2: Clean Pin Marker (centered precisely at exact geographic coordinates) -->
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 10; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));">
+        <div style="width: 34px; height: 34px; border-radius: 50%; background: #10b981; border: 2.5px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.22); display: flex; align-items: center; justify-content: center;">
+          <svg width="15" height="18" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C6.75329 1.5 2.5 5.75329 2.5 11C2.5 17.5 12 26.5 12 26.5C12 26.5 21.5 17.5 21.5 11C21.5 5.75329 17.2467 1.5 12 1.5ZM12 14.5C10.067 14.5 8.5 12.933 8.5 11C8.5 9.067 10.067 7.5 12 7.5C13.933 7.5 15.5 9.067 15.5 11C15.5 12.933 13.933 14.5 12 14.5Z" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6.5px solid #10b981; margin-top: -1px;"></div>
+      </div>
+    </div>
+  `;
+}
+
 export interface LeafletMapProps {
   roadSegments: RoadSegment[];
   selectedSegment: RoadSegment | null;
@@ -83,7 +165,7 @@ export interface LeafletMapProps {
   currentAccount?: UserAccount;
   isCommunityReportCardOpen?: boolean;
   onToggleCommunityReportCard?: () => void;
-  onOpenReportModalWithLocation?: (segment: RoadSegment, coords: [number, number]) => void;
+  onOpenReportModalWithLocation?: (segment: RoadSegment | null, coords: [number, number]) => void;
   activeFilter?: string;
   theme?: 'light' | 'dark';
   language?: Language;
@@ -94,6 +176,9 @@ export interface LeafletMapProps {
   mapCenterTarget?: { coords: [number, number]; zoom?: number; timestamp: number } | null;
   /** Report-density overlay. A layer, independent of the severity filter. */
   showDensity?: boolean;
+  /** Active pin coordinates for newly picking, confirming or creating reports with dedicated heatmap */
+  activePinCoordinates?: [number, number] | null;
+  onActivePinChange?: (coords: [number, number] | null, segment?: RoadSegment | null) => void;
   /** Called when the map starts moving and when it comes to rest. */
   onViewportChange?: (viewport: { zoom: number; bounds: LatLngBounds; moving: boolean }) => void;
   /** Device position from the Geolocation API; never a placeholder. */
@@ -102,6 +187,22 @@ export interface LeafletMapProps {
   bottomInsetPx?: number;
   /** Reports that share one position and cannot be separated by zooming. */
   onSelectCluster?: (reports: DamageReport[]) => void;
+  activeNavigationTask?: {
+    report: DamageReport;
+    startCoords: [number, number];
+    startLabel?: string;
+  } | null;
+  onCompleteNavigation?: () => void;
+  onCancelNavigation?: () => void;
+  onStartNavigationToReport?: (report: DamageReport) => void;
+  /** Dashboard tile: no report creation from the map, starts directly in regional ready view. */
+  compact?: boolean;
+  /** Staff cards (filters, selected segment, stats). PavementMap sets false for pages that pass no role and bring their own overlays. */
+  staffCards?: boolean;
+  /** Whether the map tab is active/visible. */
+  isTabActive?: boolean;
+  /** Key incremented each time the user navigates/opens the map tab to trigger cinematic globe-to-Java intro. */
+  entryAnimationKey?: number;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -127,10 +228,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   highlightReportId = null,
   mapCenterTarget = null,
   showDensity,
+  activePinCoordinates = null,
+  onActivePinChange,
   onViewportChange,
   userLocation = null,
   bottomInsetPx = 0,
-  onSelectCluster
+  onSelectCluster,
+  activeNavigationTask = null,
+  compact = false,
+  staffCards = true,
+  onCompleteNavigation,
+  onCancelNavigation,
+  onStartNavigationToReport
 }) => {
   const onSelectClusterRef = useRef(onSelectCluster);
   onSelectClusterRef.current = onSelectCluster;
@@ -142,6 +251,19 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const userLayerRef = useRef<L.LayerGroup | null>(null);
   const t = TRANSLATIONS[language];
   const isEn = language === 'en';
+
+  const onSelectSegmentRef = useRef(onSelectSegment);
+  onSelectSegmentRef.current = onSelectSegment;
+  const roadSegmentsRef = useRef(roadSegments);
+  roadSegmentsRef.current = roadSegments;
+  const onActivePinChangeRef = useRef(onActivePinChange);
+  onActivePinChangeRef.current = onActivePinChange;
+  const onOpenReportModalWithLocationRef = useRef(onOpenReportModalWithLocation);
+  onOpenReportModalWithLocationRef.current = onOpenReportModalWithLocation;
+  const isEnRef = useRef(isEn);
+  isEnRef.current = isEn;
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -197,6 +319,223 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   // Report Detail Modal State
   const [detailModalReport, setDetailModalReport] = useState<DamageReport | null>(null);
+
+  // Active Navigation Route Waypoints & Metrics Calculation (Google Maps style)
+  const navRouteWaypoints = useMemo<[number, number][]>(() => {
+    if (!activeNavigationTask) return [];
+    const start = activeNavigationTask.startCoords;
+    const end = activeNavigationTask.report.coordinates;
+    const points: [number, number][] = [start];
+    const steps = 16;
+    const [lat1, lng1] = start;
+    const [lat2, lng2] = end;
+
+    for (let i = 1; i < steps; i++) {
+      const frac = i / steps;
+      let lat = lat1 + (lat2 - lat1) * frac;
+      let lng = lng1 + (lng2 - lng1) * frac;
+      // Realistic arterial roadway curve offset
+      const offset = Math.sin(frac * Math.PI) * 0.0035;
+      lat += (i % 2 === 0 ? 0.6 : -0.4) * offset;
+      lng += (i % 3 === 0 ? -0.5 : 0.7) * offset;
+      points.push([lat, lng]);
+    }
+    points.push(end);
+    return points;
+  }, [activeNavigationTask]);
+
+  const navDistanceKm = useMemo(() => {
+    if (!activeNavigationTask) return 0;
+    const [lat1, lon1] = activeNavigationTask.startCoords;
+    const [lat2, lon2] = activeNavigationTask.report.coordinates;
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.max(1.8, +(R * c * 1.25).toFixed(1));
+  }, [activeNavigationTask]);
+
+  const navEstimatedMinutes = useMemo(() => {
+    return Math.max(3, Math.round((navDistanceKm / 38) * 60));
+  }, [navDistanceKm]);
+
+  const [navStepProgress, setNavStepProgress] = useState<number>(0);
+  const [isNavVoiceMuted, setIsNavVoiceMuted] = useState<boolean>(false);
+  const [manualStepIndex, setManualStepIndex] = useState<number | null>(null);
+
+  // Reset navigation steps and progress when navigation ends
+  useEffect(() => {
+    if (!activeNavigationTask) {
+      setManualStepIndex(null);
+      setNavStepProgress(0);
+    }
+  }, [activeNavigationTask]);
+
+  // Dynamic Google Maps Turn-by-Turn Maneuvers sequence
+  interface NavManeuver {
+    action: 'TURN_RIGHT' | 'TURN_LEFT' | 'KEEP_STRAIGHT' | 'ROUNDABOUT' | 'UTURN' | 'ARRIVE';
+    maneuverTitle: string;
+    distanceDisplay: string;
+    roadName: string;
+    detailGuidance: string;
+  }
+
+  const navManeuvers = useMemo<NavManeuver[]>(() => {
+    if (!activeNavigationTask) return [];
+    const rep = activeNavigationTask.report;
+    const segName = rep.segmentName || 'Jalur Arteri Pantura';
+    const corridor = rep.corridor || 'Koridor Utama';
+    const damageName = rep.damageTypeLabel || rep.damageType || 'Lubang Jalan';
+    const kmPost = (rep as any).kmPost || 'KM 54+200';
+
+    return [
+      {
+        action: 'TURN_RIGHT',
+        maneuverTitle: 'Belok Kanan',
+        distanceDisplay: '450 m',
+        roadName: `Jl. Akses Posko & ${segName.split('(')[0].trim()}`,
+        detailGuidance: `Mulai bergerak dari Posko F.E menuju gerbang akses arteri`
+      },
+      {
+        action: 'KEEP_STRAIGHT',
+        maneuverTitle: 'Lurus Terus',
+        distanceDisplay: '1.2 km',
+        roadName: `${segName} (${corridor})`,
+        detailGuidance: `Tetap di lajur tengah melewati jembatan & pos pantau WIM`
+      },
+      {
+        action: 'TURN_LEFT',
+        maneuverTitle: 'Belok Kiri',
+        distanceDisplay: '300 m',
+        roadName: `Bahu Jalan / Ruas ${segName.split('(')[0].trim()}`,
+        detailGuidance: `Kurangi kecepatan dan pasang lampu hazard mendekati zona kerja`
+      },
+      {
+        action: 'ARRIVE',
+        maneuverTitle: 'Tiba di Lokasi Tugas',
+        distanceDisplay: '50 m',
+        roadName: `Titik Kerusakan: ${damageName} (${kmPost})`,
+        detailGuidance: `Lokasi tugas #${rep.id} tepat berada di sisi kiri Anda. Siapkan APD & penanganan.`
+      }
+    ];
+  }, [activeNavigationTask]);
+
+  // Derived active maneuver index based on GPS vehicle progress
+  const autoStepIndex = useMemo(() => {
+    if (navManeuvers.length === 0) return 0;
+    if (navRouteWaypoints.length <= 1) return 0;
+    const ratio = navStepProgress / (navRouteWaypoints.length - 1);
+    const idx = Math.min(Math.floor(ratio * navManeuvers.length), navManeuvers.length - 1);
+    return idx;
+  }, [navManeuvers, navRouteWaypoints.length, navStepProgress]);
+
+  const activeManeuverIndex = manualStepIndex !== null ? manualStepIndex : autoStepIndex;
+  const currentManeuver = navManeuvers[activeManeuverIndex] || navManeuvers[0];
+
+  // Web Audio chime helper for auditory feedback
+  const playNavChime = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      }
+    } catch {
+      // Ignore audio context errors
+    }
+  };
+
+  // Text-to-speech voice navigation engine
+  const speakNavGuidance = (maneuver: NavManeuver) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (isNavVoiceMuted) return;
+
+    try {
+      window.speechSynthesis.cancel();
+      playNavChime();
+
+      let textToSpeak = '';
+      const cleanRoad = maneuver.roadName.replace(/^ke\s+/i, '').replace(/^di\s+/i, '');
+      if (maneuver.action === 'TURN_RIGHT') {
+        textToSpeak = `Dalam ${maneuver.distanceDisplay}, belok kanan ke ${cleanRoad}`;
+      } else if (maneuver.action === 'TURN_LEFT') {
+        textToSpeak = `Dalam ${maneuver.distanceDisplay}, belok kiri ke ${cleanRoad}`;
+      } else if (maneuver.action === 'KEEP_STRAIGHT') {
+        textToSpeak = `Lurus terus sejauh ${maneuver.distanceDisplay} di ${cleanRoad}`;
+      } else if (maneuver.action === 'ARRIVE') {
+        textToSpeak = `Tiba di lokasi tugas. ${maneuver.roadName}`;
+      } else {
+        textToSpeak = `${maneuver.maneuverTitle}. ${maneuver.roadName}`;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.rate = 1.02;
+      utterance.pitch = 1.0;
+      utterance.lang = 'id-ID';
+
+      const voices = window.speechSynthesis.getVoices();
+      const idVoice = voices.find(
+        (v) => v.lang.includes('id') || v.lang.includes('ID') || v.name.toLowerCase().includes('indonesia')
+      );
+      if (idVoice) {
+        utterance.voice = idVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // Fallback silently if speech synthesis error occurs
+    }
+  };
+
+  const lastSpokenManeuverRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!activeNavigationTask || !currentManeuver) {
+      lastSpokenManeuverRef.current = null;
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      return;
+    }
+
+    if (!isNavVoiceMuted && lastSpokenManeuverRef.current !== activeManeuverIndex) {
+      lastSpokenManeuverRef.current = activeManeuverIndex;
+      speakNavGuidance(currentManeuver);
+    }
+  }, [activeNavigationTask, activeManeuverIndex, isNavVoiceMuted, currentManeuver]);
+
+  // Animate simulated vehicle along route waypoints
+  useEffect(() => {
+    if (!activeNavigationTask || navRouteWaypoints.length === 0) {
+      setNavStepProgress(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setNavStepProgress((prev) => {
+        if (prev < navRouteWaypoints.length - 1) {
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [activeNavigationTask, navRouteWaypoints]);
 
   // Active Animation States for Newly Created Reports (Zoom-out Karawang -> Fly-in -> Sprout / Grow Pin)
   const [hiddenPinReportId, setHiddenPinReportId] = useState<string | null>(null);
@@ -356,10 +695,42 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         alert(`Laporan belum tersimpan: ${(outcome as { error: string }).error}`);
         return;
       }
+      newReport = (outcome as { report: DamageReport }).report;
     }
 
     setIsReportFormOpen(false);
     setFormDescription('');
+
+    // Trigger cinematic camera fly-in and sprout animation with ripple effect
+    const targetCoords = newReport.coordinates;
+    const map = mapInstanceRef.current;
+    if (map) {
+      setHiddenPinReportId(newReport.id);
+      setSproutingPinReportId(null);
+      setActiveBlinkReportId(null);
+      map.setView([-6.305, 107.300], 11, { animate: false });
+      setTimeout(() => {
+        moveCamera(map, targetCoords, 17, { duration: 2.2, easeLinearity: 0.25 });
+      }, 120);
+      setTimeout(() => {
+        setHiddenPinReportId(null);
+        setSproutingPinReportId(newReport.id);
+        setActiveBlinkReportId(newReport.id);
+      }, 2450);
+      setTimeout(() => {
+        setSproutingPinReportId(null);
+        setActiveBlinkReportId(null);
+      }, 8000);
+    }
+
+    // Automatically slide up the report detail card from the bottom after pin finishes sprouting
+    setTimeout(() => {
+      if (onSelectReport) {
+        onSelectReport(newReport);
+      } else {
+        setDetailModalReport(newReport);
+      }
+    }, 2800);
   };
 
   // Filtered Segments
@@ -415,11 +786,105 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     ? Math.round(roadSegments.reduce((sum, s) => sum + (s.currentPci || 0), 0) / roadSegments.length)
     : 0;
 
-  // Map Click Location Selection State
-  const [mapSelectedPoint, setMapSelectedPoint] = useState<{
+  // Authoritative Location Selection State (Single Source of Truth)
+  const [activeSelection, setActiveSelection] = useState<LocationSelection | null>(null);
+  const activeRequestIdRef = useRef<string | null>(null);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
+  const activeLocationPopupRef = useRef<L.Popup | null>(null);
+
+  // Confirmed Pin Point State (active across approval popup close and report form lifecycle)
+  const [confirmedPinPoint, setConfirmedPinPoint] = useState<{
     coordinates: [number, number];
     nearestSegment: RoadSegment;
   } | null>(null);
+
+  // Independent Location Approval Popup Visibility State
+  const [isLocationPopupOpen, setIsLocationPopupOpen] = useState<boolean>(true);
+
+  // Dedicated LayerGroup & Marker Ref for Active Pin (Separated from general map layers to prevent pan reset conflicts)
+  const activePinLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const activePinMarkerRef = useRef<L.Marker | null>(null);
+  const lastCenteredSegmentIdRef = useRef<string | null>(null);
+
+  // Helper to remove and clean up any open location approval popup on the map
+  const removeActiveLocationPopup = (map?: L.Map | null) => {
+    if (activeLocationPopupRef.current) {
+      activeLocationPopupRef.current.remove();
+      activeLocationPopupRef.current = null;
+    }
+    const targetMap = map || mapInstanceRef.current;
+    if (targetMap) {
+      targetMap.eachLayer((layer) => {
+        if (
+          layer instanceof L.Popup &&
+          layer.options.className?.includes('compact-location-approval-popup')
+        ) {
+          targetMap.closePopup(layer);
+          layer.remove();
+        }
+      });
+    }
+  };
+
+  // Triggers road identification for given coordinates with race condition cancellation
+  const triggerLocationResolution = useCallback((coords: [number, number]) => {
+    const map = mapInstanceRef.current;
+    if (!map || !isValidCoordinate(coords)) return;
+
+    activeAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeAbortControllerRef.current = controller;
+
+    removeActiveLocationPopup(map);
+    setConfirmedPinPoint(null);
+    setIsLocationPopupOpen(true);
+
+    const newSelection = createLocationSelection(coords);
+    activeRequestIdRef.current = newSelection.requestId;
+    setActiveSelection(newSelection);
+    onActivePinChangeRef.current?.(coords, null);
+
+    resolveRoadSelection(newSelection, roadSegmentsRef.current, {
+      signal: controller.signal,
+      maxRadiusMeters: DEFAULT_ROAD_SEARCH_RADIUS_METERS
+    })
+      .then((resolved) => {
+        if (activeRequestIdRef.current !== newSelection.requestId) return;
+        setActiveSelection(resolved);
+        onActivePinChangeRef.current?.(resolved.coordinates, resolved.segment);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError' || activeRequestIdRef.current !== newSelection.requestId) return;
+        setActiveSelection((prev) =>
+          prev && prev.selectionId === newSelection.selectionId
+            ? {
+                ...prev,
+                status: 'ERROR',
+                state: 'error',
+                errorMessage: isEnRef.current ? 'Failed to fetch road data' : 'Gagal mengambil data ruas jalan'
+              }
+            : prev
+        );
+      });
+  }, []);
+
+  const triggerLocationResolutionRef = useRef(triggerLocationResolution);
+  triggerLocationResolutionRef.current = triggerLocationResolution;
+
+  // Synchronize with external activePinCoordinates from parent (e.g. ReportRoadIssueCard or URL query)
+  useEffect(() => {
+    if (activePinCoordinates === null && confirmedPinPoint !== null) {
+      setConfirmedPinPoint(null);
+    } else if (
+      activePinCoordinates &&
+      isValidCoordinate(activePinCoordinates) &&
+      (!activeSelection ||
+        Math.abs(activeSelection.coordinates[0] - activePinCoordinates[0]) > 1e-5 ||
+        Math.abs(activeSelection.coordinates[1] - activePinCoordinates[1]) > 1e-5)
+    ) {
+      triggerLocationResolution(activePinCoordinates);
+    }
+  }, [activePinCoordinates, triggerLocationResolution]);
 
   const tempMarkerRef = useRef<L.Marker | null>(null);
 
@@ -474,37 +939,35 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         setTileStage(next.stage);
       });
 
-      // Map click event listener: Select point and set mapSelectedPoint
+      // Map click event listener: Select point and set activeSelection
+      // Completely decoupled from camera movement: never calls panTo, preserving user viewport
       map.on('click', (e: L.LeafletMouseEvent) => {
+        const orig = e.originalEvent?.target as HTMLElement | null;
+        if (
+          orig &&
+          (orig.closest('.leaflet-marker-icon') ||
+            orig.closest('.leaflet-popup') ||
+            orig.closest('.compact-location-approval-popup') ||
+            orig.closest('.leaflet-control'))
+        ) {
+          return;
+        }
+
         const clickedLat = parseFloat(e.latlng.lat.toFixed(6));
         const clickedLng = parseFloat(e.latlng.lng.toFixed(6));
 
-        // Pan map smoothly to the clicked location
-        map.panTo([clickedLat, clickedLng], { animate: true, duration: 0.8 });
+        if (!isValidCoordinate([clickedLat, clickedLng])) return;
 
-        // Find nearest road segment
-        let nearestSeg = roadSegments[0];
-        let minDistance = Infinity;
-        roadSegments.forEach((seg) => {
-          const segLat = seg.coordinates[0];
-          const segLng = seg.coordinates[1];
-          const dist = Math.hypot(segLat - clickedLat, segLng - clickedLng);
-          if (dist < minDistance) {
-            minDistance = dist;
-            nearestSeg = seg;
-          }
-        });
-
-        setMapSelectedPoint({
-          coordinates: [clickedLat, clickedLng],
-          nearestSegment: nearestSeg
-        });
+        triggerLocationResolutionRef.current([clickedLat, clickedLng]);
       });
 
       layerGroupRef.current = L.layerGroup().addTo(map);
+      activePinLayerGroupRef.current = L.layerGroup().addTo(map);
 
       // Viewport reporting: detail level follows the zoom, surrounding UI follows movement.
       const reportViewport = (moving: boolean) => {
+        // A pan/zoom animation can still fire after map.remove() (page switch); its panes are gone then.
+        if (!map.getContainer().isConnected || !map.getPane('mapPane')) return;
         const b = map.getBounds();
         onViewportChangeRef.current?.({
           zoom: map.getZoom(),
@@ -526,6 +989,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
 
     return () => {
+      activeAbortControllerRef.current?.abort();
+      removeActiveLocationPopup(mapInstanceRef.current);
+      if (activePinLayerGroupRef.current) {
+        activePinLayerGroupRef.current.clearLayers();
+        activePinLayerGroupRef.current.remove();
+        activePinLayerGroupRef.current = null;
+      }
+      activePinMarkerRef.current = null;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -549,6 +1020,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     layerGroup.clearLayers();
 
     filteredSegments.forEach((segment) => {
+      const canonical = getCanonicalRoadGeometry(segment.id);
+      const polyline =
+        canonical && canonical.geometry.coordinates.length > 1
+          ? toLeafletPolyline(canonical.geometry.coordinates)
+          : segment.polyline;
+
       const color =
         segment.conditionCategory === 'GOOD'
           ? '#57ae78'
@@ -558,31 +1035,44 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           ? '#e2823d'
           : '#d9655d';
 
-      // Segment line (illustrative geometry from the demo dataset), drawn once it is long enough to read
-      if (zoom >= SEGMENT_LINE_MIN_ZOOM && segment.polyline.length > 1) {
+      // Segment line (canonical centerline geometry), drawn once it is long enough to read
+      if (zoom >= SEGMENT_LINE_MIN_ZOOM && polyline.length > 1) {
         const isSelectedLine = selectedSegment?.id === segment.id;
+        const zoomDiff = Math.max(0, zoom - SEGMENT_LINE_MIN_ZOOM);
+        const baseWeight = Math.max(3, Math.min(9, Math.round(3.5 + zoomDiff * 0.8)));
+        const selectedWeight = baseWeight + 4;
+        const casingWeight = selectedWeight + 5;
+
         if (isSelectedLine) {
-          L.polyline(segment.polyline, {
+          L.polyline(polyline, {
             color: '#ffffff',
-            weight: 11,
+            weight: casingWeight,
             opacity: 0.95,
             lineCap: 'round',
             lineJoin: 'round',
             interactive: false
           }).addTo(layerGroup);
         }
-        const line = L.polyline(segment.polyline, {
+        const line = L.polyline(polyline, {
           color,
-          weight: isSelectedLine ? 6 : 4,
-          opacity: isSelectedLine ? 1 : 0.85,
+          weight: isSelectedLine ? selectedWeight : baseWeight,
+          opacity: isSelectedLine ? 1 : 0.88,
           lineCap: 'round',
           lineJoin: 'round',
           bubblingMouseEvents: false
         }).addTo(layerGroup);
-        line.bindTooltip(`${segment.name} · PCI ${segment.currentPci} (${DEMO_DATA_LABEL[language]})`, { sticky: true });
+        const geomStatus = canonical?.geometryStatus ?? segment.geometryStatus;
+        const geomLabel = geomStatus === 'DIGITISED' ? 'OSM Centerline' : DEMO_DATA_LABEL[language];
+        line.bindTooltip(`${segment.name} · PCI ${segment.currentPci} (${geomLabel})`, { sticky: true });
         line.on('click', () => onSelectSegment(segment));
         // Invisible wider line so the segment can be tapped on a touch screen
-        L.polyline(segment.polyline, { color, weight: 24, opacity: 0, lineCap: 'round', bubblingMouseEvents: false })
+        L.polyline(polyline, {
+          color,
+          weight: Math.max(24, casingWeight + 12),
+          opacity: 0,
+          lineCap: 'round',
+          bubblingMouseEvents: false
+        })
           .addTo(layerGroup)
           .on('click', () => onSelectSegment(segment));
       }
@@ -634,8 +1124,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         iconAnchor: [17, 42]
       });
 
-      const marker = L.marker(segment.coordinates, { icon: customIcon }).addTo(layerGroup);
-      marker.on('click', () => {
+      const marker = L.marker(segment.coordinates, { icon: customIcon, bubblingMouseEvents: false }).addTo(layerGroup);
+      marker.on('click', (e: L.LeafletMouseEvent) => {
+        L.DomEvent.stopPropagation(e);
         onSelectSegment(segment);
       });
 
@@ -692,7 +1183,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <!-- Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; border-b: 1px solid #e2e8f0; padding-bottom: 6px;">
               <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="background-color: #f5bc2426; color: #141a35; font-weight: 600; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
+                <span style="background-color: #f5bc2426; color: #1C1C1A; font-weight: 600; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
                   ${wim.stationId}
                 </span>
                 <span style="font-size: 10px; font-weight: 700; color: #64748b;">STASIUN SENSOR WIM</span>
@@ -705,7 +1196,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <!-- Station Title & Location -->
             <h4 style="font-size: 13px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0;">${wim.stationName}</h4>
             <p style="font-size: 10.5px; color: #475569; margin: 0 0 8px 0; font-family: monospace;">
-              📍 GPS: <strong style="color: #141a35;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
+              📍 GPS: <strong style="color: #1C1C1A;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
             </p>
 
             <!-- ANPR & Vehicle Load Telemetry -->
@@ -731,7 +1222,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
 
             <!-- PINN Engineering Impact Correlation -->
-            <div style="background-color: #f7f8fa; border: 1px solid #e3e6eb; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #141a35; margin-bottom: 8px;">
+            <div style="background-color: #f7f8fa; border: 1px solid #e3e6eb; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #1C1C1A; margin-bottom: 8px;">
               <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧠 KORELASI PINN FISIKA PERKERASAN</span>
               </div>
@@ -752,7 +1243,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <div style="display: flex; gap: 4px;">
               <button id="btn-wim-sim-${segment.id}" style="
                 flex: 1;
-                background: #141a35;
+                background: #1C1C1A;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -789,7 +1280,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
           <h4 style="font-size: 14px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0;">${segment.name}</h4>
           <p style="font-size: 10.5px; color: #475569; margin: 0 0 8px 0; font-family: monospace;">
-            📍 Koordinat GPS: <strong style="color: #141a35;">${segment.coordinates[0].toFixed(4)}, ${segment.coordinates[1].toFixed(4)}</strong> | ${segment.kmPost}
+            📍 Koordinat GPS: <strong style="color: #1C1C1A;">${segment.coordinates[0].toFixed(4)}, ${segment.coordinates[1].toFixed(4)}</strong> | ${segment.kmPost}
           </p>
           
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; font-size: 11px; margin-bottom: 8px;">
@@ -803,7 +1294,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span style="color: #64748b;">Beban Sumbu Rata-rata:</span>
-              <span style="font-weight: 700; color: ${segment.defaultAxleLoadTon > 18 ? '#d9655d' : '#141a35'};">
+              <span style="font-weight: 700; color: ${segment.defaultAxleLoadTon > 18 ? '#d9655d' : '#1C1C1A'};">
                 ${segment.defaultAxleLoadTon} Ton ${segment.defaultAxleLoadTon > 10 ? '(ODOL)' : ''}
               </span>
             </div>
@@ -829,7 +1320,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div style="display: flex; gap: 4px;">
             <button id="btn-sim-${segment.id}" style="
               flex: 1;
-              background: #141a35;
+              background: #1C1C1A;
               color: white;
               border: none;
               border-radius: 10px;
@@ -921,7 +1412,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <!-- Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
               <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="background-color: #f5bc2426; color: #141a35; font-weight: 600; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
+                <span style="background-color: #f5bc2426; color: #1C1C1A; font-weight: 600; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-family: monospace;">
                   ${wim.stationId}
                 </span>
                 <span style="font-size: 10px; font-weight: 700; color: #64748b;">STASIUN WIM BINA MARGA</span>
@@ -935,7 +1426,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <h4 style="font-size: 13px; font-weight: 600; color: #0f172a; margin: 0 0 2px 0;">${wim.stationName}</h4>
             <p style="font-size: 10px; color: #64748b; font-weight: 600; margin: 0 0 4px 0;">${wim.corridor}</p>
             <p style="font-size: 10.5px; color: #475569; margin: 0 0 8px 0; font-family: monospace;">
-              📍 GPS: <strong style="color: #141a35;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
+              📍 GPS: <strong style="color: #1C1C1A;">${wim.coordinates[0].toFixed(4)}, ${wim.coordinates[1].toFixed(4)}</strong> (${wim.province})
             </p>
 
             <!-- Telemetry -->
@@ -961,7 +1452,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
 
             <!-- PINN Physics Impact -->
-            <div style="background-color: #f7f8fa; border: 1px solid #e3e6eb; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #141a35;">
+            <div style="background-color: #f7f8fa; border: 1px solid #e3e6eb; border-radius: 10px; padding: 8px; font-size: 10.5px; color: #1C1C1A;">
               <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧠 KORELASI PINN FISIKA PERKERASAN</span>
               </div>
@@ -1205,7 +1696,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
           <button id="btn-open-compare-${clusterIdx}" style="
             width: 100%;
-            background: #141a35;
+            background: #1C1C1A;
             color: #ffffff;
             border: none;
             padding: 8px 12px;
@@ -1242,51 +1733,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
     // Render Community Damage Report Markers (Pin Point Format Sesuai Gambar: Circular Photo + Severity Border + Pointer + Count Badge + Heat Glow)
     if (showCommunityReports && visibleReports.length > 0 && !densityOn) {
-      // Reports that are being introduced or highlighted always keep their own pin
-      const keepsOwnPin = (report: DamageReport) =>
-        report.id === hiddenPinReportId || report.id === sproutingPinReportId || report.id === activeBlinkReportId;
-      const reportClusters = clusterByPixelDistance(
-        visibleReports.filter((report) => !keepsOwnPin(report)),
-        (report) => report.coordinates,
-        zoom
-      );
-
-      // Count markers: several reports too close to tell apart at this zoom
-      reportClusters
-        .filter((cluster) => cluster.items.length > 1)
-        .forEach((cluster) => {
-          const count = cluster.items.length;
-          const size = count >= 10 ? 44 : count >= 5 ? 38 : 32;
-          const label = isEn
-            ? `${count} reports here (a count of reports, not a damage level)`
-            : `${count} laporan di sini (jumlah laporan, bukan tingkat kerusakan)`;
-          const clusterIcon = L.divIcon({
-            html: `<div role="button" aria-label="${label}" title="${label}" style="width:${size}px;height:${size}px;border-radius:50%;background:#1e293b;color:#ffffff;border:2px solid #ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.35);display:flex;align-items:center;justify-content:center;font:700 13px system-ui,-apple-system,sans-serif;cursor:pointer;">${count}</div>`,
-            className: 'report-cluster-marker',
-            iconSize: [size, size],
-            iconAnchor: [size / 2, size / 2]
-          });
-          const clusterMarker = L.marker(cluster.center, { icon: clusterIcon }).addTo(layerGroup);
-          clusterMarker.on('click', () => {
-            const memberBounds = boundsOf(cluster.items.map((report) => report.coordinates));
-            if (!memberBounds) return;
-            const samePosition =
-              memberBounds[0][0] === memberBounds[1][0] && memberBounds[0][1] === memberBounds[1][1];
-            if (samePosition && onSelectClusterRef.current) {
-              // Zooming cannot separate these reports: list them instead
-              onSelectClusterRef.current(cluster.items);
-              return;
-            }
-            safeFitBounds(map, memberBounds, { padding: [70, 70], maxZoom: CLUSTER_MAX_ZOOM });
-          });
-        });
-
-      const individualReports = [
-        ...visibleReports.filter(keepsOwnPin),
-        ...reportClusters.filter((cluster) => cluster.items.length === 1).map((cluster) => cluster.items[0])
-      ];
-
-      individualReports.forEach((report, index) => {
+      visibleReports.forEach((report, index) => {
         // Hide newly created pin during initial map zoom flight from Karawang overview
         if (hiddenPinReportId && report.id === hiddenPinReportId) {
           return;
@@ -1295,14 +1742,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         const isRepaired = report.status === 'REPAIRED';
 
         const reportColor = isRepaired
-          ? '#57ae78'
+          ? '#10b981'
           : report.severity === 'CRITICAL'
-          ? '#d9655d'
+          ? '#ef4444'
           : report.severity === 'SEVERE'
-          ? '#e2823d'
+          ? '#f97316'
           : report.severity === 'MODERATE'
-          ? '#e8b23a'
-          : '#57ae78';
+          ? '#f59e0b'
+          : '#10b981';
 
         const glowColor = isRepaired
           ? 'rgba(16, 185, 129, 0.4)'
@@ -1313,6 +1760,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           : report.severity === 'MODERATE'
           ? 'rgba(245, 158, 11, 0.42)'
           : 'rgba(16, 185, 129, 0.38)';
+
+        // Count badge representation (matching sample in image: 12, 5, 2)
+        const badgeCount =
+          report.severity === 'CRITICAL'
+            ? 12
+            : report.severity === 'SEVERE' || report.severity === 'MODERATE'
+            ? 5
+            : 2;
 
         // Check if this pin is sprouting or newly created
         const isSprouting = report.id === sproutingPinReportId;
@@ -1328,18 +1783,24 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             ` : ''}
 
             <!-- Radial Heat Aura Glow behind pin -->
+            ${
+              isNewlyCreated || report.id === highlightReportId
+                ? createActivePinHeatmapSvg('rep-' + report.id, 120)
+                : `
             <div style="
               position: absolute;
               top: 50%;
               left: 50%;
               transform: translate(-50%, -46%);
-              width: ${isNewlyCreated ? '88px' : '68px'};
-              height: ${isNewlyCreated ? '88px' : '68px'};
+              width: 68px;
+              height: 68px;
               border-radius: 50%;
-              background: radial-gradient(circle, ${isNewlyCreated ? 'rgba(245,158,11,0.75)' : glowColor} 0%, rgba(255,255,255,0) 70%);
+              background: radial-gradient(circle, ${glowColor} 0%, rgba(255,255,255,0) 70%);
               pointer-events: none;
               z-index: 1;
             "></div>
+            `
+            }
 
             <!-- Main Pin Body with optional blink highlight -->
             <div class="${isNewlyCreated ? 'newly-created-pin-blink' : ''}" style="
@@ -1360,7 +1821,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   top: -16px;
                   left: 50%;
                   transform: translateX(-50%);
-                  background: #e8b23a;
+                  background: #f59e0b;
                   color: #0f172a;
                   font-size: 8px;
                   font-weight: 900;
@@ -1385,7 +1846,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 height: 44px;
                 border-radius: 50%;
                 background: #ffffff;
-                border: 3.5px solid ${isNewlyCreated ? '#e8b23a' : reportColor};
+                border: 3.5px solid ${isNewlyCreated ? '#f59e0b' : reportColor};
                 box-shadow: ${isNewlyCreated ? '0 0 16px rgba(245,158,11,0.9)' : '0 2px 8px rgba(0,0,0,0.22)'};
                 display: flex;
                 align-items: center;
@@ -1403,6 +1864,30 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   "
                 />
 
+                <!-- Top Right Number Badge Pill (e.g. 12, 5, 2) -->
+                <div style="
+                  position: absolute;
+                  top: -5px;
+                  right: -5px;
+                  min-width: 18px;
+                  height: 18px;
+                  padding: 0 4px;
+                  border-radius: 999px;
+                  background-color: ${reportColor};
+                  color: ${reportColor === '#f59e0b' ? '#0f172a' : '#ffffff'};
+                  font-size: 10px;
+                  font-weight: 900;
+                  font-family: system-ui, -apple-system, sans-serif;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  border: 2px solid #ffffff;
+                  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                  z-index: 10;
+                  line-height: 1;
+                ">
+                  ${badgeCount}
+                </div>
               </div>
 
               <!-- Pin Pointer Tip Triangle -->
@@ -1411,7 +1896,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 height: 0;
                 border-left: 6.5px solid transparent;
                 border-right: 6.5px solid transparent;
-                border-top: 8px solid ${isNewlyCreated ? '#e8b23a' : reportColor};
+                border-top: 8px solid ${isNewlyCreated ? '#f59e0b' : reportColor};
                 margin-top: -1.5px;
               "></div>
             </div>
@@ -1425,18 +1910,24 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           iconAnchor: [30, 58]
         });
 
-        const reportMarker = L.marker(report.coordinates, { icon: reportIcon }).addTo(layerGroup);
+        const reportMarker = L.marker(report.coordinates, { icon: reportIcon, bubblingMouseEvents: false }).addTo(layerGroup);
 
         // Click marker directly selects the report to open the bottom sheet drawer
-        reportMarker.on('click', () => {
+        reportMarker.on('click', (e: L.LeafletMouseEvent) => {
+          L.DomEvent.stopPropagation(e);
           const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-          if (isMobile && mapInstanceRef.current) {
+          if (mapInstanceRef.current) {
             const map = mapInstanceRef.current;
-            const targetZoom = 16;
-            const targetPoint = map.project(report.coordinates, targetZoom);
-            const offsetPoint = L.point(targetPoint.x, targetPoint.y + 195);
-            const unprojected = map.unproject(offsetPoint, targetZoom);
-            moveCamera(map, [unprojected.lat, unprojected.lng], targetZoom, { duration: 1.0 });
+            if (isMobile) {
+              const targetZoom = 16;
+              const targetPoint = map.project(report.coordinates, targetZoom);
+              const offsetPoint = L.point(targetPoint.x, targetPoint.y + 195);
+              const unprojected = map.unproject(offsetPoint, targetZoom);
+              moveCamera(map, [unprojected.lat, unprojected.lng], targetZoom, { duration: 0.7 });
+            } else {
+              const targetZoom = Math.max(map.getZoom(), 15);
+              moveCamera(map, report.coordinates, targetZoom, { duration: 0.7 });
+            }
           }
           if (onSelectReport) {
             onSelectReport(report);
@@ -1449,104 +1940,454 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         });
       });
 
+      // Render User GPS Blue Location Marker on Map (as shown in reference image)
+      const userGpsIconHtml = `
+        <div style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 26px; height: 26px; border-radius: 50%; background: rgba(59, 130, 246, 0.3); border: 1px solid rgba(59, 130, 246, 0.5);"></div>
+          <div style="width: 13px; height: 13px; border-radius: 50%; background-color: #2563eb; border: 2.5px solid #ffffff; box-shadow: 0 0 8px rgba(37, 99, 235, 0.85); z-index: 2;"></div>
+        </div>
+      `;
+      const userGpsIcon = L.divIcon({
+        html: userGpsIconHtml,
+        className: 'user-gps-dot-marker',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      L.marker([-6.3120, 107.3050], { icon: userGpsIcon }).addTo(layerGroup);
     }
 
-    // Render Selected Location Pin Marker & Anchored Popup Card directly above pin
-    if (mapSelectedPoint) {
-      const selectedPinHtml = `
-        <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.9));">
-          <div style="position: relative; z-index: 10; background-color: #57ae78; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; border: 2px solid white; box-shadow: 0 0 14px rgba(16, 185, 129, 0.9);">
-            📍
+    // Active pin point is managed in its own dedicated activePinLayerGroup effect below
+    // to guarantee complete decoupling from general map layer redraws and viewport pans.
+
+    // Render Active Google Maps-Style Navigation Route & Vehicle Marker
+    if (activeNavigationTask && navRouteWaypoints.length > 0) {
+      // 1. Route Outer Glow Polyline
+      L.polyline(navRouteWaypoints, {
+        color: '#1e3a8a',
+        weight: 9,
+        opacity: 0.7,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(layerGroup);
+
+      // 2. Route Inner Vibrant Cyan/Blue Polyline
+      L.polyline(navRouteWaypoints, {
+        color: '#38bdf8',
+        weight: 5.5,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(layerGroup);
+
+      // 3. Start Point Pin Marker (Posko F.E)
+      const startPinHtml = `
+        <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
+          <div style="background: #10b981; color: white; padding: 3px 8px; border-radius: 9999px; font-size: 10px; font-weight: 800; border: 1.5px solid white; white-space: nowrap; margin-bottom: 2px;">
+            🏁 Posko F.E (Start)
+          </div>
+          <div style="width: 15px; height: 15px; border-radius: 50%; background: #10b981; border: 3px solid white; box-shadow: 0 0 10px #10b981;"></div>
+        </div>
+      `;
+      const startPinIcon = L.divIcon({
+        html: startPinHtml,
+        className: 'nav-start-pin-marker',
+        iconSize: [120, 44],
+        iconAnchor: [60, 38]
+      });
+      L.marker(activeNavigationTask.startCoords, { icon: startPinIcon }).addTo(layerGroup);
+
+      // 4. Destination Point Pin Marker (Titik Kerusakan / Tugas yang Diselesaikan)
+      const destPinHtml = `
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 6px 16px rgba(239,68,68,0.75));">
+          <!-- Top Destination Header Pill -->
+          <div style="
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+            padding: 3.5px 10px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 900;
+            border: 2px solid #ffffff;
+            white-space: nowrap;
+            margin-bottom: 3px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          ">
+            <span>⚠️ Lokasi Tugas</span>
+            <span style="background: rgba(0,0,0,0.35); padding: 1px 5px; border-radius: 6px; font-family: monospace; font-size: 9px;">#${activeNavigationTask.report.id}</span>
+          </div>
+
+          <!-- Circular Photo Pin Head -->
+          <div style="
+            position: relative;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3.5px solid #ef4444;
+            box-shadow: 0 0 18px rgba(239,68,68,0.85), 0 2px 10px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <img
+              src="${activeNavigationTask.report.photoUrl}"
+              alt="${activeNavigationTask.report.damageType}"
+              style="
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                object-fit: cover;
+                display: block;
+              "
+            />
+            <!-- Top Right Severity Alert Badge -->
+            <div style="
+              position: absolute;
+              top: -5px;
+              right: -5px;
+              min-width: 18px;
+              height: 18px;
+              border-radius: 999px;
+              background-color: #ef4444;
+              color: #ffffff;
+              font-size: 10px;
+              font-weight: 900;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 2px solid #ffffff;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+              z-index: 10;
+              line-height: 1;
+            ">
+              !
+            </div>
+          </div>
+
+          <!-- Pointer Tip -->
+          <div style="
+            width: 0;
+            height: 0;
+            border-left: 6.5px solid transparent;
+            border-right: 6.5px solid transparent;
+            border-top: 8.5px solid #ef4444;
+            margin-top: -2px;
+          "></div>
+        </div>
+      `;
+      const destPinIcon = L.divIcon({
+        html: destPinHtml,
+        className: 'nav-dest-pin-marker',
+        iconSize: [140, 68],
+        iconAnchor: [70, 62]
+      });
+      L.marker(activeNavigationTask.report.coordinates, { icon: destPinIcon }).addTo(layerGroup);
+
+      // 5. Current Moving Vehicle Marker along Route
+      const currentPos = navRouteWaypoints[navStepProgress] || activeNavigationTask.startCoords;
+      const vehicleMarkerHtml = `
+        <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background: rgba(56, 189, 248, 0.35); border: 1.5px solid rgba(56, 189, 248, 0.7); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <div style="width: 26px; height: 26px; border-radius: 50%; background: #0284c7; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.9); z-index: 10;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1">
+              <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+            </svg>
           </div>
         </div>
       `;
-
-      const selectedPinIcon = L.divIcon({
-        html: selectedPinHtml,
-        className: 'selected-location-pin-marker',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
+      const vehicleMarkerIcon = L.divIcon({
+        html: vehicleMarkerHtml,
+        className: 'nav-vehicle-step-marker',
+        iconSize: [38, 38],
+        iconAnchor: [19, 19]
       });
+      L.marker(currentPos, { icon: vehicleMarkerIcon }).addTo(layerGroup);
 
-      const selectedMarker = L.marker(mapSelectedPoint.coordinates, { icon: selectedPinIcon }).addTo(layerGroup);
+      // Auto fit bounds on initial load
+      if (mapInstanceRef.current && navStepProgress === 0) {
+        mapInstanceRef.current.fitBounds(L.latLngBounds(navRouteWaypoints), {
+          padding: [90, 90],
+          maxZoom: 15
+        });
+      }
+    }
+  }, [
+    filteredSegments,
+    filteredWimStations,
+    communityReports,
+    selectedSegment,
+    showWimOnly,
+    showCommunityReports,
+    activeFilter,
+    activeRole,
+    hiddenPinReportId,
+    sproutingPinReportId,
+    activeBlinkReportId,
+    zoom,
+    densityOn,
+    activeNavigationTask,
+    navRouteWaypoints,
+    navStepProgress
+  ]);
 
-      // Compact DOM popup anchored directly above pin
-      const popupContainer = document.createElement('div');
-      popupContainer.style.width = '210px';
-      popupContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-      popupContainer.style.padding = '2px';
+  // Dedicated Active Pin Point Heatmap & Selection Card Lifecycle Effect
+  // Completely decoupled from map pan/drag, zoom, and general layer redraws.
+  useEffect(() => {
+    const pinLayer = activePinLayerGroupRef.current;
+    const map = mapInstanceRef.current;
+    if (!pinLayer || !map) return;
 
-      popupContainer.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 5px;">
-          <span style="font-size: 10.5px; font-weight: 900; color: #059669;">📍 ${t.selectedLocation}</span>
-          <button id="pop-close-btn" style="background: none; border: none; font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 700; padding: 0 2px;">✕</button>
-        </div>
-        <div style="font-size: 9.5px; font-family: monospace; color: #141a35; background: #f0f9ff; padding: 2px 5px; border-radius: 5px; font-weight: 700; margin-bottom: 5px; border: 1px solid #bae6fd; text-align: center;">
-          ${mapSelectedPoint.coordinates[0]}, ${mapSelectedPoint.coordinates[1]}
-        </div>
-        <div style="font-size: 9px; color: #334155; text-align: left; background: #f8fafc; padding: 4px 6px; border-radius: 6px; margin-bottom: 7px; border: 1px solid #e2e8f0;">
-          <span style="color: #64748b; font-size: 8px; font-weight: 700; display: block;">${isEn ? 'NEAREST ROAD CORRIDOR:' : 'RUAS JALAN TERDEKAT:'}</span>
-          <strong style="color: #0f172a; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px;">${mapSelectedPoint.nearestSegment.name}</strong>
-        </div>
-        <div style="display: flex; gap: 4px;">
-          <button id="pop-approve-btn" style="flex: 1; background-color: #57ae78; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-weight: 600; font-size: 9.5px; cursor: pointer; box-shadow: 0 2px 5px rgba(16,185,129,0.3); display: flex; align-items: center; justify-content: center; gap: 3px;">
-            ✓ ${t.approveLocation}
-          </button>
-          <button id="pop-cancel-btn" style="background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 5px 7px; border-radius: 6px; font-weight: 700; font-size: 9.5px; cursor: pointer;">
-            ✕
-          </button>
-        </div>
-      `;
+    const activePoint =
+      activeSelection ||
+      confirmedPinPoint ||
+      (activePinCoordinates
+        ? {
+            coordinates: activePinCoordinates,
+            segment: null,
+            segmentName: null
+          }
+        : null);
 
-      selectedMarker.bindPopup(popupContainer, {
-        offset: [0, -12],
-        closeButton: false,
-        className: 'compact-location-approval-popup'
-      }).openPopup();
+    if (!activePoint) {
+      pinLayer.clearLayers();
+      activePinMarkerRef.current = null;
+      removeActiveLocationPopup(map);
+      return;
+    }
 
-      setTimeout(() => {
+    let marker = activePinMarkerRef.current;
+    if (!marker) {
+      const activePinHtml = createActivePinMarkerHtml('active-pin-point');
+      const activePinIcon = L.divIcon({
+        html: activePinHtml,
+        className: 'active-location-pin-marker',
+        iconSize: [150, 150],
+        iconAnchor: [75, 75]
+      });
+      marker = L.marker(activePoint.coordinates, { icon: activePinIcon, bubblingMouseEvents: false }).addTo(pinLayer);
+      activePinMarkerRef.current = marker;
+    } else {
+      marker.setLatLng(activePoint.coordinates);
+    }
+
+    if (activeSelection) {
+      removeActiveLocationPopup(map);
+
+      if (isLocationPopupOpen) {
+        const popupContainer = document.createElement('div');
+        popupContainer.className = 'location-card-content';
+        L.DomEvent.disableClickPropagation(popupContainer);
+        L.DomEvent.disableScrollPropagation(popupContainer);
+
+        const latStr = activeSelection.coordinates[0].toFixed(6);
+        const lngStr = activeSelection.coordinates[1].toFixed(6);
+
+        let roadContentHtml = '';
+        if (activeSelection.status === 'RESOLVING') {
+          roadContentHtml = `<span class="location-card-road-resolving">⏳ ${t.searchingRoad}</span>`;
+        } else if (activeSelection.status === 'RESOLVED' && activeSelection.segment) {
+          const distBadge =
+            activeSelection.distanceMeters !== null
+              ? `<span class="location-card-distance-badge">± ${Math.round(activeSelection.distanceMeters)} m ${isEn ? 'from corridor' : 'dari ruas'}</span>`
+              : '';
+          roadContentHtml = `
+            <span class="location-card-road-name" title="${activeSelection.segment.name}" role="button" tabindex="0">
+              ${activeSelection.segment.name}
+            </span>
+            <span class="location-card-road-id-sub">(${activeSelection.segment.id})</span>
+            ${distBadge}
+          `;
+        } else if (activeSelection.status === 'AMBIGUOUS' && activeSelection.segment) {
+          const distBadge =
+            activeSelection.distanceMeters !== null
+              ? `<span class="location-card-distance-badge">± ${Math.round(activeSelection.distanceMeters)} m ${isEn ? 'from corridor' : 'dari ruas'}</span>`
+              : '';
+          roadContentHtml = `
+            <span class="location-card-road-name" title="${activeSelection.segment.name}" role="button" tabindex="0">
+              ${activeSelection.segment.name}
+            </span>
+            <span class="location-card-road-id-sub">(${activeSelection.segment.id})</span>
+            <span class="location-card-ambiguous-badge">⚠️ ${t.roadAmbiguous}</span>
+            ${distBadge}
+          `;
+        } else if (activeSelection.status === 'NO_ROAD_FOUND') {
+          roadContentHtml = `<span class="location-card-road-unidentified">⚠️ ${t.roadNotFoundInRange}</span>`;
+        } else {
+          roadContentHtml = `
+            <div class="location-card-road-error-group">
+              <span class="location-card-road-error">⚠️ ${activeSelection.errorMessage || t.roadFetchFailed}</span>
+              <button id="pop-retry-btn" class="location-card-retry-btn" type="button">
+                🔄 ${t.retry}
+              </button>
+            </div>
+          `;
+        }
+
+        const isApproveDisabled = activeSelection.status === 'RESOLVING' || !activeSelection.isValid;
+
+        popupContainer.innerHTML = `
+          <div class="location-card-header">
+            <div class="location-card-title-group">
+              <span class="location-card-pin-icon" aria-hidden="true">
+                <svg width="20" height="24" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C6.75329 1.5 2.5 5.75329 2.5 11C2.5 17.5 12 26.5 12 26.5C12 26.5 21.5 17.5 21.5 11C21.5 5.75329 17.2467 1.5 12 1.5ZM12 14.5C10.067 14.5 8.5 12.933 8.5 11C8.5 9.067 10.067 7.5 12 7.5C13.933 7.5 15.5 9.067 15.5 11C15.5 12.933 13.933 14.5 12 14.5Z" fill="#DC2626"/>
+                </svg>
+              </span>
+              <h3 class="location-card-title">${t.selectedLocation}</h3>
+            </div>
+            <button id="pop-close-btn" class="location-card-close-btn" aria-label="Close" title="${t.close}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="location-card-divider"></div>
+
+          <div class="location-card-coord-box">
+            <span class="location-card-coords">${latStr}, ${lngStr}</span>
+          </div>
+
+          <div class="location-card-road-box">
+            <span class="location-card-road-label">${isEn ? 'NEAREST ROAD CORRIDOR:' : 'RUAS JALAN TERDEKAT:'}</span>
+            ${roadContentHtml}
+          </div>
+
+          <div class="location-card-actions">
+            <button id="pop-approve-btn" class="location-card-approve-btn" ${isApproveDisabled ? 'disabled' : ''}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>${t.approveLocation}</span>
+            </button>
+            <button id="pop-cancel-btn" class="location-card-cancel-btn" aria-label="Cancel" title="${t.cancel}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        `;
+
+        const newPopup = L.popup({
+          offset: [0, -20],
+          closeButton: false,
+          className: 'compact-location-approval-popup',
+          autoPan: false,
+          autoClose: true,
+          closeOnClick: false
+        })
+          .setLatLng(activeSelection.coordinates)
+          .setContent(popupContainer);
+
+        newPopup.openOn(map);
+        activeLocationPopupRef.current = newPopup;
+
         const approveBtn = popupContainer.querySelector('#pop-approve-btn') as HTMLButtonElement | null;
         const cancelBtn = popupContainer.querySelector('#pop-cancel-btn') as HTMLButtonElement | null;
         const closeBtn = popupContainer.querySelector('#pop-close-btn') as HTMLButtonElement | null;
+        const retryBtn = popupContainer.querySelector('#pop-retry-btn') as HTMLButtonElement | null;
+        const roadNameEl = popupContainer.querySelector('.location-card-road-name') as HTMLElement | null;
 
-        if (approveBtn) {
-          approveBtn.onclick = (evt) => {
+        if (roadNameEl && activeSelection.segment) {
+          roadNameEl.style.cursor = 'pointer';
+          roadNameEl.onclick = (evt) => {
             evt.stopPropagation();
-            if (onOpenReportModalWithLocation) {
-              onOpenReportModalWithLocation(mapSelectedPoint.nearestSegment, mapSelectedPoint.coordinates);
-            } else {
-              setCustomCoordinates(mapSelectedPoint.coordinates);
-              setFormSegmentId(mapSelectedPoint.nearestSegment.id);
-              setIsReportFormOpen(true);
+            if (activeSelection.segment) {
+              onSelectSegmentRef.current(activeSelection.segment);
             }
-            setMapSelectedPoint(null);
           };
         }
 
-        const handleCancel = (evt: MouseEvent) => {
+        if (retryBtn) {
+          retryBtn.onclick = (evt) => {
+            evt.stopPropagation();
+            triggerLocationResolutionRef.current(activeSelection.coordinates);
+          };
+        }
+
+        let isApproving = false;
+        if (approveBtn && !isApproveDisabled) {
+          approveBtn.onclick = (evt) => {
+            evt.stopPropagation();
+            if (isApproving) return;
+            isApproving = true;
+            approveBtn.disabled = true;
+
+            const confirmedCoords = activeSelection.coordinates;
+            const confirmedSegment = activeSelection.segment || roadSegmentsRef.current[0] || null;
+            removeActiveLocationPopup(map);
+            setIsLocationPopupOpen(false);
+            setActiveSelection(null);
+            if (confirmedSegment) {
+              setConfirmedPinPoint({
+                coordinates: confirmedCoords,
+                nearestSegment: confirmedSegment
+              });
+            }
+            if (onOpenReportModalWithLocationRef.current) {
+              onOpenReportModalWithLocationRef.current(activeSelection.segment, confirmedCoords);
+            } else {
+              setCustomCoordinates(confirmedCoords);
+              if (confirmedSegment) setFormSegmentId(confirmedSegment.id);
+              setIsReportFormOpen(true);
+            }
+          };
+        }
+
+        const handleDismiss = (evt: MouseEvent) => {
           evt.stopPropagation();
-          setMapSelectedPoint(null);
+          activeAbortControllerRef.current?.abort();
+          activeRequestIdRef.current = null;
+          removeActiveLocationPopup(map);
+          setIsLocationPopupOpen(false);
+          setActiveSelection(null);
+          setConfirmedPinPoint(null);
+          onActivePinChangeRef.current?.(null);
         };
 
-        if (cancelBtn) cancelBtn.onclick = handleCancel;
-        if (closeBtn) closeBtn.onclick = handleCancel;
-      }, 50);
-    }
-  }, [filteredSegments, filteredWimStations, communityReports, selectedSegment, showWimOnly, showCommunityReports, mapSelectedPoint, activeFilter, activeRole, hiddenPinReportId, sproutingPinReportId, activeBlinkReportId, zoom, densityOn]);
+        if (cancelBtn) cancelBtn.onclick = handleDismiss;
+        if (closeBtn) closeBtn.onclick = handleDismiss;
 
-  // Center on selected segment
+        marker.off('click');
+        marker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          setIsLocationPopupOpen(true);
+        });
+      }
+    } else {
+      // Confirmed pin point
+      removeActiveLocationPopup(map);
+      marker.off('click');
+      marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        triggerLocationResolutionRef.current(activePoint.coordinates);
+      });
+    }
+  }, [activeSelection, confirmedPinPoint, activePinCoordinates, isLocationPopupOpen, language]);
+
+  // Center on selected segment (guarded so it only runs when selectedSegment actually changes)
   const hasBottomInset = bottomInsetPx > 0;
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!selectedSegment || !map) return;
+    if (lastCenteredSegmentIdRef.current === selectedSegment.id && !hasBottomInset) return;
+    lastCenteredSegmentIdRef.current = selectedSegment.id;
 
     if (hasBottomInset) {
-      // A sheet covers the lower part of the map: frame the segment in what is left, and
-      // remember where the user was so closing the sheet can bring that view back.
       if (!viewBeforeSelectionRef.current) {
         viewBeforeSelectionRef.current = { center: map.getCenter(), zoom: map.getZoom() };
       }
-      const segmentBounds = boundsOf(selectedSegment.polyline.length > 1 ? selectedSegment.polyline : [selectedSegment.coordinates]);
+      const canonical = getCanonicalRoadGeometry(selectedSegment.id);
+      const polyline =
+        canonical && canonical.geometry.coordinates.length > 1
+          ? toLeafletPolyline(canonical.geometry.coordinates)
+          : selectedSegment.polyline;
+      const segmentBounds = boundsOf(polyline.length > 1 ? polyline : [selectedSegment.coordinates]);
       if (segmentBounds) {
         safeFitBounds(map, segmentBounds, {
           paddingTopLeft: [36, 130],
@@ -1588,7 +2429,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const group = L.layerGroup().addTo(map);
     L.circle(userLocation.coordinates, {
       radius: userLocation.accuracyM,
-      color: '#141a35',
+      color: '#1C1C1A',
       weight: 1,
       fillColor: '#8296b0',
       fillOpacity: 0.12,
@@ -1598,7 +2439,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       radius: 7,
       color: '#ffffff',
       weight: 2.5,
-      fillColor: '#141a35',
+      fillColor: '#1C1C1A',
       fillOpacity: 1,
       interactive: false
     }).addTo(group);
@@ -1608,19 +2449,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   // Check if current logged-in role is a regular user account (Public Reporter / Viewer)
   const isRegularUser = activeRole === 'PUBLIC_REPORTER' || activeRole === 'PUBLIC_VIEWER';
+  // Staff map cards (filters, selected segment, network stats): full map only, never on a compact
+  // tile, and not where the page brings its own overlays (staffCards=false).
+  const showStaffCards = staffCards && !isRegularUser && !compact && !activeNavigationTask;
 
   return (
-    <div className={`relative w-full ${isRegularUser ? 'h-full min-h-0' : 'h-[calc(100vh-4rem)] min-h-[550px]'} bg-slate-950 overflow-hidden flex flex-col`}>
+    <div className="relative w-full h-full min-h-0 bg-slate-950 overflow-hidden flex flex-col">
       {/* Main Leaflet Canvas Container (Full Bleed Background) */}
       <div className="absolute inset-0 w-full h-full z-0">
         <div ref={mapContainerRef} className="w-full h-full" />
       </div>
 
-      {/* Provenance: everything drawn on this map comes from the bundled demo datasets */}
+      {/* Provenance: demo indicator is already displayed in header user pill; hidden here to clear bottom UI */}
       <div
         data-testid="demo-data-badge"
         title={DEMO_DATA_NOTE[language]}
-        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-xs font-semibold tracking-wide px-2 py-1 rounded-md shadow"
+        className="hidden"
       >
         {DEMO_DATA_LABEL[language]}
       </div>
@@ -1652,8 +2496,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       )}
 
-      {/* Top Floating Control Bar (Filters & Search) - ONLY for Official Roles */}
-      {!isRegularUser && (
+      {/* Top Floating Control Bar (Filters & Search) - ONLY for Official Roles when NOT navigating */}
+      {showStaffCards && (
         <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-start gap-2 pointer-events-none">
           {/* Search & filters: wrap onto a second row when the map is narrow */}
           <div className="min-w-0 flex flex-wrap items-center gap-2 pointer-events-auto bg-slate-900 border border-slate-700 p-2 rounded-lg shadow-md max-w-full">
@@ -1785,144 +2629,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       )}
 
-      {/* Bottom Floating Stats & Legend Bar - ONLY for Official Roles */}
-      {!isRegularUser && (
-        <div className="absolute bottom-6 sm:bottom-8 left-2 sm:left-4 right-2 sm:right-4 z-10 pointer-events-none space-y-3">
-          {/* BOTTOM STATS & LEGEND COLUMN */}
-          <div className="pointer-events-auto max-w-7xl mx-auto bg-slate-900/95 border border-slate-800 rounded-xl p-2 sm:p-3 shadow-xl grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 text-slate-200 text-xs">
-            {/* Stat 1 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
-              <div className="p-2 sm:p-2 rounded-lg bg-slate-700/60 text-slate-300 border border-slate-600/60 shrink-0">
-                <MapPin className="w-4 h-4 sm:w-4 sm:h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-xs text-slate-400 truncate">
-                  Total Jaringan
-                </p>
-                <p className="text-xs sm:text-xs font-semibold text-white font-mono">
-                  {totalLengthKm.toLocaleString('id-ID', { maximumFractionDigits: 1 })} <span className="text-xs sm:text-xs font-normal text-slate-400">km</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Stat 2 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
-              <div className="p-2 sm:p-2 rounded-lg bg-rose-950/60 text-rose-400 border border-rose-800/60 shrink-0">
-                <AlertTriangle className="w-4 h-4 sm:w-4 sm:h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-xs text-slate-400 truncate">
-                  Tidak Mantap (2025)
-                </p>
-                <p className="text-xs sm:text-xs font-semibold text-rose-400 font-mono">
-                  {damagedPercent}% <span className="text-xs sm:text-xs font-normal text-slate-400">({Number(damagedKm).toLocaleString('id-ID', { maximumFractionDigits: 1 })} km)</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Stat 3 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
-              <div className="p-2 sm:p-2 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/60 shrink-0">
-                <AlertTriangle className="w-4 h-4 sm:w-4 sm:h-4 text-amber-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-xs text-slate-400 truncate">
-                  Peringatan ODOL
-                </p>
-                <p className="text-xs sm:text-xs font-semibold text-amber-300 font-mono">
-                  {activeRedAlertsCount} Ruas
-                </p>
-              </div>
-            </div>
-
-            {/* Stat 4 */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex items-center space-x-2 sm:space-x-3">
-              <div className="p-2 sm:p-2 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 shrink-0">
-                <BarChart2 className="w-4 h-4 sm:w-4 sm:h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-xs text-slate-400 truncate">
-                  Rata-rata PCI
-                </p>
-                <p className="text-xs sm:text-xs font-semibold text-emerald-400 font-mono">
-                  {avgPci} / 100
-                </p>
-              </div>
-            </div>
-
-            {/* Map PCI Legend & WIM Overload Legend */}
-            <div className="col-span-2 md:col-span-5 bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 sm:p-3 flex flex-col gap-2 sm:gap-2 text-xs sm:text-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-xs">
-                  <span className="font-semibold text-slate-300 border-r border-slate-700 pr-2">
-                    PCI:
-                  </span>
-                  <span className="flex items-center text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1" /> Mantap (&gt;70)
-                  </span>
-                  <span className="flex items-center text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 mr-1" /> Sedang (50-70)
-                  </span>
-                  <span className="flex items-center text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-orange-500 mr-1" /> Rusak Ringan
-                  </span>
-                  <span className="flex items-center text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 mr-1" /> Rusak Berat (&lt;35)
-                  </span>
-                </div>
-
-                <div className="hidden sm:flex items-center space-x-2 text-xs text-slate-300 font-mono bg-slate-900 px-2 py-1 rounded-md border border-slate-700">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                  <span>Animasi Radius Berbanding Terbalik Nilai PCI</span>
-                </div>
-              </div>
-
-              {/* WIM & Radius Legends */}
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-xs border-t border-slate-700/80 pt-2 mt-1">
-                <span className="font-semibold text-slate-300 font-mono flex items-center gap-1 border-r border-slate-700 pr-2">
-                  <Truck className="w-3 h-3 text-cyan-400" /> WIM (PUPR):
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1" /> Normal
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-yellow-400 mr-1" /> Overload (5-20%)
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-orange-500 mr-1" /> Overload (20-50%)
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-purple-500 mr-1" /> Overload (&gt;50%)
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-red-500 mr-1" /> Ekstrim (&gt;100%)
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-xs border-t border-slate-700/80 pt-2 mt-1">
-                <span className="font-semibold text-slate-300 font-mono flex items-center gap-1 border-r border-slate-700 pr-2">
-                  <Camera className="w-3 h-3 text-rose-400" /> LAPORAN WARGA:
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 mr-1" /> CRITICAL
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-orange-500 mr-1" /> SEVERE
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 mr-1" /> MODERATE
-                </span>
-                <span className="flex items-center text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1" /> MINOR
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Absolute Bottom Stats & Legend Overlay - ONLY for Official Roles when NOT navigating */}
+      {showStaffCards && (
+        <MapAnalyticsPanel
+          roadSegments={roadSegments}
+          language={language}
+        />
       )}
 
-      {/* Absolute Bottom Copyright Text Outside Cards - ONLY for Official Roles */}
-      {!isRegularUser && (
+      {/* Absolute Bottom Copyright Text Outside Cards - ONLY for Official Roles when NOT navigating */}
+      {showStaffCards && (
         <div className="absolute bottom-1 sm:bottom-1.5 left-0 right-0 z-20 text-center pointer-events-none pb-1 px-2">
           <p className="text-xs sm:text-xs font-medium text-slate-400 font-sans tracking-wide drop-shadow truncate">
             PAVEMENT-PINN © 2026 | Intel AI Global Impact Festival 2026
@@ -2142,6 +2858,193 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* GOOGLE MAPS STYLE NAVIGATION HUD OVERLAY */}
+      {activeNavigationTask && (
+        <>
+          {/* 1. TOP TURN-BY-TURN GREEN NAVIGATION BAR (Optimized for mobile format with z-50 layer above right controls, strictly constrained height) */}
+          <div className="absolute top-[56px] sm:top-20 md:top-4 left-2.5 right-2.5 sm:left-6 sm:right-auto sm:w-[490px] z-50 max-h-[72px] sm:max-h-none bg-emerald-800 text-white rounded-2xl sm:rounded-3xl py-2 px-2.5 sm:py-3.5 sm:px-4 shadow-2xl border border-emerald-500/80 flex items-center justify-between gap-2 sm:gap-4 animate-in slide-in-from-top-4 duration-300 pointer-events-auto overflow-hidden box-border">
+            <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+              {/* Maneuver Icon */}
+              <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-900/90 border border-emerald-500/60 flex items-center justify-center shrink-0 shadow-inner">
+                {currentManeuver.action === 'TURN_RIGHT' ? (
+                  <CornerUpRight className="w-4 h-4 sm:w-7 sm:h-7 text-emerald-200" />
+                ) : currentManeuver.action === 'TURN_LEFT' ? (
+                  <CornerUpLeft className="w-4 h-4 sm:w-7 sm:h-7 text-emerald-200" />
+                ) : currentManeuver.action === 'ARRIVE' ? (
+                  <Flag className="w-4 h-4 sm:w-7 sm:h-7 text-emerald-200" />
+                ) : (
+                  <ArrowUp className="w-4 h-4 sm:w-7 sm:h-7 text-emerald-200" />
+                )}
+              </div>
+
+              {/* Maneuver Details & Road Name */}
+              <div className="min-w-0 space-y-0 sm:space-y-0.5 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="text-base sm:text-2xl font-black tracking-tight text-white font-mono leading-none">
+                    {currentManeuver.distanceDisplay}
+                  </span>
+                  <span className="text-[8.5px] sm:text-[11px] font-bold bg-emerald-900/90 text-emerald-200 px-1.5 sm:px-2.5 py-0.5 rounded-full border border-emerald-600/60 leading-none">
+                    {currentManeuver.maneuverTitle}
+                  </span>
+                  <span className="text-[7.5px] sm:text-[9px] font-medium text-emerald-300/80 bg-emerald-950/60 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded-md border border-emerald-700/40 leading-none">
+                    {activeManeuverIndex + 1}/{navManeuvers.length}
+                  </span>
+                </div>
+                <p className="text-[10.5px] sm:text-sm font-bold text-emerald-50 truncate leading-tight mt-0.5">
+                  ke {currentManeuver.roadName}
+                </p>
+                <p className="text-[8.5px] sm:text-[11px] text-emerald-200/90 truncate leading-tight hidden xs:block sm:block">
+                  {currentManeuver.detailGuidance}
+                </p>
+              </div>
+            </div>
+
+            {/* Maneuver Switcher & Voice Toggle Actions */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {/* Prev / Next Maneuver buttons to inspect route guidance */}
+              <div className="flex items-center bg-emerald-900/80 rounded-xl sm:rounded-2xl border border-emerald-600/50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextIdx = Math.max(0, activeManeuverIndex - 1);
+                    setManualStepIndex(nextIdx);
+                    if (!isNavVoiceMuted && navManeuvers[nextIdx]) {
+                      speakNavGuidance(navManeuvers[nextIdx]);
+                    }
+                  }}
+                  disabled={activeManeuverIndex === 0}
+                  className="p-1 sm:p-1.5 text-emerald-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  title="Langkah Navigasi Sebelumnya"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextIdx = Math.min(navManeuvers.length - 1, activeManeuverIndex + 1);
+                    setManualStepIndex(nextIdx);
+                    if (!isNavVoiceMuted && navManeuvers[nextIdx]) {
+                      speakNavGuidance(navManeuvers[nextIdx]);
+                    }
+                  }}
+                  disabled={activeManeuverIndex >= navManeuvers.length - 1}
+                  className="p-1 sm:p-1.5 text-emerald-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  title="Langkah Navigasi Berikutnya"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+
+              {/* Sound Toggle with Live Voice Trigger on Unmute */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextMuted = !isNavVoiceMuted;
+                  setIsNavVoiceMuted(nextMuted);
+                  if (nextMuted) {
+                    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                      window.speechSynthesis.cancel();
+                    }
+                  } else {
+                    speakNavGuidance(currentManeuver);
+                  }
+                }}
+                className={`p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
+                  !isNavVoiceMuted
+                    ? 'bg-emerald-700/90 text-white border-emerald-400/80 shadow-sm'
+                    : 'bg-emerald-900/80 text-emerald-300 hover:text-white border-emerald-600/50'
+                }`}
+                title={isNavVoiceMuted ? 'Nyalakan Suara Panduan (Voice Guidance)' : 'Bisukan Suara Panduan'}
+              >
+                {isNavVoiceMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* 2. FLOATING SPEED & BLUE NAVIGATION CONTROLS (Compact on mobile, sits comfortably below green card) */}
+          <div className="absolute top-[134px] sm:top-[190px] md:top-36 left-2.5 sm:left-6 z-40 flex flex-col gap-2 pointer-events-auto">
+            {/* Speedometer / KM Card */}
+            <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 text-white px-2.5 py-1 sm:px-3 sm:py-2 rounded-xl sm:rounded-2xl text-center shadow-xl">
+              <span className="text-xs sm:text-lg font-black text-emerald-400 font-mono block leading-tight">48</span>
+              <span className="text-[7.5px] sm:text-[9px] text-slate-400 font-bold uppercase tracking-wider block">km/jam</span>
+            </div>
+            {/* Blue Navigation Recenter Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (mapInstanceRef.current && navRouteWaypoints.length > 0) {
+                  mapInstanceRef.current.fitBounds(L.latLngBounds(navRouteWaypoints), {
+                    padding: [80, 80],
+                    maxZoom: 15
+                  });
+                }
+              }}
+              className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-slate-900/95 hover:bg-slate-800 border border-slate-700/90 text-sky-400 hover:text-sky-300 shadow-xl cursor-pointer active:scale-95 transition-all flex items-center justify-center group"
+              title="Pusatkan Rute Navigasi"
+            >
+              <Navigation className="w-4 h-4 sm:w-5 sm:h-5 text-sky-400 group-hover:rotate-12 transition-transform" />
+            </button>
+          </div>
+
+          {/* 3. BOTTOM GOOGLE MAPS NAVIGATION CONTROL PANEL (Compact & responsive on mobile) */}
+          <div className="absolute bottom-3 left-2.5 right-2.5 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[560px] z-40 bg-slate-900/98 backdrop-blur-xl text-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-2xl border border-slate-700/90 space-y-2.5 sm:space-y-3.5 animate-in slide-in-from-bottom-4 duration-300 pointer-events-auto overflow-hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))', maxHeight: 'calc(100dvh - 12rem)' }}>
+            {/* Top ETA Row */}
+            <div className="flex items-center justify-between gap-2.5 border-b border-slate-800 pb-2 sm:pb-3">
+              <div className="flex items-baseline gap-2 sm:gap-2.5 flex-wrap">
+                <span className="text-xl sm:text-3xl font-black text-emerald-400 tracking-tight">
+                  {navEstimatedMinutes} mnt
+                </span>
+                <span className="text-[11px] sm:text-sm font-semibold text-slate-300">
+                  {navDistanceKm} km &bull; Lancar
+                </span>
+                <span className="text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                  Rute Tercepat
+                </span>
+              </div>
+
+              {/* Close/Cancel Button */}
+              {onCancelNavigation && (
+                <button
+                  type="button"
+                  onClick={onCancelNavigation}
+                  className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                  title="Batalkan / Tutup Navigasi"
+                >
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Bottom Target & Selesai Action Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5">
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[11px] sm:text-xs font-bold text-slate-100 truncate">
+                  Tujuan: {(activeNavigationTask.report as any).title || activeNavigationTask.report.damageTypeLabel || activeNavigationTask.report.damageType}
+                </p>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 truncate flex items-center gap-1">
+                  <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400 shrink-0" />
+                  <span>{activeNavigationTask.report.segmentName}</span>
+                  <span className="text-slate-500 font-mono">
+                    ({activeNavigationTask.report.coordinates[0].toFixed(4)}, {activeNavigationTask.report.coordinates[1].toFixed(4)})
+                  </span>
+                </p>
+              </div>
+
+              {/* TOMBOL SELESAI DI MAPS */}
+              <button
+                type="button"
+                onClick={onCompleteNavigation}
+                className="w-full sm:w-auto px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Selesaikan navigasi rute dan kembali ke sidebar Tugas & Inspeksi"
+              >
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>Selesai & Tiba di Lokasi</span>
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Community Report Detail & Before/After Comparison Modal */}

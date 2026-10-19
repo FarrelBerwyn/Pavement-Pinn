@@ -1,29 +1,18 @@
-import { createApp } from "./app";
 import { loadServerConfig } from "./config/env";
-import { attachFrontendHost } from "./middleware/frontendHost";
-import { FileCaseStore } from "./repositories/fileCaseStore";
-import { createWorkflowRuntime } from "./services/workflowRuntime";
+import { startServer } from "./runtime/startServer";
 
-async function startServer() {
-  const config = loadServerConfig();
-  const store = new FileCaseStore(config.dataDir);
-  const workflow = createWorkflowRuntime({
-    store,
-    storeKind: "file",
-    storeLocation: store.location,
-    sessionSecret: config.sessionSecret,
-    demoAuthEnabled: config.demoAuthEnabled
+/**
+ * Production / plain entry (`node dist/server.cjs`, `tsx server/index.ts`): one runtime on PORT.
+ * Development goes through scripts/dev/launch.ts (`npm run dev`), which adds alias ports and
+ * refuses to start a second runtime on the same data store by accident.
+ */
+const config = loadServerConfig();
+startServer({ config })
+  .then(({ ports, storeLocation }) => {
+    console.log(`PAVEMENT-PINN Server running on http://localhost:${ports[0]}`);
+    console.log(`Workflow store: ${storeLocation}${config.sessionSecret ? "" : " (SESSION_SECRET unset: session key kept in the data directory)"}`);
+  })
+  .catch((error: NodeJS.ErrnoException) => {
+    console.error(error.code === "EADDRINUSE" ? `Port ${config.port} is already in use. Nothing was started.` : error);
+    process.exit(1);
   });
-  await workflow.ready;
-  const app = createApp({ workflow });
-
-  // Vite middleware or static serving (must come after the API routes)
-  await attachFrontendHost(app, config);
-
-  app.listen(config.port, config.host, function onListening() {
-    console.log(`PAVEMENT-PINN Server running on http://localhost:${config.port}`);
-    console.log(`Workflow store: ${store.location}${config.sessionSecret ? "" : " (SESSION_SECRET unset: sessions reset on restart)"}`);
-  });
-}
-
-startServer();

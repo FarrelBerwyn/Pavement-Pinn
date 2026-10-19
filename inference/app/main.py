@@ -201,3 +201,62 @@ def run_monte_carlo(req: AssessRequest, sg: Subgrade, assumptions: list[str]) ->
     return {"status": "COMPUTED" if dry["status"] == wet["status"] == "COMPUTED" else "PARTIAL",
             "dry": dry, "wet": wet, "elapsed_ms": round((time.perf_counter() - started) * 1000, 1),
             "label": "indikatif, bukan desain"}
+
+
+# ---------------------------------------------------------------- Computer Vision (road damage)
+from fastapi import Request  # noqa: E402
+
+from .cv import engine as cv_engine, jobs as cv_jobs, video as cv_video  # noqa: E402
+
+CV_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def _cv_error(exc: "cv_engine.CvError") -> HTTPException:
+    status = {"INVALID_IMAGE": 422, "INVALID_VIDEO": 422, "IMAGE_UNUSABLE": 422}.get(exc.code, 503)
+    return HTTPException(status_code=status, detail={"code": exc.code, "message": exc.message})
+
+
+@app.get("/v1/cv/health")
+def cv_health() -> dict:
+    return cv_engine.runtime_info()
+
+
+@app.post("/v1/cv/analyze-image")
+async def cv_analyze_image(request: Request) -> dict:
+    """Synchronous analysis of raw image bytes (Content-Type image/jpeg|png|webp)."""
+    if request.headers.get("content-type", "").split(";")[0] not in CV_IMAGE_TYPES:
+        raise HTTPException(status_code=415, detail={"code": "UNSUPPORTED_TYPE", "message": "Send JPEG, PNG or WebP bytes."})
+    try:
+        return cv_engine.analyze_image(await request.body())
+    except cv_engine.CvError as exc:
+        raise _cv_error(exc) from exc
+
+
+@app.post("/v1/cv/jobs", status_code=202)
+async def cv_submit_job(request: Request) -> dict:
+    if request.headers.get("content-type", "").split(";")[0] not in CV_IMAGE_TYPES:
+        raise HTTPException(status_code=415, detail={"code": "UNSUPPORTED_TYPE", "message": "Send JPEG, PNG or WebP bytes."})
+    data = await request.body()
+    try:
+        cv_engine.decode_image(data)  # reject bad input before queueing
+    except cv_engine.CvError as exc:
+        raise _cv_error(exc) from exc
+    return cv_jobs.submit(data)
+
+
+@app.get("/v1/cv/jobs/{job_id}")
+def cv_get_job(job_id: str) -> dict:
+    job = cv_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "Unknown CV job."})
+    return job
+
+
+@app.post("/v1/cv/analyze-video")
+async def cv_analyze_video(request: Request, fps: float = 1.0) -> dict:
+    if not 0.1 <= fps <= 10:
+        raise HTTPException(status_code=422, detail={"code": "VALIDATION", "message": "fps must be between 0.1 and 10."})
+    try:
+        return cv_video.analyze_video(await request.body(), fps=fps)
+    except cv_engine.CvError as exc:
+        raise _cv_error(exc) from exc

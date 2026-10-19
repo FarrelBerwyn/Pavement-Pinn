@@ -5,14 +5,24 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // the URL correct in the dev server (pre-bundled dependencies) and in the production build.
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { AlertTriangle } from 'lucide-react';
-import { LeafletMap, type LeafletMapProps } from './LeafletMap';
+import { LeafletMap, type LeafletMapProps, createActivePinMarkerHtml } from './LeafletMap';
+import { prefersReducedMotion } from '../ui/motion';
 import type { DamageReport, RoadSegment } from '../../types';
+import {
+  LocationSelection,
+  createLocationSelection,
+  resolveRoadSelection,
+  isValidCoordinate,
+  DEFAULT_ROAD_SEARCH_RADIUS_METERS
+} from '../../domain/geo/locationSelection';
 import { INITIAL_TILE_HEALTH, TileHealth, recordTileError, recordTileLoad } from './basemap';
 import { BasemapCandidate, basemapCandidates } from './vectorBasemap';
 import { CLUSTER_MAX_ZOOM, SEGMENT_LINE_MIN_ZOOM, clusterByPixelDistance } from './mapDetail';
 import { SEVERITY_COLOR, lngLatBounds, reportsToGeoJson, segmentsToGeoJson, toLngLat } from './mapGeoJson';
 import { DEMO_DATA_LABEL, DEMO_DATA_NOTE } from '../../data/provenance';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
+import { getCanonicalRoadGeometry, toLeafletPolyline } from '../../domain/geo/canonicalRoadGeometry';
+import { assetUrl, NO_COVERAGE_PATH, reportPhotoCaption } from '../../domain/reports/datasetImages';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
@@ -27,7 +37,46 @@ const REPORT_MAX_CLUSTER_ZOOM = CLUSTER_MAX_ZOOM - ZOOM_OFFSET;
 const PICK_POINT_MIN_ZOOM = 11;
 /** Centre of the bundled demo data (Karawang), used when no device position is available. */
 const DATA_REGION: [number, number] = [107.318, -6.305];
-const INDONESIA: [number, number] = [118, -2.5];
+const HOME_ZOOM = 11;
+
+/** Camera state machine phases for the cinematic entry animation */
+export type MapCameraPhase =
+  | 'IDLE'
+  | 'GLOBE_ROTATION'
+  | 'INDONESIA_TRANSITION'
+  | 'JAVA_ZOOM'
+  | 'REGIONAL_READY';
+
+/** Initial 3D Globe camera settings (Reference 1: Asia, Southeast Asia, Indonesia, Australia in view) */
+export const GLOBE_INITIAL_CENTER: [number, number] = [115.0, 10.0];
+export const GLOBE_INITIAL_ZOOM = 1.85;
+
+/** Intermediate Indonesia viewpoint (Phase B) */
+export const INDONESIA_INTERMEDIATE_CENTER: [number, number] = [108.5, -6.8];
+export const INDONESIA_INTERMEDIATE_ZOOM = 5.2;
+
+/** Regional Java bounding box (Reference 2: Jabodetabek, Bekasi, Karawang, Purwakarta) */
+export const REGIONAL_JAVA_BOUNDS: [[number, number], [number, number]] = [
+  [106.2, -6.9], // Southwest [west, south]
+  [108.0, -5.8]  // Northeast [east, north]
+];
+
+/** Zoom threshold: below this is 3D globe mode, above/equal is flat regional/local map */
+export const GLOBE_MAX_ROTATION_ZOOM = 4.0;
+
+/** Auto-rotation speed in degrees longitude per second (~3.5 deg/sec is gentle and natural) */
+export const ROTATION_SPEED_DEG_PER_SEC = 3.5;
+
+/** Cinematic Entry Animation Phase Durations in milliseconds (total sequence ~5.4s within the 4-6s target) */
+export const PHASE_A_ROTATION_DURATION_MS = 1600;
+export const PHASE_B_TRANSITION_DURATION_MS = 1800;
+export const PHASE_C_ZOOM_DURATION_MS = 2000;
+
+/** Cooldown in ms after user interaction before auto-rotation resumes */
+const INTERACTION_RESUME_DELAY_MS = 1000;
+
+/** Shown when a pin photo is missing or fails to load (never a stock photo). */
+const NO_PHOTO_URL = assetUrl(NO_COVERAGE_PATH, import.meta.env.BASE_URL);
 
 const SEGMENT_SOURCE = 'pp-segments';
 const REPORT_SOURCE = 'pp-reports';
@@ -88,7 +137,12 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     highlightReportId = null,
     mapCenterTarget = null,
     userLocation = null,
-    bottomInsetPx = 0
+    bottomInsetPx = 0,
+    activePinCoordinates = null,
+    onActivePinChange,
+    compact = false,
+    isTabActive = true,
+    entryAnimationKey = 0
   } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,12 +154,30 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
   const pickPopupRef = useRef<maplibregl.Popup | null>(null);
+  const pickMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const pickAbortControllerRef = useRef<AbortController | null>(null);
+  const pickRequestIdRef = useRef<string | null>(null);
   const zoomBucketRef = useRef<number>(-1);
   const viewBeforeSelectionRef = useRef<{ center: maplibregl.LngLat; zoom: number } | null>(null);
   const mountedRef = useRef(false);
 
+  // Auto-rotation and camera state tracking
+  const isInteractingRef = useRef(false);
+  const resumeTimerRef = useRef<number | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const fixedLatRef = useRef<number | null>(null);
+  const isAutoRotatingRef = useRef(false);
+
+  // Cinematic globe-to-Java camera state machine refs
+  const cameraPhaseRef = useRef<MapCameraPhase>('IDLE');
+  const phaseTimerRef = useRef<number | null>(null);
+  const cancellationTokenRef = useRef(0);
+  const prevEntryKeyRef = useRef<number>(entryAnimationKey);
+  const prevTabActiveRef = useRef<boolean>(isTabActive);
+
   const [unsupported, setUnsupported] = useState(false);
   const [basemapStage, setBasemapStage] = useState(0);
+  const [localHighlightId, setLocalHighlightId] = useState<string | null>(null);
 
   // Latest props for handlers that are registered once
   const latest = useRef({
@@ -121,7 +193,9 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     onViewportChange,
     onOpenReportModalWithLocation,
     highlightReportId,
-    bottomInsetPx
+    bottomInsetPx,
+    activePinCoordinates,
+    onActivePinChange
   });
   latest.current = {
     roadSegments,
@@ -136,7 +210,9 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     onViewportChange,
     onOpenReportModalWithLocation,
     highlightReportId,
-    bottomInsetPx
+    bottomInsetPx,
+    activePinCoordinates,
+    onActivePinChange
   };
 
   const applyCandidate = (index: number) => {
@@ -154,12 +230,229 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     if (stageRef.current < candidatesRef.current.length - 1) applyCandidate(stageRef.current + 1);
   };
 
+  const reportViewport = (moving: boolean) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const bounds = map.getBounds();
+    latest.current.onViewportChange?.({
+      zoom: map.getZoom() + ZOOM_OFFSET,
+      bounds: [
+        [bounds.getSouth(), bounds.getWest()],
+        [bounds.getNorth(), bounds.getEast()]
+      ],
+      moving
+    });
+  };
+
+  // Stop any active camera intro animation immediately and transition to REGIONAL_READY
+  const cancelIntroAnimation = (reason = 'user_interrupted') => {
+    if (cameraPhaseRef.current === 'REGIONAL_READY') return;
+    cancellationTokenRef.current += 1;
+    if (phaseTimerRef.current !== null) {
+      window.clearTimeout(phaseTimerRef.current);
+      phaseTimerRef.current = null;
+    }
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (mapRef.current) {
+      mapRef.current.stop();
+    }
+    cameraPhaseRef.current = 'REGIONAL_READY';
+  };
+
+  // Smooth westward globe rotation loop across 3D globe mode (surface moving to the left)
+  const startRotationLoop = () => {
+    if (rafIdRef.current !== null) return;
+    let lastTime = performance.now();
+
+    const frame = (time: number) => {
+      rafIdRef.current = requestAnimationFrame(frame);
+
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const currentMap = mapRef.current;
+      if (!currentMap || !styleReadyRef.current) return;
+
+      // Only allow auto-rotation during GLOBE_ROTATION phase or when settled at REGIONAL_READY with manual zoom < 4.0
+      if (cameraPhaseRef.current !== 'GLOBE_ROTATION' && cameraPhaseRef.current !== 'REGIONAL_READY') {
+        return;
+      }
+
+      // 1. Check projection: must be globe
+      const projection = currentMap.getProjection();
+      const isGlobe = projection?.type === 'globe' || (projection as { name?: string })?.name === 'globe';
+      if (!isGlobe) return;
+
+      // 2. Check zoom: if zoom >= GLOBE_MAX_ROTATION_ZOOM, mode is FLAT MAP -> STOP ROTATION COMPLETELY
+      const currentZoom = currentMap.getZoom();
+      if (currentZoom >= GLOBE_MAX_ROTATION_ZOOM) return;
+
+      // 3. Check user interaction: paused while user is touching/dragging/zooming,
+      //    and while a report is selected (its detail is open), so the pin stays put
+      if (isInteractingRef.current || latest.current.highlightReportId) return;
+
+      // 4. Check if map is running a programmatic easeTo/flyTo
+      if (currentMap.isMoving() && !isAutoRotatingRef.current) return;
+
+      // 5. Delta time safety clamp (avoids huge jump when tab was backgrounded or frozen)
+      if (dt > 1) return;
+      const clampedDt = Math.min(Math.max(dt, 0), 0.1);
+      if (clampedDt <= 0) return;
+
+      const center = currentMap.getCenter();
+      if (fixedLatRef.current === null || isNaN(fixedLatRef.current)) {
+        fixedLatRef.current = center.lat;
+      }
+
+      const dLng = ROTATION_SPEED_DEG_PER_SEC * clampedDt;
+      let nextLng = center.lng + dLng;
+      // Wrap longitude within [-180, 180]
+      nextLng = ((((nextLng + 180) % 360) + 360) % 360) - 180;
+
+      isAutoRotatingRef.current = true;
+      try {
+        currentMap.jumpTo(
+          { center: [nextLng, fixedLatRef.current] },
+          { autoRotation: true }
+        );
+      } finally {
+        isAutoRotatingRef.current = false;
+      }
+    };
+
+    rafIdRef.current = requestAnimationFrame(frame);
+  };
+
+  // Phase D: Settle and Ready — camera has arrived at regional Java bounds
+  const settleToReady = (token: number) => {
+    if (cancellationTokenRef.current !== token) return;
+    cameraPhaseRef.current = 'REGIONAL_READY';
+    phaseTimerRef.current = null;
+    reportViewport(false);
+  };
+
+  // Phase C: Regional Zoom — smooth zoom into Jabodetabek, Bekasi, Karawang, Purwakarta
+  const transitionToPhaseC = (token: number) => {
+    const map = mapRef.current;
+    if (!map || cancellationTokenRef.current !== token) return;
+
+    cameraPhaseRef.current = 'JAVA_ZOOM';
+
+    const padding = { top: 70, bottom: 80, left: 40, right: 40 };
+    const cubicOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const targetCam = map.cameraForBounds(REGIONAL_JAVA_BOUNDS, { padding, maxZoom: 9.6 });
+    if (targetCam) {
+      map.easeTo({
+        center: targetCam.center,
+        zoom: targetCam.zoom,
+        duration: PHASE_C_ZOOM_DURATION_MS,
+        easing: cubicOut,
+        essential: true
+      });
+    } else {
+      map.fitBounds(REGIONAL_JAVA_BOUNDS, {
+        padding,
+        maxZoom: 9.6,
+        duration: PHASE_C_ZOOM_DURATION_MS,
+        essential: true
+      });
+    }
+
+    phaseTimerRef.current = window.setTimeout(() => {
+      if (cancellationTokenRef.current !== token) return;
+      settleToReady(token);
+    }, PHASE_C_ZOOM_DURATION_MS + 20);
+  };
+
+  // Phase B: Transition to Indonesia — decelerate horizontal rotation and orient towards Indonesia & Java
+  const transitionToPhaseB = (token: number) => {
+    const map = mapRef.current;
+    if (!map || cancellationTokenRef.current !== token) return;
+
+    // Gracefully stop horizontal rotation loop so jumpTo does not fight easeTo
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    cameraPhaseRef.current = 'INDONESIA_TRANSITION';
+
+    const cubicInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    map.easeTo({
+      center: INDONESIA_INTERMEDIATE_CENTER,
+      zoom: INDONESIA_INTERMEDIATE_ZOOM,
+      duration: PHASE_B_TRANSITION_DURATION_MS,
+      easing: cubicInOut,
+      essential: true
+    });
+
+    phaseTimerRef.current = window.setTimeout(() => {
+      if (cancellationTokenRef.current !== token) return;
+      transitionToPhaseC(token);
+    }, PHASE_B_TRANSITION_DURATION_MS + 20);
+  };
+
+  // Phase A: Globe Reveal — starts 3D globe showing Southeast Asia & Indonesia and rotates slowly
+  const startCameraSequence = () => {
+    const map = mapRef.current;
+    if (!map || !styleReadyRef.current) return;
+
+    if (compact || prefersReducedMotion()) {
+      cameraPhaseRef.current = 'REGIONAL_READY';
+      const padding = { top: 70, bottom: 80, left: 40, right: 40 };
+      const targetCam = map.cameraForBounds(REGIONAL_JAVA_BOUNDS, { padding, maxZoom: 9.6 });
+      if (targetCam) {
+        map.jumpTo({ center: targetCam.center, zoom: targetCam.zoom });
+      } else {
+        map.fitBounds(REGIONAL_JAVA_BOUNDS, { padding, maxZoom: 9.6, duration: 0 });
+      }
+      reportViewport(false);
+      return;
+    }
+
+    cancellationTokenRef.current += 1;
+    const token = cancellationTokenRef.current;
+
+    if (phaseTimerRef.current !== null) {
+      window.clearTimeout(phaseTimerRef.current);
+      phaseTimerRef.current = null;
+    }
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    map.setProjection({ type: 'globe' });
+
+    // Ensure camera starts on Reference 1 outer space globe view
+    const currentZ = map.getZoom();
+    if (currentZ > 4.0 || Math.abs(currentZ - GLOBE_INITIAL_ZOOM) > 0.5) {
+      map.jumpTo({ center: GLOBE_INITIAL_CENTER, zoom: GLOBE_INITIAL_ZOOM });
+    }
+
+    // Phase A: GLOBE_ROTATION
+    cameraPhaseRef.current = 'GLOBE_ROTATION';
+    fixedLatRef.current = GLOBE_INITIAL_CENTER[1];
+    startRotationLoop();
+
+    phaseTimerRef.current = window.setTimeout(() => {
+      if (cancellationTokenRef.current !== token) return;
+      transitionToPhaseB(token);
+    }, PHASE_A_ROTATION_DURATION_MS);
+  };
+
   const renderMarkers = () => {
     const map = mapRef.current;
     if (!map) return;
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
-    const { reports, showDensity: densityOn, language: lang, highlightReportId: highlighted } = latest.current;
+    const { reports, showDensity: densityOn, language: lang, highlightReportId: propHighlighted } = latest.current;
+    const effectiveHighlightId = propHighlighted || localHighlightId;
     // Density hides the markers at area scale; closer in, the individual reports come back
     if (densityOn && map.getZoom() + ZOOM_OFFSET < DENSITY_MARKER_MIN_ZOOM) return;
 
@@ -184,6 +477,7 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
         element.style.cssText += `width:${size}px;height:${size}px;background:#1e293b;color:#ffffff;font:700 13px system-ui,-apple-system,sans-serif;`;
         element.addEventListener('click', (event) => {
           event.stopPropagation();
+          cancelIntroAnimation('cluster_click');
           const bounds = lngLatBounds(cluster.items.map((report) => report.coordinates));
           if (!bounds) return;
           const samePosition = bounds[0][0] === bounds[1][0] && bounds[0][1] === bounds[1][1];
@@ -191,28 +485,75 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
             latest.current.onSelectCluster(cluster.items);
             return;
           }
-          map.fitBounds(bounds, { padding: 70, maxZoom: REPORT_MAX_CLUSTER_ZOOM, duration: 900 });
+          const currentZoom = map.getZoom();
+          const isPoint = Math.abs(bounds[0][0] - bounds[1][0]) < 0.0001 && Math.abs(bounds[0][1] - bounds[1][1]) < 0.0001;
+          if (isPoint) {
+            const nextZoom = Math.min(Math.max(currentZoom + 2.5, 14), 16);
+            map.flyTo({
+              center: toLngLat(cluster.center),
+              zoom: nextZoom,
+              duration: 700
+            });
+          } else {
+            map.fitBounds(bounds, { padding: 80, maxZoom: REPORT_MAX_CLUSTER_ZOOM + 1, duration: 750 });
+          }
         });
       } else {
         const report = cluster.items[0];
         const color = report.status === 'REPAIRED' ? '#57ae78' : SEVERITY_COLOR[report.severity];
-        const isHighlighted = report.id === highlighted;
-        element.className = 'report-marker';
+        const isHighlighted = report.id === effectiveHighlightId;
+        const badgeCount =
+          report.severity === 'CRITICAL'
+            ? 12
+            : report.severity === 'SEVERE' || report.severity === 'MODERATE'
+            ? 5
+            : 2;
+
+        element.className = 'clean-damage-pin-marker report-marker';
         element.dataset.reportId = report.id;
         element.setAttribute('aria-label', `${report.damageTypeLabel} (${report.id})`);
-        element.title = report.damageTypeLabel;
-        element.style.cssText += `width:22px;height:22px;background:${color};${
-          isHighlighted ? `box-shadow:0 0 0 3px #ffffff,0 0 0 5px ${color};` : ''
-        }`;
+        element.title = `${report.damageTypeLabel} — ${reportPhotoCaption(report, 'Foto ilustrasi')}`;
+        // Height fits the content so the element's bottom edge is the pin's tip: anchored at
+        // 'bottom', the tip sits exactly on the report's coordinates at every zoom and projection.
+        element.style.cssText = `width:52px;display:flex;justify-content:center;cursor:pointer;padding:0;border:0;background:none;${isHighlighted ? 'z-index:30;' : ''}`;
+
+        const markerShadow = isHighlighted
+          ? '0 0 0 3px #f59e0b, 0 0 20px rgba(245,158,11,0.9), 0 4px 10px rgba(0,0,0,0.5)'
+          : '0 2px 6px rgba(0,0,0,0.22)';
+
+        element.innerHTML = `
+          <div style="position:relative;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.3));transform-origin:50% 100%;${isHighlighted ? 'transform:scale(1.15);' : ''}">
+            <div style="position:relative;width:40px;height:40px;border-radius:50%;background:#ffffff;border:3px solid ${isHighlighted ? '#f59e0b' : color};box-shadow:${markerShadow};display:flex;align-items:center;justify-content:center;">
+              <img src="${report.photoUrl}" alt="${report.damageTypeLabel}" decoding="async" onerror="this.onerror=null;this.src='${NO_PHOTO_URL}'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" />
+              <div style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 3px;border-radius:999px;background-color:${color};color:${color === '#e8b23a' ? '#0f172a' : '#ffffff'};font-size:9.5px;font-weight:900;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;border:2px solid #ffffff;box-shadow:0 2px 4px rgba(0,0,0,0.3);z-index:10;line-height:1;">
+                ${badgeCount}
+              </div>
+            </div>
+            <div style="width:0;height:0;border-left:5.5px solid transparent;border-right:5.5px solid transparent;border-top:7px solid ${isHighlighted ? '#f59e0b' : color};margin-top:-1px;"></div>
+          </div>
+        `;
+
         element.addEventListener('click', (event) => {
           event.stopPropagation();
+          cancelIntroAnimation('report_marker_click');
+          setLocalHighlightId(report.id);
+          const currentZoom = map.getZoom();
+          const targetZoom = Math.max(currentZoom, 15);
+          map.flyTo({
+            center: toLngLat(report.coordinates),
+            zoom: targetZoom,
+            duration: 700
+          });
           latest.current.onSelectReport?.(report);
         });
       }
 
-      markersRef.current.push(
-        new maplibregl.Marker({ element, anchor: 'center' }).setLngLat(toLngLat(cluster.center)).addTo(map)
-      );
+      // MapLibre moves a marker by rewriting its root element's transform every frame, so the root
+      // carries no transition or transform of its own (either would make pins lag or jump while the
+      // map scrolls/zooms). The highlight scale sits on the inner pin, growing from the tip.
+      // Cluster circles are centred on their group; a single report pin points with its tip.
+      const anchor = cluster.items.length > 1 ? 'center' : 'bottom';
+      markersRef.current.push(new maplibregl.Marker({ element, anchor }).setLngLat(toLngLat(cluster.center)).addTo(map));
     }
   };
 
@@ -331,43 +672,237 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     const map = mapRef.current;
     const { roadSegments: segments, onOpenReportModalWithLocation: openReport, language: lang } = latest.current;
     if (!map || !openReport || segments.length === 0) return;
+
+    pickAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    pickAbortControllerRef.current = controller;
+
     pickPopupRef.current?.remove();
+    pickPopupRef.current = null;
 
     const point: [number, number] = [Number(lngLat.lat.toFixed(6)), Number(lngLat.lng.toFixed(6))];
-    let nearest: RoadSegment = segments[0];
-    let best = Infinity;
-    for (const segment of segments) {
-      const distance = Math.hypot(segment.coordinates[0] - point[0], segment.coordinates[1] - point[1]);
-      if (distance < best) {
-        best = distance;
-        nearest = segment;
-      }
-    }
+    if (!isValidCoordinate(point)) return;
+
+    const selection = createLocationSelection(point);
+    pickRequestIdRef.current = selection.requestId;
+
+    const isEn = lang === 'en';
+    const titleText = isEn ? 'SELECTED LOCATION' : 'LOKASI TERPILIH';
+    const nearestLabel = isEn ? 'NEAREST ROAD CORRIDOR:' : 'RUAS JALAN TERDEKAT:';
+    const approveText = isEn ? 'Approve Location' : 'Setujui Lokasi';
+    const cancelText = isEn ? 'Cancel' : 'Batal';
+    const closeTitle = isEn ? 'Close' : 'Tutup';
+    const retryText = isEn ? 'Retry' : 'Coba Lagi';
+    const searchingText = isEn ? 'Searching road corridor...' : 'Mencari ruas jalan...';
+    const notIdentifiedText = isEn ? 'Road segment not found within search range' : 'Ruas jalan tidak ditemukan dalam jangkauan pencarian';
+    const failedText = isEn ? 'Failed to fetch road data' : 'Gagal mengambil data ruas jalan';
+    const ambiguousText = isEn ? 'Ambiguous road segment detected' : 'Ruas jalan terdeteksi ambigu';
 
     const content = document.createElement('div');
-    content.style.cssText = 'font:12px system-ui,-apple-system,sans-serif;color:#0f172a;min-width:190px;';
-    const position = document.createElement('p');
-    position.style.cssText = 'margin:0 0 2px;font-weight:700;';
-    position.textContent = `${point[0].toFixed(5)}, ${point[1].toFixed(5)}`;
-    const near = document.createElement('p');
-    near.style.cssText = 'margin:0 0 8px;color:#475569;font-size:11px;';
-    near.textContent = `${lang === 'en' ? 'Nearest segment' : 'Ruas terdekat'}: ${nearest.name}`;
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.style.cssText =
-      'width:100%;padding:7px 10px;border:0;border-radius:8px;background:#0f172a;color:#ffffff;font-weight:700;font-size:12px;cursor:pointer;';
-    action.textContent = lang === 'en' ? 'Report damage at this point' : 'Laporkan kerusakan di titik ini';
-    action.addEventListener('click', () => {
-      pickPopupRef.current?.remove();
-      openReport(nearest, point);
-    });
-    content.append(position, near, action);
+    content.className = 'location-card-content';
 
-    pickPopupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 6 })
+    const renderCardHtml = (sel: LocationSelection) => {
+      let roadHtml = '';
+      if (sel.status === 'RESOLVING') {
+        roadHtml = `<span class="location-card-road-resolving">⏳ ${searchingText}</span>`;
+      } else if (sel.status === 'RESOLVED' && sel.segment) {
+        const distBadge =
+          sel.distanceMeters !== null
+            ? `<span class="location-card-distance-badge">± ${Math.round(sel.distanceMeters)} m ${isEn ? 'from corridor' : 'dari ruas'}</span>`
+            : '';
+        roadHtml = `
+          <span class="location-card-road-name" title="${sel.segment.name}" role="button" tabindex="0">
+            ${sel.segment.name}
+          </span>
+          <span class="location-card-road-id-sub">(${sel.segment.id})</span>
+          ${distBadge}
+        `;
+      } else if (sel.status === 'AMBIGUOUS' && sel.segment) {
+        const distBadge =
+          sel.distanceMeters !== null
+            ? `<span class="location-card-distance-badge">± ${Math.round(sel.distanceMeters)} m ${isEn ? 'from corridor' : 'dari ruas'}</span>`
+            : '';
+        roadHtml = `
+          <span class="location-card-road-name" title="${sel.segment.name}" role="button" tabindex="0">
+            ${sel.segment.name}
+          </span>
+          <span class="location-card-road-id-sub">(${sel.segment.id})</span>
+          <span class="location-card-ambiguous-badge">⚠️ ${ambiguousText}</span>
+          ${distBadge}
+        `;
+      } else if (sel.status === 'NO_ROAD_FOUND') {
+        roadHtml = `<span class="location-card-road-unidentified">⚠️ ${notIdentifiedText}</span>`;
+      } else {
+        roadHtml = `
+          <div class="location-card-road-error-group">
+            <span class="location-card-road-error">⚠️ ${sel.errorMessage || failedText}</span>
+            <button id="pop-retry-btn" class="location-card-retry-btn" type="button">
+              🔄 ${retryText}
+            </button>
+          </div>
+        `;
+      }
+
+      const isApproveDisabled = sel.status === 'RESOLVING' || !sel.isValid;
+
+      return `
+        <div class="location-card-header">
+          <div class="location-card-title-group">
+            <span class="location-card-pin-icon" aria-hidden="true">
+              <svg width="20" height="24" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C6.75329 1.5 2.5 5.75329 2.5 11C2.5 17.5 12 26.5 12 26.5C12 26.5 21.5 17.5 21.5 11C21.5 5.75329 17.2467 1.5 12 1.5ZM12 14.5C10.067 14.5 8.5 12.933 8.5 11C8.5 9.067 10.067 7.5 12 7.5C13.933 7.5 15.5 9.067 15.5 11C15.5 12.933 13.933 14.5 12 14.5Z" fill="#DC2626"/>
+              </svg>
+            </span>
+            <h3 class="location-card-title">${titleText}</h3>
+          </div>
+          <button id="pop-close-btn" class="location-card-close-btn" aria-label="Close" title="${closeTitle}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="location-card-divider"></div>
+
+        <div class="location-card-coord-box">
+          <span class="location-card-coords">${sel.coordinates[0].toFixed(6)}, ${sel.coordinates[1].toFixed(6)}</span>
+        </div>
+
+        <div class="location-card-road-box">
+          <span class="location-card-road-label">${nearestLabel}</span>
+          ${roadHtml}
+        </div>
+
+        <div class="location-card-actions">
+          <button id="pop-approve-btn" class="location-card-approve-btn" ${isApproveDisabled ? 'disabled' : ''}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>${approveText}</span>
+          </button>
+          <button id="pop-cancel-btn" class="location-card-cancel-btn" aria-label="Cancel" title="${cancelText}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      `;
+    };
+
+    content.innerHTML = renderCardHtml(selection);
+
+    // Update or create active pin marker
+    if (pickMarkerRef.current) {
+      pickMarkerRef.current.setLngLat(lngLat);
+    } else {
+      const markerEl = document.createElement('div');
+      markerEl.className = 'active-location-pin-marker';
+      markerEl.innerHTML = createActivePinMarkerHtml('maplibre-active-pin');
+      pickMarkerRef.current = new maplibregl.Marker({
+        element: markerEl,
+        anchor: 'center'
+      })
+        .setLngLat(lngLat)
+        .addTo(map);
+    }
+    latest.current.onActivePinChange?.([point[0], point[1]], null);
+
+    let currentSelection = selection;
+
+    const bindButtonEvents = () => {
+      const approveBtn = content.querySelector('#pop-approve-btn') as HTMLButtonElement | null;
+      const cancelBtn = content.querySelector('#pop-cancel-btn') as HTMLButtonElement | null;
+      const closeBtn = content.querySelector('#pop-close-btn') as HTMLButtonElement | null;
+      const retryBtn = content.querySelector('#pop-retry-btn') as HTMLButtonElement | null;
+      const roadNameEl = content.querySelector('.location-card-road-name') as HTMLElement | null;
+
+      if (roadNameEl && currentSelection.segment) {
+        roadNameEl.style.cursor = 'pointer';
+        roadNameEl.onclick = (e) => {
+          e.stopPropagation();
+          if (currentSelection.segment) {
+            props.onSelectSegment?.(currentSelection.segment);
+          }
+        };
+      }
+
+      if (retryBtn) {
+        retryBtn.onclick = (e) => {
+          e.stopPropagation();
+          showPickPopup(lngLat);
+        };
+      }
+
+      let isApproving = false;
+      if (approveBtn && currentSelection.status !== 'RESOLVING') {
+        approveBtn.onclick = () => {
+          if (isApproving) return;
+          isApproving = true;
+          approveBtn.disabled = true;
+          pickPopupRef.current?.remove();
+          pickPopupRef.current = null;
+          openReport(currentSelection.segment || segments[0], currentSelection.coordinates);
+        };
+      }
+      const handleClose = () => {
+        pickAbortControllerRef.current?.abort();
+        pickRequestIdRef.current = null;
+        pickPopupRef.current?.remove();
+        pickPopupRef.current = null;
+        pickMarkerRef.current?.remove();
+        pickMarkerRef.current = null;
+        latest.current.onActivePinChange?.(null);
+      };
+      if (cancelBtn) cancelBtn.onclick = handleClose;
+      if (closeBtn) closeBtn.onclick = handleClose;
+    };
+
+    bindButtonEvents();
+
+    pickPopupRef.current = new maplibregl.Popup({
+      closeButton: false,
+      maxWidth: '360px',
+      offset: 14,
+      className: 'compact-location-approval-popup'
+    })
       .setLngLat(lngLat)
       .setDOMContent(content)
       .addTo(map);
+
+    resolveRoadSelection(selection, segments, {
+      signal: controller.signal,
+      maxRadiusMeters: DEFAULT_ROAD_SEARCH_RADIUS_METERS
+    })
+      .then((resolved) => {
+        if (pickRequestIdRef.current !== selection.requestId) return;
+        currentSelection = resolved;
+        content.innerHTML = renderCardHtml(resolved);
+        bindButtonEvents();
+        latest.current.onActivePinChange?.([point[0], point[1]], resolved.segment);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError' || pickRequestIdRef.current !== selection.requestId) return;
+        currentSelection = {
+          ...selection,
+          status: 'ERROR',
+          state: 'error',
+          errorMessage: failedText
+        };
+        content.innerHTML = renderCardHtml(currentSelection);
+        bindButtonEvents();
+      });
   };
+
+
+  // Synchronize pick marker with external activePinCoordinates
+  useEffect(() => {
+    if (activePinCoordinates === null && pickMarkerRef.current) {
+      pickMarkerRef.current.remove();
+      pickMarkerRef.current = null;
+    }
+  }, [activePinCoordinates]);
 
   // Create the map once
   useEffect(() => {
@@ -375,18 +910,18 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     if (!container) return;
 
     candidatesRef.current = basemapCandidates(baseMapStyle, import.meta.env.VITE_MAPTILER_KEY);
-    const shortSide = Math.max(240, Math.min(container.clientWidth || 375, container.clientHeight || 600));
-    // Zoom at which the globe is a little narrower than the short side of the map
-    const globeZoom = Math.log2((shortSide * 0.9 * Math.PI) / 512);
 
+    const shouldStartRegional = compact || prefersReducedMotion();
     let map: maplibregl.Map;
     try {
       map = new maplibregl.Map({
         container,
         style: candidatesRef.current[0].style as maplibregl.StyleSpecification | string,
-        center: INDONESIA,
-        zoom: globeZoom,
-        attributionControl: { compact: true }
+        center: shouldStartRegional ? [107.10, -6.35] : GLOBE_INITIAL_CENTER,
+        zoom: shouldStartRegional ? 9.3 : GLOBE_INITIAL_ZOOM,
+        minZoom: 0,
+        maxZoom: 19,
+        attributionControl: false
       });
     } catch {
       // No WebGL: the Leaflet map takes over
@@ -394,8 +929,34 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       return;
     }
     mapRef.current = map;
-    // Development only: lets browser checks compare marker positions with projected coordinates
-    if (import.meta.env.DEV) (window as unknown as { __pavementMap?: maplibregl.Map }).__pavementMap = map;
+    // Development only: lets browser checks compare marker positions and control camera
+    if (import.meta.env.DEV) {
+      const w = window as unknown as {
+        __pavementMap?: maplibregl.Map;
+        __pavementCameraPhase?: () => MapCameraPhase;
+        __pavementReplayIntro?: () => void;
+      };
+      w.__pavementMap = map;
+      w.__pavementCameraPhase = () => cameraPhaseRef.current;
+      w.__pavementReplayIntro = () => startCameraSequence();
+    }
+
+    // Official AttributionControl: compact mode, starts collapsed, expandable on tap
+    const attribControl = new maplibregl.AttributionControl({ compact: true });
+    map.addControl(attribControl, 'bottom-right');
+    const containerEl = (attribControl as unknown as { _container: HTMLElement })._container;
+    if (containerEl) {
+      containerEl.classList.add('maplibregl-compact');
+      containerEl.classList.remove('maplibregl-compact-show');
+      const origUpdateCompact = (attribControl as unknown as { _updateCompact: () => void })._updateCompact;
+      (attribControl as unknown as { _updateCompact: () => void })._updateCompact = function() {
+        const wasOpen = containerEl.classList.contains('maplibregl-compact-show');
+        origUpdateCompact.call(this);
+        if (!wasOpen) {
+          containerEl.classList.remove('maplibregl-compact-show');
+        }
+      };
+    }
 
     const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
     if (coarsePointer) {
@@ -406,17 +967,42 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'bottom-right');
     }
 
-    const reportViewport = (moving: boolean) => {
-      const bounds = map.getBounds();
-      latest.current.onViewportChange?.({
-        zoom: map.getZoom() + ZOOM_OFFSET,
-        bounds: [
-          [bounds.getSouth(), bounds.getWest()],
-          [bounds.getNorth(), bounds.getEast()]
-        ],
-        moving
-      });
+    // User interaction detection: cancel intro animation and pause auto-rotation immediately when user starts navigating,
+    // and resume only after manual interaction finishes (with a 1s cooldown).
+    const handleInteractionStart = (e?: { originalEvent?: unknown }) => {
+      // Ignore programmatic movements (where originalEvent is undefined)
+      if (e && 'originalEvent' in e && !e.originalEvent) return;
+      cancelIntroAnimation('user_drag_or_zoom');
+      isInteractingRef.current = true;
+      if (resumeTimerRef.current !== null) {
+        window.clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
     };
+
+    const handleInteractionEnd = () => {
+      if (resumeTimerRef.current !== null) {
+        window.clearTimeout(resumeTimerRef.current);
+      }
+      resumeTimerRef.current = window.setTimeout(() => {
+        isInteractingRef.current = false;
+        if (mapRef.current) {
+          fixedLatRef.current = mapRef.current.getCenter().lat;
+          if (cameraPhaseRef.current === 'REGIONAL_READY' && mapRef.current.getZoom() < GLOBE_MAX_ROTATION_ZOOM) {
+            startRotationLoop();
+          }
+        }
+      }, INTERACTION_RESUME_DELAY_MS);
+    };
+
+    map.on('dragstart', handleInteractionStart);
+    map.on('mousedown', handleInteractionStart);
+    map.on('touchstart', handleInteractionStart);
+    map.on('wheel', handleInteractionStart);
+
+    map.on('dragend', handleInteractionEnd);
+    map.on('mouseup', handleInteractionEnd);
+    map.on('touchend', handleInteractionEnd);
 
     map.on('style.load', () => {
       styleReadyRef.current = true;
@@ -425,6 +1011,29 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       syncLayers();
       renderMarkers();
       reportViewport(false);
+      (attribControl as unknown as { _updateCompactMinimize?: () => void })._updateCompactMinimize?.();
+
+      if (compact || prefersReducedMotion()) {
+        cameraPhaseRef.current = 'REGIONAL_READY';
+        const padding = { top: 70, bottom: 80, left: 40, right: 40 };
+        const targetCam = map.cameraForBounds(REGIONAL_JAVA_BOUNDS, { padding, maxZoom: 9.6 });
+        if (targetCam) {
+          map.jumpTo({ center: targetCam.center, zoom: targetCam.zoom });
+        }
+        reportViewport(false);
+      } else {
+        startCameraSequence();
+      }
+    });
+
+    map.on('click', () => {
+      (attribControl as unknown as { _updateCompactMinimize?: () => void })._updateCompactMinimize?.();
+    });
+    map.on('touchstart', () => {
+      (attribControl as unknown as { _updateCompactMinimize?: () => void })._updateCompactMinimize?.();
+    });
+    map.on('dragstart', () => {
+      (attribControl as unknown as { _updateCompactMinimize?: () => void })._updateCompactMinimize?.();
     });
 
     map.on('error', (event) => {
@@ -445,8 +1054,18 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       if (tile && sourceId && !sourceId.startsWith('pp-')) healthRef.current = recordTileLoad(healthRef.current);
     });
 
-    map.on('movestart', () => reportViewport(true));
-    map.on('moveend', () => reportViewport(false));
+    // Only report viewport changes to React when it is a manual user move or programmatic navigation,
+    // not on every 60fps auto-rotation tick (which would cause excessive React re-renders).
+    map.on('movestart', (e) => {
+      if ((e as { autoRotation?: boolean }).autoRotation) return;
+      reportViewport(true);
+    });
+    map.on('moveend', (e) => {
+      if ((e as { autoRotation?: boolean }).autoRotation) return;
+      reportViewport(false);
+      handleInteractionEnd();
+    });
+
     map.on('zoom', () => {
       // Regroup markers every half zoom level, not on every animation frame
       const bucket = Math.round(map.getZoom() * 2);
@@ -480,21 +1099,66 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       map.getCanvas().style.cursor = '';
     });
 
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (containerEl && !containerEl.contains(e.target as Node)) {
+        (attribControl as unknown as { _updateCompactMinimize?: () => void })._updateCompactMinimize?.();
+      }
+    };
+    document.addEventListener('click', handleDocumentClick);
+
+    // Keep MapLibre canvas size strictly in sync with its DOM container
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {
+      if (mapRef.current && container.isConnected) {
+        mapRef.current.resize();
+      }
+    }) : null;
+    if (resizeObserver && container) {
+      resizeObserver.observe(container);
+    }
+
     return () => {
+      resizeObserver?.disconnect();
+      cancellationTokenRef.current += 1;
+      if (phaseTimerRef.current !== null) {
+        window.clearTimeout(phaseTimerRef.current);
+        phaseTimerRef.current = null;
+      }
+      document.removeEventListener('click', handleDocumentClick);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      if (resumeTimerRef.current !== null) {
+        window.clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
       userMarkerRef.current = null;
+      pickMarkerRef.current?.remove();
+      pickMarkerRef.current = null;
       styleReadyRef.current = false;
       mapRef.current = null;
       map.remove();
     };
   }, []);
 
+  // Cinematic Entry Animation Trigger: re-run intro when tab becomes active or entryAnimationKey increments
+  useEffect(() => {
+    if (!mountedRef.current || !mapRef.current || !styleReadyRef.current) return;
+    if (compact) return;
+    if (isTabActive === false) {
+      cancelIntroAnimation('tab_inactive');
+      return;
+    }
+    startCameraSequence();
+  }, [entryAnimationKey, isTabActive, compact]);
+
   // Data, filter, layer and selection changes: never a new map, never a camera move
   useEffect(() => {
     syncLayers();
     renderMarkers();
-  }, [roadSegments, communityReports, activeFilter, showDensity, selectedSegment, highlightReportId, language]);
+  }, [roadSegments, communityReports, activeFilter, showDensity, selectedSegment, highlightReportId, localHighlightId, language]);
 
   // Basemap choice
   useEffect(() => {
@@ -509,12 +1173,19 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     const map = mapRef.current;
     if (!mountedRef.current || !map || !selectedSegment) return;
 
+    cancelIntroAnimation('selected_segment');
+
     if (hasBottomInset) {
       if (!viewBeforeSelectionRef.current) {
         viewBeforeSelectionRef.current = { center: map.getCenter(), zoom: map.getZoom() };
       }
+      const canonical = getCanonicalRoadGeometry(selectedSegment.id);
+      const polyline =
+        canonical && canonical.geometry.coordinates.length > 1
+          ? toLeafletPolyline(canonical.geometry.coordinates)
+          : selectedSegment.polyline;
       const bounds = lngLatBounds(
-        selectedSegment.polyline.length > 1 ? selectedSegment.polyline : [selectedSegment.coordinates]
+        polyline.length > 1 ? polyline : [selectedSegment.coordinates]
       );
       if (bounds) {
         map.fitBounds(bounds, {
@@ -539,7 +1210,10 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
 
   // Locate without a device position: back to the region the demo data covers
   useEffect(() => {
-    if (recenterKey > 0) mapRef.current?.flyTo({ center: DATA_REGION, zoom: 11, duration: 1400 });
+    if (recenterKey > 0) {
+      cancelIntroAnimation('recenter');
+      mapRef.current?.flyTo({ center: DATA_REGION, zoom: HOME_ZOOM, duration: 1400 });
+    }
   }, [recenterKey]);
 
   // Device position, only when the Geolocation API returned one
@@ -548,6 +1222,7 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
     userMarkerRef.current?.remove();
     userMarkerRef.current = null;
     if (!map || !userLocation) return;
+    cancelIntroAnimation('user_location');
     const element = document.createElement('div');
     element.className = 'user-location-marker';
     element.style.cssText =
@@ -562,13 +1237,14 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapCenterTarget) return;
+    cancelIntroAnimation('target_report');
     const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
     map.flyTo({
       center: toLngLat(mapCenterTarget.coords),
       zoom: (mapCenterTarget.zoom ?? 17) - ZOOM_OFFSET,
       // Keep the point in the part of the map a half-open sheet leaves visible
       offset: narrow ? [0, -150] : [0, 0],
-      duration: 1400
+      duration: 750
     });
   }, [mapCenterTarget]);
 
@@ -588,11 +1264,11 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       {/* MapLibre sets position: relative on its container, so the size comes from width/height */}
       <div ref={containerRef} data-testid="vector-map" className="w-full h-full" />
 
-      {/* Provenance: everything drawn on this map comes from the bundled demo datasets */}
+      {/* Provenance: demo indicator is already displayed in header user pill; hidden here to clear bottom UI */}
       <div
         data-testid="demo-data-badge"
         title={DEMO_DATA_NOTE[language]}
-        className="absolute bottom-1 left-1 z-10 bg-slate-900/90 border border-amber-400/50 text-amber-300 text-xs font-semibold tracking-wide px-2 py-1 rounded-md"
+        className="hidden"
       >
         {DEMO_DATA_LABEL[language]}
       </div>

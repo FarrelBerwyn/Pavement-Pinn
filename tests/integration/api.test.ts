@@ -55,8 +55,10 @@ test('GET /api/health', async () => {
   const body = await res.json();
   assert.deepEqual(Object.keys(body), ['status', 'appName', 'timestamp', 'server']);
   // Which code this process runs, so the UI can warn about a stale server on another port.
-  assert.deepEqual(Object.keys(body.server), ['pid', 'startedAt', 'commit', 'currentCommit', 'stale']);
+  assert.deepEqual(Object.keys(body.server), ['pid', 'startedAt', 'commit', 'currentCommit', 'stale', 'syncStatus', 'checkedAt', 'changedFiles', 'fingerprint']);
   assert.equal(typeof body.server.stale, 'boolean');
+  assert.ok(['SYNCED', 'COMMIT_MISMATCH', 'SOURCE_MODIFIED', 'UNKNOWN'].includes(body.server.syncStatus));
+  assert.ok(!Number.isNaN(Date.parse(body.server.checkedAt)));
   assert.equal(body.status, 'ok');
   assert.equal(body.appName, 'PAVEMENT-PINN');
   assert.ok(!Number.isNaN(Date.parse(body.timestamp)));
@@ -154,7 +156,8 @@ test('server config: defaults preserve port 3000 and the GitHub Pages base path'
     basePath: '/PavementPinn/',
     dataDir: '.data',
     sessionSecret: undefined,
-    demoAuthEnabled: true
+    demoAuthEnabled: true,
+    sessionMaxAgeSeconds: 7200
   });
   assert.equal(loadServerConfig({ SESSION_SECRET: 'too-short' }).sessionSecret, undefined);
   assert.equal(loadServerConfig({ DEMO_AUTH: 'false' }).demoAuthEnabled, false);

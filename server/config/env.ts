@@ -1,4 +1,5 @@
 import { normalizeBasePath } from "../../src/constants/deployment";
+import { SESSION_MAX_AGE_SECONDS } from "../auth/sessionTokens";
 
 /**
  * Server runtime configuration, read once from the process environment.
@@ -14,10 +15,15 @@ export interface ServerConfig {
   basePath: string;
   /** Directory of the local workflow store (development/demo persistence). */
   dataDir: string;
-  /** HMAC secret for session tokens (>= 32 chars). Unset: random per process. */
+  /** HMAC secret for session tokens (>= 32 chars). Unset: a key kept in the data directory. */
   sessionSecret: string | undefined;
   /** Demo account picker sessions. Set DEMO_AUTH=false where real auth is required. */
   demoAuthEnabled: boolean;
+  /**
+   * Absolute session lifetime in seconds: 2 hours. SESSION_MAX_AGE_SECONDS may only shorten it,
+   * and only outside production (to test expiry without waiting two hours).
+   */
+  sessionMaxAgeSeconds: number;
 }
 
 export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -29,6 +35,13 @@ export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCo
     basePath: normalizeBasePath(env.VITE_BASE_PATH),
     dataDir: env.DATA_DIR && env.DATA_DIR.trim() !== "" ? env.DATA_DIR : ".data",
     sessionSecret: env.SESSION_SECRET && env.SESSION_SECRET.length >= 32 ? env.SESSION_SECRET : undefined,
-    demoAuthEnabled: env.DEMO_AUTH !== "false"
+    demoAuthEnabled: env.DEMO_AUTH !== "false",
+    sessionMaxAgeSeconds: sessionMaxAge(env)
   };
+}
+
+function sessionMaxAge(env: NodeJS.ProcessEnv): number {
+  const requested = Number.parseInt(env.SESSION_MAX_AGE_SECONDS ?? "", 10);
+  if (env.NODE_ENV === "production" || !Number.isInteger(requested) || requested < 10) return SESSION_MAX_AGE_SECONDS;
+  return Math.min(requested, SESSION_MAX_AGE_SECONDS);
 }

@@ -24,6 +24,7 @@ import { ILLUSTRATIVE_PHOTO_LABEL } from '../../data/provenance';
 import { UserAccount } from '../authentication/demoAccounts';
 import { canEditReport } from '../rbac/accessPolicy';
 import { Language, TRANSLATIONS } from '../../i18n/translations';
+import { reportPhotoCaption } from '../../domain/reports/datasetImages';
 
 interface ReportDetailModalProps {
   isOpen: boolean;
@@ -90,10 +91,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     CLOSED: 'bg-slate-700/40 text-slate-300 border-slate-500/30'
   };
 
-  // Fallback repair details if not populated
-  const afterPhotoPreset =
-    report.repairDetails?.afterPhotoUrl ||
-    'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&q=80&w=800';
+  // Actual after repair photo from F.E work completion (no fake stock replacement)
+  const afterPhotoActual = report.repairDetails?.afterPhotoUrl;
 
   const repairDate =
     report.repairDetails?.repairDate || (isEn ? 'Not yet scheduled' : 'Belum dijadwalkan');
@@ -257,7 +256,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 </div>
                 <div className="relative rounded-xl overflow-hidden border border-white/10 h-44 group">
                   <span className="absolute bottom-2 left-2 z-10 bg-slate-950/80 text-amber-300 text-xs font-bold px-2 py-1 rounded">
-                    {ILLUSTRATIVE_PHOTO_LABEL[language]}
+                    {reportPhotoCaption(report, ILLUSTRATIVE_PHOTO_LABEL[language])}
                   </span>
                   <img
                     src={report.photoUrl}
@@ -287,20 +286,28 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span>🟢 {t.afterLabel}</span>
                   </span>
-                  <span className="text-xs font-mono text-emerald-400 font-bold">{repairDate}</span>
+                  <span className="text-xs font-mono text-emerald-400 font-bold">{afterPhotoActual ? repairDate : 'Menunggu Pengerjaan'}</span>
                 </div>
-                <div className="relative rounded-xl overflow-hidden border border-white/10 h-44 group">
-                  <img
-                    src={afterPhotoPreset}
-                    alt={t.afterLabel}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-xs font-mono font-bold text-emerald-300 border border-emerald-500/30">
-                    AC-WC 8.5 cm Overlay
+                {afterPhotoActual ? (
+                  <div className="relative rounded-xl overflow-hidden border border-white/10 h-44 group">
+                    <img
+                      src={afterPhotoActual}
+                      alt={t.afterLabel}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-xs font-mono font-bold text-emerald-300 border border-emerald-500/30">
+                      {repairMethod.split('+')[0] || 'Perbaikan Lapangan Selesai'}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="relative rounded-xl border border-dashed border-white/10 bg-surface/50 h-44 flex flex-col items-center justify-center p-4 text-center">
+                    <Clock className="w-7 h-7 mb-2 text-slate-500" />
+                    <p className="text-xs font-semibold text-slate-300">Belum ada bukti perbaikan</p>
+                    <p className="text-[11px] text-slate-500 mt-1">Pekerjaan lapangan belum diselesaikan oleh Field Engineer (F.E)</p>
+                  </div>
+                )}
                 <div className="text-xs font-mono bg-surface p-2 rounded-xl border border-white/5 text-slate-300 flex items-center justify-between">
-                  <span className="text-slate-400">Status: <strong className="text-emerald-300">{pciImprovement}</strong></span>
+                  <span className="text-slate-400">Status: <strong className={afterPhotoActual ? 'text-emerald-300' : 'text-slate-400'}>{afterPhotoActual ? pciImprovement : 'Belum Ditangani'}</strong></span>
                   <span className="text-xs text-slate-400 truncate max-w-[160px]">{agencyInCharge.split('(')[0]}</span>
                 </div>
               </div>

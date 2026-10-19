@@ -25,6 +25,7 @@ import { demoLoginFor } from '../../src/data/reference/demoCredentials';
 import { fieldTasks, tasksDue } from '../../src/features/work-orders/fieldTasks';
 import { workflowNotifications } from '../../src/features/workflow/notifications';
 import { OfflineWorkflowGateway, type ReportView } from '../../src/services/api/workflowClient';
+import { bodyWithSession } from '../helpers/sessionCookie';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 const DUE = new Date(Date.now() + 4 * 86400000).toISOString();
@@ -56,7 +57,7 @@ async function call(method: string, p: string, body?: unknown, token?: string) {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
-  return { status: res.status, body: (await res.json()) as any };
+  return { status: res.status, body: await bodyWithSession(res) };
 }
 
 /**

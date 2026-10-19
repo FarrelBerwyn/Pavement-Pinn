@@ -69,8 +69,10 @@ export interface WorkflowGateway {
   readonly mode: GatewayMode;
   /** Check credentials and start a session for the account they open. Returns the actor. */
   login(credentials: LoginCredentials): Promise<Actor>;
-  /** Forget the signed-in session (the browser stops presenting its token). */
-  logout(): void;
+  /** End the signed-in session: forgotten here at once; settles once the server has revoked it. */
+  logout(): Promise<void>;
+  /** Called when the server refuses a signed-in session as ended (2-hour limit or logged out elsewhere). */
+  onSessionEnded(listener: (() => void) | null): void;
   /**
    * Resume the session for this account, or start an anonymous one when null. A named
    * account needs a session from `login`; without one this fails with UNAUTHENTICATED
@@ -145,11 +147,24 @@ function pathFor(template: string, id: string): string {
   return template.replace(':id', encodeURIComponent(id));
 }
 
+/*
+ * Sessions on the server gateway:
+ * - Signed-in accounts: the server's HttpOnly cookie (sent automatically, same origin). This
+ *   class never sees or stores that token; a refresh or another tab resumes it from the cookie.
+ * - Anonymous visitors: a bearer token kept in this tab's sessionStorage.
+ */
 export class HttpWorkflowGateway implements WorkflowGateway {
   readonly mode: GatewayMode = 'SERVER';
+  /** Bearer token of the anonymous visitor only; null for signed-in accounts (cookie). */
   private token: string | null = null;
   private actor: Actor | null = null;
   private sessionKey: string | null = null;
+  private sessionEnded: (() => void) | null = null;
+  private pendingLogout: Promise<void> = Promise.resolve();
+
+  onSessionEnded(listener: (() => void) | null): void {
+    this.sessionEnded = listener;
+  }
 
   private async request<T>(method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
     const headers: Record<string, string> = { ...extraHeaders };
@@ -163,15 +178,44 @@ export class HttpWorkflowGateway implements WorkflowGateway {
     }
     const json = (await res.json().catch(() => null)) as { success?: boolean; error?: { code: string; message: string } } | null;
     if (!res.ok || !json || json.success === false) {
-      throw new WorkflowApiError(json?.error?.code ?? 'HTTP_ERROR', json?.error?.message ?? `HTTP ${res.status}`, res.status);
+      const code = json?.error?.code ?? 'HTTP_ERROR';
+      if (code === 'SESSION_EXPIRED') {
+        if (this.actor?.kind === 'ANONYMOUS' || this.token) {
+          // An anonymous token ran out: forget it; the next useAccount(null) starts a new one.
+          this.token = null;
+          this.actor = null;
+          this.sessionKey = null;
+          writeStorage(TOKEN_KEY, null);
+        } else if (this.actor) {
+          this.actor = null;
+          this.sessionKey = null;
+          this.sessionEnded?.();
+        }
+      }
+      throw new WorkflowApiError(code, json?.error?.message ?? `HTTP ${res.status}`, res.status);
     }
     return json as T;
   }
 
   async useAccount(account: SessionAccount | null): Promise<Actor> {
     const key = account ? `demo:${account.id}` : 'anonymous';
-    if (this.token && this.sessionKey === key && this.actor) return this.actor;
-    // Reuse this tab's stored session for the same identity when it is still valid.
+    if (this.sessionKey === key && this.actor) return this.actor;
+    if (account) {
+      // Signed-in account: the cookie is the session. Ask the server who it belongs to; a
+      // session for another account (or none) is never reused for this one.
+      this.token = null;
+      writeStorage(TOKEN_KEY, null);
+      const me = await this.request<{ actor: Actor }>('GET', WORKFLOW_API_PATHS.me);
+      if (me.actor.id !== account.id || me.actor.kind !== 'DEMO_ACCOUNT') {
+        this.actor = null;
+        this.sessionKey = null;
+        throw new WorkflowApiError('UNAUTHENTICATED', 'Sesi tidak ditemukan atau sudah berakhir. Silakan masuk kembali.', 401);
+      }
+      this.actor = me.actor;
+      this.sessionKey = key;
+      return me.actor;
+    }
+    // Anonymous: reuse this tab's stored token while it is still valid.
     const stored = readStorage(TOKEN_KEY);
     if (stored) {
       try {
@@ -203,21 +247,39 @@ export class HttpWorkflowGateway implements WorkflowGateway {
   }
 
   async login(credentials: LoginCredentials): Promise<Actor> {
-    this.logout();
-    const res = await this.request<{ token: string; actor: Actor }>('POST', WORKFLOW_API_PATHS.login, credentials);
-    const key = `demo:${res.actor.id}`;
-    this.token = res.token;
+    // End the previous identity first, and wait for it: a logout still in flight when the new
+    // session cookie arrives would revoke the new session instead of the old one.
+    this.forget();
+    await this.endServerSession();
+    const res = await this.request<{ actor: Actor }>('POST', WORKFLOW_API_PATHS.login, credentials);
     this.actor = res.actor;
-    this.sessionKey = key;
-    writeStorage(TOKEN_KEY, JSON.stringify({ key, token: res.token }));
+    this.sessionKey = `demo:${res.actor.id}`;
     return res.actor;
   }
 
-  logout(): void {
+  logout(): Promise<void> {
+    this.forget();
+    // Revoke on the server too (the cookie stops working everywhere). keepalive lets it finish
+    // even when the page navigates away right after.
+    return this.endServerSession();
+  }
+
+  private forget(): void {
     this.token = null;
     this.actor = null;
     this.sessionKey = null;
     writeStorage(TOKEN_KEY, null);
+  }
+
+  /** Server logouts run one after another, so a later login can wait for all of them. */
+  private endServerSession(): Promise<void> {
+    this.pendingLogout = this.pendingLogout.then(() =>
+      fetch(apiUrl(WORKFLOW_API_PATHS.logout), { method: 'POST', credentials: 'same-origin', keepalive: true }).then(
+        () => undefined,
+        () => undefined
+      )
+    );
+    return this.pendingLogout;
   }
 
   async listReports(): Promise<ReportView[]> {
@@ -326,7 +388,11 @@ export class OfflineWorkflowGateway implements WorkflowGateway {
     return this.actor;
   }
 
-  logout(): void {
+  onSessionEnded(): void {
+    // The static build has no server session to end.
+  }
+
+  async logout(): Promise<void> {
     writeStorage(OFFLINE_LOGIN_KEY, null);
     this.actor = { id: 'anon-offline', role: 'PUBLIC_VIEWER', kind: 'ANONYMOUS' };
   }

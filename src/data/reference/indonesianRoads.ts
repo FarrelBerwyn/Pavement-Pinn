@@ -1,6 +1,7 @@
 import { RoadSegment, WimStationDetails } from '../../types';
+import { CANONICAL_ROAD_GEOMETRIES, toLeafletPolyline } from '../../domain/geo/canonicalRoadGeometry';
 
-export const INDONESIAN_ROAD_SEGMENTS: RoadSegment[] = [
+const RAW_INDONESIAN_ROAD_SEGMENTS: RoadSegment[] = [
   {
     id: 'JLN-KRW-KIIC-1',
     name: 'Jl. Akses KIIC - Karawang Barat (Kawasan Industri KIIC)',
@@ -392,6 +393,8 @@ export const INDONESIAN_ROAD_SEGMENTS: RoadSegment[] = [
     activeOdolAlert: 'GREEN',
   }
 ];
+
+export const INDONESIAN_ROAD_SEGMENTS: RoadSegment[] = RAW_INDONESIAN_ROAD_SEGMENTS;
 
 // No WIM data source is connected (F-04/F-16, v3 D-12). Station records with
 // licence plates and overload figures were fabricated and have been removed.

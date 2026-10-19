@@ -1,4 +1,5 @@
 import express, { Express } from "express";
+import type { Server } from "node:http";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import type { ServerConfig } from "../config/env";
@@ -9,14 +10,19 @@ import type { ServerConfig } from "../config/env";
  *  - production:  the static `dist/` build plus an index.html fallback so client-side
  *                 routes (deep links, refresh) resolve.
  */
-export async function attachFrontendHost(app: Express, config: ServerConfig): Promise<void> {
+/** Returns how to stop what was attached (the Vite dev server and its file watcher), if anything. */
+export async function attachFrontendHost(app: Express, config: ServerConfig, httpServer?: Server): Promise<() => Promise<void>> {
   if (!config.isProduction) {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      // HMR on this process's own HTTP server (same host:port as the page), not a shared ws port.
+      server: { middlewareMode: true, hmr: httpServer && process.env.DISABLE_HMR !== "true" ? { server: httpServer } : undefined,
+        // Workflow stores (.data, --independent dirs) change at runtime; they are data, not source.
+        ...(process.env.DISABLE_HMR === "true" ? {} : { watch: { ignored: ["**/.data*/**"] } })
+      },
       appType: "spa"
     });
     app.use(vite.middlewares);
-    return;
+    return () => vite.close();
   }
 
   const distPath = path.join(process.cwd(), "dist");
@@ -29,4 +35,5 @@ export async function attachFrontendHost(app: Express, config: ServerConfig): Pr
   app.get("*", function sendSpaIndex(_req, res) {
     res.sendFile(path.join(distPath, "index.html"));
   });
+  return async () => undefined;
 }

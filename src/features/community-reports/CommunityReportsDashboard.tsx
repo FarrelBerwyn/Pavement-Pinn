@@ -41,6 +41,10 @@ import { createSessionReport, ReportCreationError } from './reportFactory';
 import { settleMutation } from './reportMutations';
 import { canEditReport } from '../rbac/accessPolicy';
 import { ReportRoadIssueCard } from './ReportRoadIssueCard';
+import {
+  canonicalStatusOfReport,
+  CANONICAL_STATUS_META
+} from '../../domain/workflow/canonicalStatus';
 
 interface CommunityReportsDashboardProps {
   activeRole: UserRole;
@@ -56,14 +60,14 @@ interface CommunityReportsDashboardProps {
   onRunSimulationForSegment: (segment: RoadSegment) => void;
 }
 
-/* Calm look shared with the report sheet: solid surfaces, thin borders, one yellow accent. */
-const UI_CARD = 'rounded-2xl border border-white/[0.08] bg-white/[0.03]';
+/* Single Source of Truth design system tokens matching Operations Manager (M.O) */
+const UI_CARD = 'rounded-panel border border-line-subtle bg-panel';
 const UI_FIELD =
-  'w-full h-11 rounded-xl border border-white/[0.08] bg-surface px-4 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-400/70';
+  'w-full h-9 rounded-control border border-line-subtle bg-card px-3 text-xs text-ink placeholder:text-ink-3 focus:outline-none focus:border-[#E8B52B]';
 const UI_PRIMARY =
-  'h-11 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+  'h-9 rounded-control bg-[#E8B52B] hover:bg-[#F3C442] text-slate-950 text-xs font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60';
 const UI_GHOST =
-  'h-9 px-3 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] inline-flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+  'h-7 px-2 rounded-control text-[11px] font-medium text-ink-2 hover:bg-raised hover:text-ink border border-line-subtle bg-card inline-flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60';
 const SEVERITY_LABEL: Record<string, string> = { LIGHT: 'Ringan', MODERATE: 'Sedang', SEVERE: 'Berat', CRITICAL: 'Kritis' };
 const SEVERITY_DOT: Record<string, string> = { LIGHT: 'bg-emerald-400', MODERATE: 'bg-amber-400', SEVERE: 'bg-orange-400', CRITICAL: 'bg-red-400' };
 const STATUS_LABEL: Record<string, string> = {
@@ -268,52 +272,57 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
     setDescription('');
   };
 
-  // Filtered reports list
+  // Filtered reports list (supports both canonical status keys and raw report statuses)
   const filteredReports = reports.filter((r) => {
-    const matchStatus = statusFilter === 'ALL' || r.status === statusFilter;
+    const statusKey = canonicalStatusOfReport(r);
+    const matchStatus =
+      statusFilter === 'ALL' ||
+      r.status === statusFilter ||
+      statusKey === statusFilter;
     const matchType = damageTypeFilter === 'ALL' || r.damageType === damageTypeFilter;
     const matchSearch =
       searchQuery === '' ||
       r.segmentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.reporterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.corridor.toLowerCase().includes(searchQuery.toLowerCase());
+      r.corridor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.id.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchStatus && matchType && matchSearch;
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* Intro & quick numbers */}
-      <section className={`${UI_CARD} p-5 sm:p-6 space-y-5`}>
+      <section className={`${UI_CARD} p-4 sm:p-5 space-y-4`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="min-w-0 space-y-1">
-            <h2 className="text-lg font-semibold text-white">Laporan kerusakan jalan</h2>
-            <p className="text-sm text-slate-400 max-w-2xl">
+            <h2 className="text-base sm:text-lg font-semibold text-ink">Laporan kerusakan jalan</h2>
+            <p className="text-xs sm:text-sm text-ink-2 max-w-2xl">
               Laporan dari warga. Setiap laporan diperiksa petugas sebelum ditindaklanjuti; data WIM yang ditampilkan adalah contoh (DEMO).
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-[11px] text-ink-3">
               {myReportsCount > 0
                 ? `Anda punya ${myReportsCount} laporan${editableReportsCount > 0 ? `, ${editableReportsCount} masih bisa diedit` : ''}.`
                 : 'Anda belum membuat laporan.'}
             </p>
           </div>
-          <button onClick={() => setIsFormOpen(true)} className={`${UI_PRIMARY} shrink-0 px-5`}>
+          <button onClick={() => setIsFormOpen(true)} className={`${UI_PRIMARY} shrink-0 px-4`}>
             <PlusCircle className="w-4 h-4" />
             <span>Laporkan kerusakan</span>
           </button>
         </div>
 
-        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           {[
             ['Total laporan', reports.length],
             ['Diverifikasi petugas', reports.filter((r) => r.status === 'VERIFIED_BY_ENGINEER' || r.status === 'SCHEDULED_FOR_REPAIR').length],
             ['Kritis / lubang', reports.filter((r) => r.severity === 'CRITICAL' || r.damageType === 'POTHOLE').length],
             ['Laporan saya', myReportsCount]
           ].map(([label, value]) => (
-            <div key={label as string} className={`${UI_CARD} px-4 py-3`}>
-              <dt className="text-xs text-slate-400">{label}</dt>
-              <dd className="text-xl font-semibold text-white mt-1">{value}</dd>
+            <div key={label as string} className="rounded-card border border-line-subtle bg-card px-3.5 py-2.5 sm:px-4 sm:py-3">
+              <dt className="text-xs text-ink-3 font-medium">{label}</dt>
+              <dd className="text-xl sm:text-2xl font-semibold text-ink mt-0.5 font-mono">{value}</dd>
             </div>
           ))}
         </dl>
@@ -473,7 +482,6 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
           return outcome;
         }}
         onFocusMapLocation={(coords) => {
-          setIsFormOpen(false);
           const seg = roadSegments.find((s) => {
             const dist = Math.hypot(s.coordinates[0] - coords[0], s.coordinates[1] - coords[1]);
             return dist < 0.3;
@@ -483,17 +491,20 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
       />
 
       {/* Filters & search */}
-      <section className={`${UI_CARD} p-3 flex flex-col md:flex-row md:items-center gap-3`}>
+      <section className={`${UI_CARD} p-2.5 sm:p-3 flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3`}>
         <label className="flex items-center gap-2 w-full md:w-auto">
-          <Filter className="w-4 h-4 text-amber-400 shrink-0" />
+          <Filter className="w-3.5 h-3.5 text-[#E8B52B] shrink-0" />
           <span className="sr-only">Status</span>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={UI_FIELD}>
             <option value="ALL">Semua status ({reports.length})</option>
-            <option value="PENDING">Menunggu verifikasi</option>
-            <option value="VERIFIED_BY_ENGINEER">Diverifikasi petugas</option>
-            <option value="SCHEDULED_FOR_REPAIR">Dijadwalkan</option>
-            <option value="REPAIRED">Selesai diperbaiki</option>
-            <option value="CLOSED">Ditutup</option>
+            <option value="MENUNGGU_PENINJAUAN">Menunggu Peninjauan</option>
+            <option value="BELUM_DITUGASKAN">Belum Ditugaskan</option>
+            <option value="MENUNGGU_FE">SPK Ditugaskan (Menunggu F.E)</option>
+            <option value="SEDANG_DIKERJAKAN">Sedang Dikerjakan</option>
+            <option value="MENUNGGU_VERIFIKASI">Bukti Masuk / Menunggu Verifikasi</option>
+            <option value="SELESAI">Selesai</option>
+            <option value="PENDING">Menunggu (Raw PENDING)</option>
+            <option value="VERIFIED_BY_ENGINEER">Diverifikasi Petugas</option>
           </select>
         </label>
         <label className="w-full md:w-auto">
@@ -509,113 +520,219 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
         </label>
         <label className="relative w-full md:w-72 md:ml-auto">
           <span className="sr-only">Cari</span>
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none" />
           <input
             type="text"
             placeholder="Cari lokasi, jalan, pelapor"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`${UI_FIELD} pl-10`}
+            className={`${UI_FIELD} pl-9`}
           />
         </label>
       </section>
 
-      {/* Report cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* Report cards: 5 columns on wide desktop (>= 1600px / 2xl), 4 on xl, 2 on md, 1 on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-3.5 min-w-0">
         {filteredReports.length === 0 && (
-          <p className="col-span-full text-center text-sm text-slate-400 py-10">Tidak ada laporan yang cocok dengan filter.</p>
+          <p className="col-span-full text-center text-sm text-ink-3 py-10">Tidak ada laporan yang cocok dengan filter.</p>
         )}
         {filteredReports.map((report) => {
           const isMyReport = report.creatorAccountId === currentAccount.id;
           const canEdit = canEditReport(currentAccount, report);
+          const statusKey = canonicalStatusOfReport(report);
+          const statusMeta = CANONICAL_STATUS_META[statusKey];
+          const afterPhoto = report.repairDetails?.afterPhotoUrl;
+          const isVerifiedDone = statusKey === 'SELESAI' || !!report.repairDetails?.verified;
 
           return (
             <article
               key={report.id}
               onClick={() => setSelectedDetailReport(report)}
-              className={`${UI_CARD} overflow-hidden flex flex-col cursor-pointer hover:bg-white/[0.05] hover:border-white/[0.14] transition-colors`}
+              className="rounded-card border border-line-subtle bg-panel overflow-hidden flex flex-col justify-between cursor-pointer hover:bg-card hover:border-line-active transition-all p-3 sm:p-3.5 gap-2.5 shadow-sm min-w-0 group"
             >
-              <div className="relative aspect-[16/10] bg-white/[0.03]">
-                <img src={report.photoUrl} alt={report.damageTypeLabel} className="w-full h-full object-cover" />
-                <span className="absolute top-3 left-3 rounded-full bg-surface/90 px-3 py-1 text-xs text-slate-100 flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${SEVERITY_DOT[report.severity] ?? 'bg-slate-400'}`} />
-                  {SEVERITY_LABEL[report.severity] ?? report.severity}
-                </span>
-              </div>
-
-              <div className="p-4 flex-1 flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-white truncate">{report.segmentName}</h3>
-                    <p className="text-xs text-slate-400 truncate">{report.damageTypeLabel} · {report.province}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-white/[0.1] px-3 py-1 text-xs text-slate-300">
-                    {STATUS_LABEL[report.status] ?? report.status}
+              {/* Top content wrapper */}
+              <div className="space-y-2 min-w-0">
+                {/* A. HEADER: ID & CANONICAL STATUS */}
+                <div className="flex items-center justify-between gap-1.5 min-w-0">
+                  <span
+                    className="font-mono text-[10px] font-semibold text-ink-3 bg-card border border-line-subtle px-1.5 py-0.5 rounded truncate max-w-[125px] shrink-0"
+                    title={report.id}
+                  >
+                    {report.id}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium shrink-0 max-w-[150px] truncate ${statusMeta.badgeClass}`}
+                    title={statusMeta.label}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${statusMeta.dotColor}`} />
+                    <span className="truncate">{statusMeta.label}</span>
                   </span>
                 </div>
 
-                {report.description && <p className="text-sm text-slate-300 line-clamp-2">{report.description}</p>}
-
-                {report.wimCorrelation && (
-                  <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-xs text-slate-400">
-                    <span className="flex items-center gap-2 text-slate-300">
-                      <Truck className="w-4 h-4 text-amber-400" />
-                      Contoh data WIM (DEMO)
+                {/* B. JENIS KERUSAKAN */}
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SEVERITY_DOT[report.severity] ?? 'bg-slate-400'}`} />
+                    <h3 className="text-[13px] font-semibold text-ink truncate min-w-0 flex-1">
+                      {report.damageTypeLabel}
+                    </h3>
+                    <span className="text-[11px] text-ink-3 shrink-0">
+                      · {SEVERITY_LABEL[report.severity] ?? report.severity}
                     </span>
-                    <span className="block mt-1">
-                      Beban sumbu maks {report.wimCorrelation.maxAxleLoadTon} t · lebih {report.wimCorrelation.overloadPercent}%
+                  </div>
+
+                  {/* C. LOKASI */}
+                  <p
+                    className="flex items-start gap-1 text-[11px] text-ink-2 leading-tight min-w-0"
+                    title={`${report.segmentName} ${report.corridor ? `(${report.corridor})` : ''}`}
+                  >
+                    <MapPin className="w-3 h-3 text-ink-3 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">
+                      {report.segmentName}
+                      {report.corridor && <span className="text-ink-3"> ({report.corridor})</span>}
+                    </span>
+                  </p>
+
+                  {/* D. DESKRIPSI */}
+                  {report.description && (
+                    <p
+                      className="text-[11px] text-ink-3 italic line-clamp-2 leading-relaxed pt-0.5"
+                      title={report.description}
+                    >
+                      “{report.description}”
+                    </p>
+                  )}
+                </div>
+
+                {/* E. BUKTI SEBELUM DAN SESUDAH (ASPECT 4:3) */}
+                <div className="space-y-1 pt-1.5 border-t border-line-subtle min-w-0">
+                  <div className="grid grid-cols-2 gap-1.5 text-[10px] font-medium text-ink-3">
+                    <span className="truncate">Bukti Kerusakan</span>
+                    <span className="truncate text-right">Bukti Perbaikan</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {/* Foto Sebelum */}
+                    <div className="relative rounded-control overflow-hidden border border-line-subtle bg-card/60 aspect-[4/3] group/img">
+                      <img
+                        src={report.photoUrl}
+                        alt="Bukti kerusakan sebelum"
+                        className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200"
+                        loading="lazy"
+                      />
+                      <span className="absolute bottom-1 left-1 rounded bg-black/80 px-1 py-0.2 text-[9px] font-medium text-rose-300">
+                        Sebelum
+                      </span>
+                    </div>
+
+                    {/* Foto Sesudah / Placeholder */}
+                    {afterPhoto ? (
+                      <div className="relative rounded-control overflow-hidden border border-emerald-500/30 bg-card/60 aspect-[4/3] group/img">
+                        <img
+                          src={afterPhoto}
+                          alt="Bukti setelah perbaikan"
+                          className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200"
+                          loading="lazy"
+                        />
+                        <span
+                          className={`absolute bottom-1 left-1 rounded px-1 py-0.2 text-[9px] font-medium ${
+                            isVerifiedDone
+                              ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-indigo-950/90 text-indigo-200 border border-indigo-500/30'
+                          }`}
+                        >
+                          {isVerifiedDone ? '✓ Selesai' : '● Menunggu Verifikasi'}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="rounded-control border border-dashed border-line-subtle bg-card/30 flex flex-col items-center justify-center p-1 text-center text-ink-3 aspect-[4/3]">
+                        <Clock className="w-3.5 h-3.5 mb-0.5 text-ink-3" />
+                        <span className="text-[10px] font-medium text-ink-2 leading-tight">
+                          Belum ada bukti perbaikan
+                        </span>
+                        <span className="text-[9px] text-ink-3 mt-0.5 leading-tight">
+                          Menunggu pekerjaan F.E
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* WIM Correlation badge */}
+                {report.wimCorrelation && (
+                  <div className="rounded-control bg-card/50 border border-line-subtle px-2 py-1 text-[10px] text-ink-3 flex items-center gap-1.5">
+                    <Truck className="w-3 h-3 text-[#E8B52B] shrink-0" />
+                    <span className="truncate">
+                      WIM: Beban {report.wimCorrelation.maxAxleLoadTon} t (lebih {report.wimCorrelation.overloadPercent}%)
                     </span>
                   </div>
                 )}
-
-                <div className="flex items-center gap-3 mt-auto pt-1">
-                  <img
-                    src={report.reporterAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
-                    alt=""
-                    className="w-7 h-7 rounded-full object-cover"
-                  />
-                  <p className="text-xs text-slate-400 truncate min-w-0 flex-1">
-                    {report.reporterName}
-                    {isMyReport && <span className="text-amber-300"> · Anda</span>}
-                  </p>
-                </div>
               </div>
 
-              <div className="border-t border-white/[0.06] px-2 py-2 flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onUpvoteReport(report.id);
-                  }}
-                  aria-pressed={!!report.userUpvoted}
-                  className={`${UI_GHOST} ${report.userUpvoted ? 'text-amber-300' : ''}`}
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>{report.upvotesCount}</span>
-                </button>
-                {canEdit && (
+              {/* F. FOOTER: METADATA & AKSI */}
+              <div className="space-y-2 pt-1 border-t border-line-subtle min-w-0 mt-auto">
+                <div className="flex items-center gap-1.5 text-[10px] text-ink-3 min-w-0">
+                  <img
+                    src={
+                      report.reporterAvatar ||
+                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
+                    }
+                    alt=""
+                    className="w-4 h-4 rounded-full object-cover shrink-0"
+                  />
+                  <span className="truncate flex-1 text-ink-2">
+                    {report.reporterName}
+                    {isMyReport && <b className="text-[#E8B52B] font-semibold"> (Anda)</b>}
+                  </span>
+                  <span className="shrink-0 font-mono text-ink-3">
+                    {report.timestamp}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 pt-0.5">
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleOpenEdit(report);
+                      onUpvoteReport(report.id);
                     }}
-                    className={UI_GHOST}
-                    title="Edit laporan Anda"
+                    aria-pressed={!!report.userUpvoted}
+                    className={`h-7 px-2 rounded-control text-[11px] font-medium border border-line-subtle bg-card hover:bg-raised text-ink-2 hover:text-ink inline-flex items-center gap-1 transition-colors cursor-pointer ${
+                      report.userUpvoted ? 'text-[#E8B52B] border-[#E8B52B]/40' : ''
+                    }`}
+                    title="Dukung / upvote laporan ini"
                   >
-                    <Edit3 className="w-4 h-4" />
-                    <span>Edit</span>
+                    <ThumbsUp className="w-3 h-3" />
+                    <span>{report.upvotesCount}</span>
                   </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectSegmentForMap(report.segmentId);
-                  }}
-                  className={`${UI_GHOST} ml-auto text-amber-300`}
-                >
-                  <span>Lihat di peta</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </button>
+
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEdit(report);
+                      }}
+                      className="h-7 px-2 rounded-control text-[11px] font-medium border border-line-subtle bg-card hover:bg-raised text-ink-2 hover:text-ink inline-flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Edit laporan Anda"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Edit</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectSegmentForMap(report.segmentId);
+                    }}
+                    className="h-7 px-2 rounded-control text-[11px] font-medium border border-line-subtle bg-card hover:bg-raised text-[#E8B52B] hover:text-[#F3C442] inline-flex items-center gap-1 ml-auto transition-colors cursor-pointer"
+                    title="Lihat lokasi di peta"
+                  >
+                    <span>Lihat di peta</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             </article>
           );

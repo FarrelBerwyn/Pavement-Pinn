@@ -63,6 +63,14 @@ export interface Translations {
   openDetailedComparison: string;
   approveLocation: string;
   selectedLocation: string;
+  searchingRoad: string;
+  roadNotIdentified: string;
+  roadResolutionFailed: string;
+  roadNotFoundInRange: string;
+  roadFetchFailed: string;
+  retry: string;
+  roadAmbiguous: string;
+  invalidCoordinates: string;
   tapToReport: string;
 
   // Drawer / Issue Details
@@ -212,6 +220,14 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     openDetailedComparison: 'Buka Komparasi Detail',
     approveLocation: 'Setujui Lokasi',
     selectedLocation: 'LOKASI TERPILIH',
+    searchingRoad: 'Mencari ruas jalan...',
+    roadNotIdentified: 'Ruas jalan belum teridentifikasi',
+    roadResolutionFailed: 'Gagal memuat informasi ruas jalan',
+    roadNotFoundInRange: 'Ruas jalan tidak ditemukan dalam jangkauan pencarian',
+    roadFetchFailed: 'Gagal mengambil data ruas jalan',
+    retry: 'Coba Lagi',
+    roadAmbiguous: 'Ruas jalan terdeteksi ambigu',
+    invalidCoordinates: 'Koordinat tidak valid',
     tapToReport: 'Ketuk untuk laporkan jalan rusak',
 
     issueDetailsTitle: 'Detail Kerusakan Jalan',
@@ -353,6 +369,14 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     openDetailedComparison: 'Open Detailed Comparison',
     approveLocation: 'Approve Location',
     selectedLocation: 'SELECTED LOCATION',
+    searchingRoad: 'Searching road corridor...',
+    roadNotIdentified: 'Road corridor not identified',
+    roadResolutionFailed: 'Failed to resolve road corridor',
+    roadNotFoundInRange: 'Road segment not found within search range',
+    roadFetchFailed: 'Failed to fetch road data',
+    retry: 'Retry',
+    roadAmbiguous: 'Ambiguous road segment detected',
+    invalidCoordinates: 'Invalid coordinates',
     tapToReport: 'Tap to report a road problem',
 
     issueDetailsTitle: 'Road Damage Details',

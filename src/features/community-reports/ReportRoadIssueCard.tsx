@@ -32,7 +32,34 @@ import { UserAccount } from '../authentication/demoAccounts';
 import { createSessionReport, ReportCreationError } from './reportFactory';
 import { settleMutation } from './reportMutations';
 import { useSheetDrag } from '../../components/ui/useSheetDrag';
-import { CV_DAMAGE_CLASSES, CVDamageClassInfo, analyzeImageDamageClass } from '../../engines/computer-vision/classification/cvDamageClasses';
+import { CV_DAMAGE_CLASSES } from '../../engines/computer-vision/classification/cvDamageClasses';
+import type { CvAnalysis, CvJobStage, CvJobView, CvSeverityLevel } from '../../types/cv';
+import { CV_STAGE_LABELS, CvClientError, checkImageInput, runCvAnalysis } from './cvClient';
+
+/** Damage-type choice in step 3: from the model (with its taxonomy code) or picked by the reporter. */
+interface DamageChoice {
+  damageType: DamageType;
+  label: string;
+  icon: string;
+  taxonomyCode: string | null;
+  source: 'model' | 'user';
+}
+
+const CV_SEVERITY_TO_REPORT: Record<CvSeverityLevel, ReportSeverity | null> = { minor: 'LIGHT', moderate: 'MODERATE', severe: 'SEVERE', unknown: null };
+const TAXONOMY_ICON: Record<string, string> = { POTHOLE: '🕳', ALLIGATOR_CRACK: '🐊', BLOCK_CRACK: '▦', LONGITUDINAL_CRACK: '〰', TRANSVERSE_CRACK: '〰', EDGE_CRACK: '〰', OTHER_ROAD_DAMAGE: '〰' };
+const SEVERITY_ID: Record<CvSeverityLevel, string> = { minor: 'ringan', moderate: 'sedang', severe: 'parah', unknown: 'belum dapat ditentukan' };
+/** Manual choices when the model gives no answer (no default is preselected). */
+const MANUAL_DAMAGE_CHOICES: DamageChoice[] = Object.values(CV_DAMAGE_CLASSES).map((c) => ({ damageType: c.damageType, label: c.label, icon: c.icon, taxonomyCode: null, source: 'user' }));
+/** Stages the engine runs, in order; segmenting only when a segmenter is configured. */
+const PIPELINE_STAGES: CvJobStage[] = ['validating_input', 'model_loading', 'preprocessing', 'detecting', 'segmenting', 'evaluating', 'validating'];
+
+/** Draft note from what the model actually found; no physical size or depth claims. */
+export function draftNoteFromAnalysis(a: CvAnalysis): string {
+  if (!a.detections.length) return '';
+  const types = [...new Set(a.detections.map((d) => d.label.toLowerCase()))];
+  const sev = SEVERITY_ID[a.overallSeverity ?? 'unknown'];
+  return `Teridentifikasi ${types.join(', ')} pada permukaan jalan (deteksi AI, ${a.detections.length} temuan). Tingkat keparahan sementara: ${sev}. Verifikasi lapangan diperlukan untuk memastikan dimensi fisik.`;
+}
 
 export type ReportCardState =
   | 'INPUT'
@@ -42,6 +69,16 @@ export type ReportCardState =
   | 'CV_PROCESSING'
   | 'ANALYSIS_RESULT'
   | 'SUCCESS';
+
+export type LocationSource = 'map_pin' | 'device_gps' | 'manual';
+
+export interface ReportLocation {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number;
+  source: LocationSource;
+  address?: string;
+}
 
 interface ReportRoadIssueCardProps {
   isOpen: boolean;
@@ -154,28 +191,97 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
     maxWidth: 639
   });
 
-  // Location State
-  const [locationName, setLocationName] = useState<string>('');
-  const [coordinates, setCoordinates] = useState<[number, number]>(
-    initialCoordinates || selectedSegment?.coordinates || [-6.2150, 106.8220]
-  );
-  const [locationStatus, setLocationStatus] = useState<'DETECTED' | 'REQUESTING' | 'DENIED' | 'MANUAL'>('DETECTED');
+  // Single Source of Truth for Report Location (Pin-First Architecture)
+  const initialPoint = initialCoordinates || selectedSegment?.coordinates || [-6.2150, 106.8220];
+  const [reportLocation, setReportLocation] = useState<ReportLocation>(() => ({
+    latitude: initialPoint[0],
+    longitude: initialPoint[1],
+    source: 'map_pin',
+    address: selectedSegment ? `${selectedSegment.name}, ${selectedSegment.province}` : undefined
+  }));
+
+  const coordinates: [number, number] = [reportLocation.latitude, reportLocation.longitude];
+  const locationName = reportLocation.address || '';
+  const locationSource = reportLocation.source;
+  const gpsAccuracy = reportLocation.accuracyMeters ?? null;
+
+  const [isGpsLoading, setIsGpsLoading] = useState<boolean>(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
   const nearest = (point: [number, number]) => nearestSegment(roadSegments, point);
   const labelFor = (point: [number, number]) => {
     const seg = nearest(point);
-    return seg ? `${seg.name}, ${seg.province}` : `Lokasi GPS ${point[0].toFixed(5)}, ${point[1].toFixed(5)}`;
+    return seg ? `${seg.name}, ${seg.province}` : `Koordinat ${point[0].toFixed(4)}, ${point[1].toFixed(4)}`;
+  };
+
+  const geocodeAbortRef = useRef<AbortController | null>(null);
+
+  // Background reverse geocoding to refine street address without altering coordinates
+  const performReverseGeocode = (point: [number, number]) => {
+    if (geocodeAbortRef.current) {
+      geocodeAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    geocodeAbortRef.current = controller;
+
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${point[0]}&lon=${point[1]}&zoom=18&addressdetails=1`,
+      {
+        headers: { 'Accept-Language': 'id,en' },
+        signal: controller.signal
+      }
+    )
+      .then((res) => {
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('Geocoding response not ok');
+        return res.json();
+      })
+      .then((data) => {
+        if (data && data.address) {
+          const a = data.address;
+          const road = a.road || a.pedestrian || a.street || a.highway || a.neighbourhood || data.name;
+          const sub = a.suburb || a.village || a.town || a.city_district || a.county;
+          const city = a.city || a.regency || a.state;
+          const parts = [road, sub, city].filter(Boolean);
+          if (parts.length > 0) {
+            setReportLocation((prev) => ({
+              ...prev,
+              address: parts.join(', ')
+            }));
+            return;
+          }
+        }
+        setReportLocation((prev) => ({
+          ...prev,
+          address: prev.address || labelFor(point)
+        }));
+      })
+      .catch(() => {
+        // Fallback to nearest segment on offline / timeout / abort
+        setReportLocation((prev) => ({
+          ...prev,
+          address: prev.address || labelFor(point)
+        }));
+      });
   };
 
   // Validation Error
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // CV Processing State
-  const [progressPercent, setProgressPercent] = useState<number>(0);
-  const [processingStageText, setProcessingStageText] = useState<string>('✨ Processing image');
+  // CV job (server-reported stages) and its stored analysis
+  const [cvJob, setCvJob] = useState<CvJobView | null>(null);
+  const [cvAnalysis, setCvAnalysis] = useState<CvAnalysis | null>(null);
+  const [cvError, setCvError] = useState<{ code: string; message: string } | null>(null);
+  const [showOverlay, setShowOverlay] = useState<boolean>(true);
+  const [selectedFinding, setSelectedFinding] = useState<number>(0);
+  const cvRunRef = useRef<{ key: string; image: string; abort: AbortController } | null>(null);
 
-  // CV Analysis Result
-  const [analyzedClass, setAnalyzedClass] = useState<CVDamageClassInfo>(CV_DAMAGE_CLASSES.pothole);
+  // Step 3 choices; the model output stays in cvAnalysis untouched
+  const [damageChoice, setDamageChoice] = useState<DamageChoice | null>(null);
   const [customSeverity, setCustomSeverity] = useState<ReportSeverity | null>(null);
+  const modelSeverity: ReportSeverity | null = cvAnalysis ? CV_SEVERITY_TO_REPORT[cvAnalysis.overallSeverity ?? 'unknown'] : null;
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [showTechnicalAnalysis, setShowTechnicalAnalysis] = useState<boolean>(false);
 
@@ -187,72 +293,146 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   const [savedState, setSavedState] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<boolean>(false);
 
-  // Sync initial coordinates or segment
+  const lastGpsPointRef = useRef<[number, number] | null>(null);
+  const prevIsOpenRef = useRef<boolean>(isOpen);
+
+  // Sync pin location when modal opens (Pin-First: never auto-trigger GPS)
   useEffect(() => {
-    if (initialCoordinates) {
-      setCoordinates(initialCoordinates);
-      if (selectedSegment) {
-        setLocationName(`${selectedSegment.name}, ${selectedSegment.province}`);
-      } else {
-        setLocationName(labelFor(initialCoordinates));
+    if (isOpen && !prevIsOpenRef.current) {
+      if (currentState === 'SUCCESS') {
+        handleReset();
       }
-      setLocationStatus('DETECTED');
+      const targetPin = initialCoordinates || selectedSegment?.coordinates;
+      if (targetPin) {
+        lastGpsPointRef.current = null;
+        const initialAddr = selectedSegment ? `${selectedSegment.name}, ${selectedSegment.province}` : labelFor(targetPin);
+        setReportLocation({
+          latitude: targetPin[0],
+          longitude: targetPin[1],
+          source: 'map_pin',
+          address: initialAddr
+        });
+        setGpsError(null);
+        performReverseGeocode(targetPin);
+      }
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Synchronize when initialCoordinates or selectedSegment changes (e.g. user moved pin on map)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialCoordinates) {
+      // Check if this coordinate update was caused by GPS calibration
+      const isFromGps =
+        lastGpsPointRef.current &&
+        Math.abs(initialCoordinates[0] - lastGpsPointRef.current[0]) < 1e-5 &&
+        Math.abs(initialCoordinates[1] - lastGpsPointRef.current[1]) < 1e-5;
+
+      if (!isFromGps) {
+        lastGpsPointRef.current = null;
+        setReportLocation({
+          latitude: initialCoordinates[0],
+          longitude: initialCoordinates[1],
+          source: 'map_pin',
+          address: labelFor(initialCoordinates)
+        });
+        setGpsError(null);
+        performReverseGeocode(initialCoordinates);
+      }
     } else if (selectedSegment) {
-      setCoordinates(selectedSegment.coordinates);
-      setLocationName(`${selectedSegment.name}, ${selectedSegment.province}`);
-      setLocationStatus('DETECTED');
-    } else {
-      setLocationName((prev) => prev || labelFor(coordinates));
+      lastGpsPointRef.current = null;
+      setReportLocation({
+        latitude: selectedSegment.coordinates[0],
+        longitude: selectedSegment.coordinates[1],
+        source: 'map_pin',
+        address: `${selectedSegment.name}, ${selectedSegment.province}`
+      });
+      setGpsError(null);
+      performReverseGeocode(selectedSegment.coordinates);
     }
   }, [initialCoordinates, selectedSegment]);
 
-  // Request user GPS on open
-  useEffect(() => {
-    if (isOpen && !initialCoordinates && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          setCoordinates(point);
-          // GPS wins over the preselected segment: keep the label in step with the pin.
-          setLocationStatus((prev) => {
-            if (prev !== 'MANUAL') setLocationName(labelFor(point));
-            return prev === 'MANUAL' ? prev : 'DETECTED';
-          });
-        },
-        (err) => {
-          console.warn('Geolocation notice:', err.message);
-          setLocationStatus('DETECTED');
-        },
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    }
-  }, [isOpen]);
-
-  // Manual GPS re-detect function
+  // Explicit GPS calibration when user clicks "Perbarui GPS"
   const handleDetectGps = () => {
-    if (navigator.geolocation) {
-      setLocationStatus('REQUESTING');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setCoordinates([lat, lng]);
-          setLocationStatus('DETECTED');
-          setLocationName(labelFor([lat, lng]));
-        },
-        (err) => {
-          console.warn('GPS error:', err);
-          setLocationStatus('DENIED');
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
+    if (isGpsLoading) return;
+    setGpsError(null);
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGpsError('Perangkat atau browser Anda tidak mendukung Geolocation.');
+      return;
     }
+
+    setIsGpsLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsGpsLoading(false);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
+
+        // Strict coordinates validation (-90 to 90, -180 to 180, not NaN)
+        if (
+          typeof lat !== 'number' ||
+          typeof lng !== 'number' ||
+          isNaN(lat) ||
+          isNaN(lng) ||
+          lat < -90 ||
+          lat > 90 ||
+          lng < -180 ||
+          lng > 180
+        ) {
+          setGpsError('Koordinat GPS yang diterima tidak valid.');
+          return;
+        }
+
+        const newPoint: [number, number] = [Number(lat.toFixed(6)), Number(lng.toFixed(6))];
+        lastGpsPointRef.current = newPoint;
+
+        setReportLocation({
+          latitude: newPoint[0],
+          longitude: newPoint[1],
+          accuracyMeters: acc,
+          source: 'device_gps',
+          address: labelFor(newPoint)
+        });
+
+        // Synchronize marker on the map so map pin moves simultaneously
+        onFocusMapLocation?.(newPoint, 17);
+
+        // Perform reverse geocoding on the calibrated coordinates
+        performReverseGeocode(newPoint);
+      },
+      (err) => {
+        setIsGpsLoading(false);
+        let message = 'Gagal mengambil lokasi GPS.';
+        if (err.code === err.PERMISSION_DENIED) {
+          message = 'Izin lokasi ditolak. Periksa pengaturan browser Anda.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          message = 'Sinyal GPS perangkat tidak tersedia saat ini.';
+        } else if (err.code === err.TIMEOUT) {
+          message = 'Waktu permintaan GPS habis. Coba lagi di area terbuka.';
+        }
+        setGpsError(message);
+        setTimeout(() => setGpsError(null), 5000);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
-  // Stop camera stream when component closes or unmounts
+  // Stop camera stream & cancel in-flight geocode requests when component closes or unmounts
   useEffect(() => {
     return () => {
       stopCameraStream();
+      if (geocodeAbortRef.current) {
+        geocodeAbortRef.current.abort();
+      }
     };
   }, []);
 
@@ -362,10 +542,6 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
     stopCameraStream();
     setValidationError(null);
 
-    // Pre-calculate analyzed damage class
-    const resultClass = analyzeImageDamageClass(capturedUrl);
-    setAnalyzedClass(resultClass);
-
     // Show Confirmation Screen before proceeding to AI processing
     setTimeout(() => {
       setCurrentState('CAMERA_CONFIRM');
@@ -383,80 +559,149 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
     handleOpenFullscreenCamera();
   };
 
-  // Start AI Processing Sequence
-  const startAiProcessing = () => {
-    setCurrentState('PREPARING');
-    setTimeout(() => {
-      setCurrentState('CV_PROCESSING');
-      setProgressPercent(10);
-      setProcessingStageText('✨ Processing image');
-
-      // Stage 1: 0 - 25%
-      setTimeout(() => {
-        setProgressPercent(30);
-        setProcessingStageText('✨ Detecting road damage');
-      }, 400);
-
-      // Stage 2: 25 - 55%
-      setTimeout(() => {
-        setProgressPercent(65);
-        setProcessingStageText('✨ Classifying damage severity');
-      }, 950);
-
-      // Stage 3: 55 - 80%
-      setTimeout(() => {
-        setProgressPercent(90);
-        setProcessingStageText('✨ Finalizing AI assessment');
-      }, 1500);
-
-      // Stage 4: 100% Complete
-      setTimeout(() => {
-        setProgressPercent(100);
-        setProcessingStageText('✓ Analysis complete');
-
-        setTimeout(() => {
-          setCurrentState('ANALYSIS_RESULT');
-        }, 500);
-      }, 2100);
-    }, 400);
+  /** Fill step 3 from a finished analysis: model type, model severity, draft note. */
+  const applyAnalysis = (a: CvAnalysis) => {
+    setCvAnalysis(a);
+    setSelectedFinding(0);
+    setShowOverlay(Boolean(a.overlayUrl));
+    setCustomSeverity(null);
+    setDamageChoice(
+      a.primary
+        ? { damageType: a.primary.damageType as DamageType, label: a.primary.label, icon: TAXONOMY_ICON[a.primary.taxonomyCode] ?? '•', taxonomyCode: a.primary.taxonomyCode, source: 'model' }
+        : null
+    );
+    const draft = draftNoteFromAnalysis(a);
+    if (draft) setNotes((prev) => (prev.trim() ? prev : draft));
   };
 
-  // Handle image file selection from gallery
+  // Run the real CV job; the step 2 view follows the stages the server reports.
+  const startAiProcessing = async () => {
+    if (!selectedImage) return;
+    // Same photo again (retry, back-and-forth): reuse the key so the server returns the same job.
+    const prev = cvRunRef.current;
+    if (prev && prev.image === selectedImage && cvAnalysis) {
+      setCurrentState('ANALYSIS_RESULT');
+      return;
+    }
+    prev?.abort.abort();
+    const key = prev && prev.image === selectedImage ? prev.key : crypto.randomUUID();
+    const abort = new AbortController();
+    cvRunRef.current = { key, image: selectedImage, abort };
+    setCvJob(null);
+    setCvAnalysis(null);
+    setCvError(null);
+    setCurrentState('CV_PROCESSING');
+    try {
+      const job = await runCvAnalysis(selectedImage, key, setCvJob, abort.signal);
+      if (abort.signal.aborted) return;
+      const analysis = job.analysis!;
+      if (analysis.status === 'failed') {
+        setCvError({ code: analysis.failure?.code ?? 'ANALYSIS_FAILED', message: analysis.failure?.message ?? 'Analisis gagal.' });
+        return;
+      }
+      applyAnalysis(analysis);
+      setCurrentState('ANALYSIS_RESULT');
+    } catch (error) {
+      if (abort.signal.aborted) return;
+      const e = error instanceof CvClientError ? error : new CvClientError('NETWORK', 'Server analisis tidak dapat dihubungi.');
+      setCvError({ code: e.code, message: e.message });
+    }
+  };
+
+  // Inference failed or skipped: continue with a manual report (no AI result attached).
+  const continueWithoutAi = () => {
+    setCvAnalysis(null);
+    setDamageChoice(MANUAL_DAMAGE_CHOICES.find((c) => c.damageType === 'POTHOLE') ?? MANUAL_DAMAGE_CHOICES[0]);
+    setCustomSeverity((prev) => prev || 'MODERATE');
+    setCurrentState('ANALYSIS_RESULT');
+  };
+
+  // Handle image file selection from gallery: validate, then show the preview in step 1.
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFileName(file.name);
+    e.target.value = '';
+    if (!file) return;
+    const invalid = checkImageInput(file.type, file.size);
+    if (invalid) {
+      setValidationError(invalid);
+      return;
+    }
+    setImageFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string | undefined;
+      if (!dataUrl) return;
+      const probe = new Image();
+      probe.onload = () => {
+        if (Math.min(probe.naturalWidth, probe.naturalHeight) < 160) {
+          setValidationError(`Resolusi foto terlalu kecil (${probe.naturalWidth}×${probe.naturalHeight}); minimal 160 px pada sisi pendek.`);
+          return;
+        }
+        setSelectedImage(dataUrl);
+        setValidationError(null);
+        stopCameraStream();
+        if (currentState !== 'INPUT') setCurrentState('INPUT');
+      };
+      probe.onerror = () => setValidationError('Foto tidak dapat dibaca. Coba file lain.');
+      probe.src = dataUrl;
+    };
+  };
+
+  // Helper to load verified real road damage test fixture photo
+  const handleLoadTestPhoto = async () => {
+    try {
+      const res = await fetch('/PavementPinn/test-fixtures/test-before.jpg');
+      const blob = await res.blob();
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (event.target?.result) {
-          const dataUrl = event.target.result as string;
-          setSelectedImage(dataUrl);
-          setValidationError(null);
-          stopCameraStream();
-
-          // Analyze and process
-          const resultClass = analyzeImageDamageClass(dataUrl);
-          setAnalyzedClass(resultClass);
-          startAiProcessing();
-        }
+        const dataUrl = event.target?.result as string | undefined;
+        if (!dataUrl) return;
+        setSelectedImage(dataUrl);
+        setImageFileName('lubang_karawang_test.jpg');
+        setValidationError(null);
+        stopCameraStream();
+        if (currentState !== 'INPUT') setCurrentState('INPUT');
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(blob);
+    } catch {
+      setValidationError('Foto uji coba tidak dapat dimuat.');
     }
   };
 
   // Reset form
   const handleReset = () => {
     stopCameraStream();
+    cvRunRef.current?.abort.abort();
+    cvRunRef.current = null;
     setCurrentState('INPUT');
     setNotes('');
     setSelectedImage(null);
     setValidationError(null);
-    setProgressPercent(0);
+    setCvJob(null);
+    setCvAnalysis(null);
+    setCvError(null);
+    setDamageChoice(null);
+    setCustomSeverity(null);
     setShowTechnicalAnalysis(false);
   };
 
   // Trigger Validation and Advance to CV Processing from manual input
   const handleContinue = () => {
+    const lat = reportLocation.latitude;
+    const lng = reportLocation.longitude;
+    if (
+      typeof lat !== 'number' ||
+      typeof lng !== 'number' ||
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      setValidationError('Koordinat lokasi tidak valid.');
+      return;
+    }
     if (!locationName.trim()) {
       setValidationError('Mohon masukkan detail lokasi kerusakan jalan.');
       return;
@@ -466,9 +711,6 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
       return;
     }
     setValidationError(null);
-
-    const resultClass = analyzeImageDamageClass(selectedImage);
-    setAnalyzedClass(resultClass);
     startAiProcessing();
   };
 
@@ -482,9 +724,41 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   // Submit Final Report
   const handleSubmitReport = async () => {
     if (isSubmitting) return;
-    const targetSeg = nearest(coordinates) ?? roadSegments[0];
 
-    const effectiveSeverity: ReportSeverity = customSeverity || analyzedClass.defaultSeverity;
+    const lat = reportLocation.latitude;
+    const lng = reportLocation.longitude;
+    if (
+      typeof lat !== 'number' ||
+      typeof lng !== 'number' ||
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      setSubmitError('Koordinat lokasi laporan tidak valid.');
+      return;
+    }
+
+    const finalCoordinates: [number, number] = [lat, lng];
+    const targetSeg = nearest(finalCoordinates) ?? roadSegments[0];
+
+    const chosenSeverity = customSeverity || modelSeverity;
+    if (!damageChoice) {
+      setSubmitError('Pilih jenis kerusakan terlebih dahulu.');
+      return;
+    }
+    if (!chosenSeverity) {
+      setSubmitError('Pilih tingkat keparahan terlebih dahulu.');
+      return;
+    }
+    if (!selectedImage) {
+      setSubmitError('Foto kerusakan belum ada.');
+      return;
+    }
+    const effectiveSeverity: ReportSeverity = chosenSeverity;
+    const attachedAnalysis = cvAnalysis && cvAnalysis.status !== 'failed' ? cvAnalysis : null;
 
     let newReport: DamageReport;
     try {
@@ -501,30 +775,33 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
       }),
       segmentId: targetSeg.id,
       // A typed place name is the reporter's own words; otherwise the road the GPS point is on.
-      segmentName: (locationStatus === 'MANUAL' && locationName.split(',')[0].trim()) || targetSeg.name,
+      segmentName: (locationSource === 'manual' && locationName.split(',')[0].trim()) || targetSeg.name,
       corridor: targetSeg.corridor || 'Koridor Jalan Nasional',
-      province: targetSeg.province || 'DKI Jakarta',
-      coordinates: coordinates,
-      damageType: analyzedClass.damageType,
-      damageTypeLabel: analyzedClass.label,
+      province: targetSeg.province || 'Jawa Barat',
+      coordinates: finalCoordinates,
+      damageType: damageChoice.damageType,
+      damageTypeLabel: damageChoice.label,
       severity: effectiveSeverity,
-      estimatedDepthCm: analyzedClass.defaultDepthCm,
-      estimatedAreaM2: analyzedClass.defaultAreaM2,
-      photoUrl: selectedImage || analyzedClass.samplePhotoUrl,
-      description: notes.trim() || `Laporan kerusakan jalan (${analyzedClass.label}) dari warga.`,
+      // Physical size and depth are not measured from a photo (cvAssessment.measurements
+      // says not_estimable); 0 means "not measured", never a model estimate.
+      estimatedDepthCm: 0,
+      estimatedAreaM2: 0,
+      photoUrl: selectedImage,
+      description: notes.trim() || `Laporan kerusakan jalan (${damageChoice.label}) dari warga.`,
       upvotesCount: 1,
       userUpvoted: true,
+      // The server replaces this with the stored analysis when cvAnalysisId verifies;
+      // confidence sent from here is always discarded.
       aiAnalysis: {
-        class: analyzedClass.modelClass,
-        label: analyzedClass.label,
-        icon: analyzedClass.icon,
-        // No trained detector exists yet (Module C). The class is the reporter-facing
-        // guess; confidence stays null until a versioned model produces it (F-05).
+        class: damageChoice.taxonomyCode ?? damageChoice.damageType,
+        label: damageChoice.label,
+        icon: damageChoice.icon,
         confidence: null,
         modelStatus: 'NOT_CLASSIFIED',
         severity: effectiveSeverity.toLowerCase(),
-        characteristics: analyzedClass.characteristics
+        characteristics: []
       },
+      ...(attachedAnalysis ? { cvAnalysisId: attachedAnalysis.analysisId } : {})
       }, currentAccount);
     } catch (error) {
       if (error instanceof ReportCreationError) {
@@ -562,17 +839,21 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
   const mainRoadName = locationParts[0]?.trim() || selectedSegment?.name || 'Lokasi laporan';
   const subLocationName =
     locationParts.slice(1).join(',').trim() ||
-    (selectedSegment ? `${selectedSegment.corridor}, ${selectedSegment.province}` : 'Karet Tengsin, Jakarta Pusat');
+    (selectedSegment ? `${selectedSegment.corridor}, ${selectedSegment.province}` : `${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}`);
 
-  const effectiveSeverity: ReportSeverity = customSeverity || analyzedClass.defaultSeverity;
+  const effectiveSeverity: ReportSeverity | null = customSeverity || modelSeverity;
+  const processingStageText = cvJob?.stage ?? 'Memeriksa foto...';
+  const progressPercent = 65;
 
   return (
     <>
-      {/* Hidden File Input for Gallery Pick */}
+      {/* File Input for Gallery Pick */}
       <input
+        id="citizen-report-file-input"
+        data-testid="report-photo-input"
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         onChange={handleFileUpload}
         className="hidden"
       />
@@ -753,12 +1034,13 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
               <button
                 type="button"
                 onClick={handleDetectGps}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer"
-                title="Perbarui GPS"
+                disabled={isGpsLoading}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                aria-label="Perbarui GPS"
               >
                 <Crosshair
                   className={`w-4 h-4 ${
-                    locationStatus === 'REQUESTING' ? 'animate-spin text-amber-300' : 'text-white'
+                    isGpsLoading ? 'animate-spin text-amber-300' : 'text-white'
                   }`}
                 />
               </button>
@@ -915,20 +1197,31 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={handleOpenFullscreenCamera} className={TILE}>
-                          <span className={ICON_TILE}>
-                            <Camera className="w-5 h-5" />
-                          </span>
-                          <span className="text-sm font-medium text-white">Ambil foto</span>
-                          <span className={HINT}>Kamera perangkat</span>
-                        </button>
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className={TILE}>
-                          <span className={ICON_TILE}>
-                            <ImageIcon className="w-5 h-5" />
-                          </span>
-                          <span className="text-sm font-medium text-white">Pilih gambar</span>
-                          <span className={HINT}>Dari galeri</span>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <button type="button" onClick={handleOpenFullscreenCamera} className={TILE}>
+                            <span className={ICON_TILE}>
+                              <Camera className="w-5 h-5" />
+                            </span>
+                            <span className="text-sm font-medium text-white">Ambil foto</span>
+                            <span className={HINT}>Kamera perangkat</span>
+                          </button>
+                          <button type="button" onClick={() => fileInputRef.current?.click()} className={TILE}>
+                            <span className={ICON_TILE}>
+                              <ImageIcon className="w-5 h-5" />
+                            </span>
+                            <span className="text-sm font-medium text-white">Pilih gambar</span>
+                            <span className={HINT}>Dari galeri</span>
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          id="btn-sample-test-photo"
+                          onClick={handleLoadTestPhoto}
+                          className="w-full py-2 px-3 rounded-xl border border-dashed border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/10 text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Gunakan Foto Sampel Uji (Lubang Karawang)</span>
                         </button>
                       </div>
                     )}
@@ -940,11 +1233,25 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label htmlFor="report-location" className={LABEL}>Lokasi</label>
-                      <button type="button" onClick={handleDetectGps} className={TEXT_BUTTON} title="Deteksi ulang GPS">
-                        <Crosshair className={`w-4 h-4 ${locationStatus === 'REQUESTING' ? 'animate-spin' : ''}`} />
-                        <span>Perbarui GPS</span>
+                      <button
+                        type="button"
+                        onClick={handleDetectGps}
+                        disabled={isGpsLoading}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/30 hover:bg-amber-400/20 active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                        aria-label="Perbarui lokasi menggunakan GPS"
+                      >
+                        <Crosshair className={`w-3.5 h-3.5 shrink-0 ${isGpsLoading ? 'animate-spin text-amber-300' : 'text-amber-400'}`} />
+                        <span>{isGpsLoading ? 'Mencari GPS…' : 'Perbarui GPS'}</span>
                       </button>
                     </div>
+
+                    {gpsError && (
+                      <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300 animate-in fade-in">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                        <span>{gpsError}</span>
+                      </div>
+                    )}
+
                     <div className={`${CARD} flex items-center gap-3 px-4 py-3`}>
                       <MapPin className="w-5 h-5 text-amber-400 shrink-0" />
                       <div className="min-w-0 flex-1">
@@ -953,15 +1260,26 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                           type="text"
                           value={locationName}
                           onChange={(e) => {
-                            setLocationName(e.target.value);
-                            setLocationStatus('MANUAL');
+                            setReportLocation((prev) => ({
+                              ...prev,
+                              address: e.target.value,
+                              source: 'manual'
+                            }));
                           }}
                           placeholder="Nama jalan atau patokan"
                           className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
                         />
-                        <p className={`${HINT} font-mono mt-1`}>
+                        <p className={`${HINT} font-mono mt-0.5 text-xs text-slate-400`}>
                           {coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)} ·{' '}
-                          {locationStatus === 'DETECTED' ? 'GPS aktif' : locationStatus === 'REQUESTING' ? 'mencari…' : 'manual'}
+                          <span className={locationSource === 'device_gps' ? 'text-amber-400/90 font-sans' : 'font-sans'}>
+                            {isGpsLoading
+                              ? 'mencari GPS…'
+                              : locationSource === 'device_gps'
+                              ? `GPS aktif${gpsAccuracy ? ` (±${Math.round(gpsAccuracy)}m)` : ''}`
+                              : locationSource === 'manual'
+                              ? 'alamat manual'
+                              : 'lokasi pin'}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -987,23 +1305,63 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
             {/* STEP 2: PREPARING & PHOTO CHECK                                            */}
             {/* ========================================================================= */}
             {(currentState === 'PREPARING' || currentState === 'CV_PROCESSING') && (
-              <div className="space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col">
-                <SheetHeader step={2} title="Memeriksa foto" subtitle="Biasanya hanya beberapa detik" />
-                <div className={`${CARD} p-4 space-y-3`}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-200 truncate pr-3">{processingStageText}</span>
-                    <span className="font-mono text-slate-300">{progressPercent}%</span>
-                  </div>
-                  <div
-                    className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden"
-                    role="progressbar"
-                    aria-valuenow={progressPercent}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  >
-                    <div className="h-full rounded-full bg-amber-400 transition-all duration-300 ease-out" style={{ width: `${progressPercent}%` }} />
-                  </div>
-                  <p className={`${HINT} truncate`}>{imageFileName}</p>
+              <div className="space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <SheetHeader
+                    step={2}
+                    title={cvError ? 'Pemeriksaan Foto' : 'Memeriksa foto'}
+                    subtitle={cvError ? 'Layanan AI offline — Anda dapat mengisi manual' : 'Biasanya hanya beberapa detik'}
+                    onBack={() => setCurrentState('INPUT')}
+                  />
+
+                  {cvError ? (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 space-y-1.5 text-xs text-amber-200">
+                        <div className="flex items-center gap-2 font-bold text-amber-300">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          <span>Layanan Analisis CV Otomatis Offline</span>
+                        </div>
+                        <p className="text-slate-300 leading-relaxed text-[11px]">
+                          Deteksi AI otomatis sedang tidak aktif ({cvError.message}). Foto Anda tetap tersimpan dan Anda dapat melanjutkan pengisian jenis kerusakan secara manual.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        id="btn-continue-manual-report"
+                        onClick={continueWithoutAi}
+                        className={PRIMARY}
+                      >
+                        Lanjutkan Pelaporan Secara Manual
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className={`${CARD} p-4 space-y-3`}>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-200 truncate pr-3">{processingStageText}</span>
+                          <span className="font-mono text-slate-300">{progressPercent}%</span>
+                        </div>
+                        <div
+                          className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden"
+                          role="progressbar"
+                          aria-valuenow={progressPercent}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
+                          <div className="h-full rounded-full bg-amber-400 transition-all duration-300 ease-out" style={{ width: `${progressPercent}%` }} />
+                        </div>
+                        <p className={`${HINT} truncate`}>{imageFileName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        id="btn-skip-ai-analysis"
+                        onClick={continueWithoutAi}
+                        className="w-full py-2 px-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        Lewati Analisis AI &amp; Isi Manual
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1027,47 +1385,39 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
 
                   <div className={`${CARD} overflow-hidden`}>
                     <img
-                      src={selectedImage || analyzedClass.samplePhotoUrl}
+                      src={selectedImage || CV_DAMAGE_CLASSES.pothole.samplePhotoUrl}
                       alt="Foto kerusakan jalan"
                       className="w-full aspect-[16/9] object-cover"
                     />
                   </div>
 
-                  {/* Damage type (not yet classified by a trained model) */}
+                  {/* Damage type */}
                   <div className="space-y-2">
-                    <p className={LABEL}>Jenis kerusakan</p>
-                    <div className={CARD}>
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <span className={ICON_TILE} aria-hidden="true">{analyzedClass.icon}</span>
+                    <label htmlFor="damage-type-select" className={LABEL}>Jenis kerusakan</label>
+                    <div className={`${CARD} p-3 space-y-2.5`}>
+                      <div className="flex items-center gap-3">
+                        <span className={ICON_TILE} aria-hidden="true">{damageChoice?.icon ?? '🕳'}</span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-white truncate">{analyzedClass.label}</p>
-                          <p className={HINT}>Perkiraan; belum diklasifikasi model</p>
+                          <select
+                            id="damage-type-select"
+                            value={damageChoice?.damageType ?? 'POTHOLE'}
+                            onChange={(e) => {
+                              const picked = MANUAL_DAMAGE_CHOICES.find((c) => c.damageType === e.target.value);
+                              if (picked) setDamageChoice(picked);
+                            }}
+                            className="w-full bg-[#111318] border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-medium focus:border-amber-400 focus:outline-none cursor-pointer"
+                          >
+                            {MANUAL_DAMAGE_CHOICES.map((choice) => (
+                              <option key={choice.damageType} value={choice.damageType}>
+                                {choice.icon} {choice.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowTechnicalAnalysis(!showTechnicalAnalysis)}
-                          className={ICON_BUTTON}
-                          aria-expanded={showTechnicalAnalysis}
-                          title="Detail"
-                          aria-label="Detail jenis kerusakan"
-                        >
-                          {showTechnicalAnalysis ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </button>
                       </div>
-                      {showTechnicalAnalysis && (
-                        <dl className="border-t border-white/[0.06] px-4 py-3 space-y-2 text-sm">
-                          <div className="flex justify-between gap-3">
-                            <dt className="text-slate-400">Model</dt>
-                            <dd className="text-slate-200 text-right">Belum ada model terlatih (DEMO)</dd>
-                          </div>
-                          <div className="flex justify-between gap-3">
-                            <dt className="text-slate-400">Ukuran contoh</dt>
-                            <dd className="text-slate-200 text-right">
-                              {analyzedClass.defaultDepthCm} cm · {analyzedClass.defaultAreaM2} m²
-                            </dd>
-                          </div>
-                        </dl>
-                      )}
+                      <p className={`${HINT} text-[11px]`}>
+                        {cvAnalysis?.primary ? 'Dideteksi otomatis oleh model AI' : 'Konfirmasi jenis kerusakan sebelum dikirim'}
+                      </p>
                     </div>
                   </div>
 
@@ -1183,7 +1533,7 @@ export const ReportRoadIssueCard: React.FC<ReportRoadIssueCardProps> = ({
                     <div className="flex items-center justify-between gap-3 px-4 py-3">
                       <div className="min-w-0">
                         <p className={HINT}>Jenis</p>
-                        <p className="text-sm text-white truncate">{analyzedClass.label}</p>
+                        <p className="text-sm text-white truncate">{damageChoice?.label ?? '-'}</p>
                       </div>
                       <span className="rounded-full border border-amber-400/40 px-3 py-1 text-xs text-amber-300 shrink-0">
                         {savedState === 'NEEDS_REVIEW' ? 'Menunggu peninjauan M.O' : savedState === 'VERIFIED' ? 'Diterima, menunggu penugasan M.O' : 'Terkirim'}

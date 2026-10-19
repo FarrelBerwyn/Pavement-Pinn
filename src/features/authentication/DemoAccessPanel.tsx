@@ -53,7 +53,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-slate-950/50 p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
       <div
         ref={(el) => {
           dialogRef.current = el;
@@ -66,17 +66,19 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
         aria-labelledby="demo-access-title"
         aria-describedby="demo-access-note"
         onClick={(event) => event.stopPropagation()}
-        className="w-full sm:max-w-xl max-h-[90dvh] overflow-y-auto bg-white text-slate-900 rounded-t-xl sm:rounded-xl border border-slate-200 shadow-lg"
+        className="w-full sm:max-w-xl max-h-[90dvh] overflow-y-auto bg-[#191B20] text-[#F5F5F7] rounded-t-[20px] sm:rounded-[24px] border border-[#30333A] shadow-[0_25px_60px_rgba(0,0,0,0.6)]"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[#30333A] px-6 py-5">
           <div>
             <div className="flex items-center gap-2">
-              <h2 id="demo-access-title" className="text-base font-semibold">
+              <h2 id="demo-access-title" className="text-base font-bold text-[#F5F5F7]">
                 Akses akun demo
               </h2>
-              <span className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-bold tracking-wide text-amber-800">DEMO</span>
+              <span className="rounded-full border border-[#F5BC24]/40 bg-[#F5BC24]/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-[#F5BC24]">
+                DEMO
+              </span>
             </div>
-            <p id="demo-access-note" className="mt-1 text-xs leading-relaxed text-slate-600">
+            <p id="demo-access-note" className="mt-1.5 text-xs leading-relaxed text-[#A1A1AA]">
               Akun di bawah ini fiktif dan hanya untuk demonstrasi. Bukan akun, pegawai, atau identitas instansi yang sebenarnya.
               Kredensial ini hanya berlaku di lingkungan lokal atau demo dan tidak memberikan keamanan.
             </p>
@@ -86,29 +88,29 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
             type="button"
             onClick={onClose}
             aria-label="Tutup akses akun demo"
-            className="shrink-0 rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+            className="shrink-0 rounded-[10px] p-2 text-[#858995] hover:bg-[#111318] hover:text-[#F5F5F7] transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {credentials === null ? (
-          <p className="px-5 py-6 text-sm text-slate-600" role="status">
+          <p className="px-6 py-8 text-sm text-[#A1A1AA]" role="status">
             Memuat akun demo…
           </p>
         ) : credentials.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-slate-600">Akses demo tidak diaktifkan pada build ini.</p>
+          <p className="px-6 py-8 text-sm text-[#A1A1AA]">Akses demo tidak diaktifkan pada build ini.</p>
         ) : (
-          <ul className="divide-y divide-slate-200">
+          <ul className="divide-y divide-[#30333A]">
             {credentials.map((credential) => {
               const account = USER_ACCOUNTS.find((a) => a.id === credential.accounts.MODERN_APP);
               return (
-                <li key={credential.username} className="px-5 py-4">
+                <li key={credential.username} className="px-6 py-4 hover:bg-[#111318]/50 transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-[#1d4ed8]">{ROLE_LABELS[credential.role]}</p>
-                      <p className="text-sm font-semibold">{account?.name ?? credential.username}</p>
-                      <p className="mt-1 font-mono text-xs text-slate-600">
+                      <p className="text-xs font-semibold text-[#F5BC24]">{ROLE_LABELS[credential.role]}</p>
+                      <p className="text-sm font-semibold text-[#F5F5F7]">{account?.name ?? credential.username}</p>
+                      <p className="mt-1 font-mono text-xs text-[#858995]">
                         {credential.username} · {credential.password}
                       </p>
                     </div>
@@ -117,7 +119,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
                         type="button"
                         disabled={busy}
                         onClick={() => onUseAccount({ username: credential.username, password: credential.password, layout: 'MODERN_APP' })}
-                        className="rounded-md bg-surface px-3 py-2 text-xs font-semibold text-white hover:bg-[#13305a] disabled:opacity-60 cursor-pointer"
+                        className="rounded-[10px] bg-[#F5BC24] px-3.5 py-2 text-xs font-bold text-[#11110F] hover:bg-[#FFD052] disabled:opacity-60 transition-colors cursor-pointer"
                         aria-label={`Masuk sebagai ${account?.name ?? credential.username} (${ROLE_LABELS[credential.role]})`}
                       >
                         Masuk
@@ -127,7 +129,7 @@ export const DemoAccessPanel: React.FC<DemoAccessPanelProps> = ({ onClose, onUse
                           type="button"
                           disabled={busy}
                           onClick={() => onUseAccount({ username: credential.username, password: credential.password, layout: 'CLASSIC_PORTAL' })}
-                          className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 cursor-pointer"
+                          className="rounded-[10px] border border-[#30333A] bg-[#111318] px-3.5 py-2 text-xs font-medium text-[#D4D4D8] hover:border-[#424652] hover:bg-[#1A1D24] disabled:opacity-60 transition-colors cursor-pointer"
                           aria-label={`Masuk sebagai ${account?.name ?? credential.username} di portal klasik`}
                         >
                           Portal klasik

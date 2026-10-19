@@ -15,6 +15,7 @@ import { createReportState, ReportState, toggleUpvote, viewReportsAs } from '../
 import { RoadSegment, SimulationResult, AuditLogItem, DamageReport, ReportMutationOutcome, UserRole } from '../../types';
 import { INDONESIAN_ROAD_SEGMENTS } from '../../data/reference/indonesianRoads';
 import { KARAWANG_PILOT_SEGMENTS } from '../../data/reference/karawangPilot';
+import { BEKASI_CORRIDOR_SEGMENTS } from '../../data/reference/bekasiCorridor';
 import { INITIAL_COMMUNITY_REPORTS } from '../../data/mock/communityReports';
 import { USER_ACCOUNTS } from '../../features/authentication/demoAccounts';
 import { runPinnSimulation } from '../../engines/pinn/core/pinnEngine';
@@ -54,6 +55,12 @@ export interface WorkflowState {
   gateway: WorkflowGateway;
 }
 
+export interface NavigationTask {
+  report: DamageReport;
+  startCoords: [number, number];
+  startLabel: string;
+}
+
 export interface AppStateValue {
   roadSegments: RoadSegment[];
   selectedSegment: RoadSegment;
@@ -66,11 +73,19 @@ export interface AppStateValue {
   completeSimulation: (result: SimulationResult) => void;
   auditLogs: AuditLogItem[];
   workflow: WorkflowState;
+  activeNavigationTask: NavigationTask | null;
+  startNavigation: (report: DamageReport) => void;
+  cancelNavigation: () => void;
+  completeNavigation: () => void;
 }
 
 const AppStateContext = createContext<AppStateValue | null>(null);
 
-const ROAD_SEGMENTS: RoadSegment[] = [...KARAWANG_PILOT_SEGMENTS, ...INDONESIAN_ROAD_SEGMENTS];
+const ROAD_SEGMENTS: RoadSegment[] = [
+  ...KARAWANG_PILOT_SEGMENTS,
+  ...BEKASI_CORRIDOR_SEGMENTS,
+  ...INDONESIAN_ROAD_SEGMENTS
+];
 
 function roleOfDemoAccount(id: string): UserRole | null {
   return USER_ACCOUNTS.find((a) => a.id === id)?.role ?? null;
@@ -101,7 +116,7 @@ function auditToLogItem(e: AuditEvent): AuditLogItem {
 }
 
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { activeRole, currentAccount, logout } = useSession();
+  const { activeRole, currentAccount, logout, expireSession } = useSession();
 
   const [roadSegments] = useState<RoadSegment[]>(ROAD_SEGMENTS);
   const [selectedSegment, setSelectedSegment] = useState<RoadSegment>(ROAD_SEGMENTS[0]);
@@ -112,6 +127,12 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const communityReports = useMemo(() => viewReportsAs(reportState, currentAccount.id), [reportState, currentAccount.id]);
 
   const gateway = useMemo(() => createWorkflowGateway(INITIAL_COMMUNITY_REPORTS, roleOfDemoAccount, LOCAL_ENGINEERS, ROAD_SEGMENTS, offlineDemoVerifier), []);
+
+  // The server refused a signed-in session as ended (2-hour limit, or logged out in another tab).
+  useEffect(() => {
+    gateway.onSessionEnded(expireSession);
+    return () => gateway.onSessionEnded(null);
+  }, [gateway, expireSession]);
   const [views, setViews] = useState<Record<string, ReportView>>({});
   const [actor, setActor] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,6 +211,10 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (cancelled) return;
         // A named account without a valid session (expired, or an identity set in browser
         // storage by hand) is signed out instead of being trusted.
+        if (account && e instanceof WorkflowApiError && e.code === 'SESSION_EXPIRED') {
+          expireSession();
+          return;
+        }
         if (account && e instanceof WorkflowApiError && e.code === 'UNAUTHENTICATED') {
           logout();
           return;
@@ -201,7 +226,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => {
       cancelled = true;
     };
-  }, [gateway, currentAccount, refresh, logout]);
+  }, [gateway, currentAccount, refresh, logout, expireSession]);
 
   // Other accounts change the same cases (R.E submits, M.O assigns, F.E inspects, D.M reads):
   // reload from the server periodically and when the window regains focus, so each role
@@ -341,6 +366,27 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLocalLogs((prev) => [newLog, ...prev]);
   };
 
+  // Active Navigation Task for Field Engineer (In-app Turn-by-Turn HUD & route)
+  const [activeNavigationTask, setActiveNavigationTask] = useState<NavigationTask | null>(null);
+
+  const startNavigation = useCallback((report: DamageReport) => {
+    // Posko Lapangan & Basecamp F.E Karawang Barat
+    const feDummyStartCoords: [number, number] = [-6.2995, 107.2942];
+    setActiveNavigationTask({
+      report,
+      startCoords: feDummyStartCoords,
+      startLabel: 'Posko Lapangan F.E Karawang Barat'
+    });
+  }, []);
+
+  const cancelNavigation = useCallback(() => {
+    setActiveNavigationTask(null);
+  }, []);
+
+  const completeNavigation = useCallback(() => {
+    setActiveNavigationTask(null);
+  }, []);
+
   // M1c: the audit trail is for official roles only (the server enforces the same rule).
   const auditLogs = useMemo(() => (isOfficial ? [...serverAudit, ...localLogs] : []), [isOfficial, serverAudit, localLogs]);
 
@@ -368,7 +414,11 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     currentResult,
     completeSimulation,
     auditLogs,
-    workflow
+    workflow,
+    activeNavigationTask,
+    startNavigation,
+    cancelNavigation,
+    completeNavigation
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

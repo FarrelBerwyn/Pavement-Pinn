@@ -1,3 +1,4 @@
+import type { CvAssessment } from './cv';
 /** Community damage-report domain types. */
 import type { UserRole } from './rbac';
 
@@ -59,6 +60,11 @@ export interface DamageReport {
   status: ReportStatus;
   upvotesCount: number;
   userUpvoted?: boolean;
+
+  /** Server-verified road-damage CV analysis (models/cv) with the reporter's corrections. Set by the server only. */
+  cvAssessment?: CvAssessment;
+  /** Draft-only: id of a server-stored CV analysis to attach. Never kept on the report. */
+  cvAnalysisId?: string;
 
   // Computer Vision AI Analysis Data
   aiAnalysis?: {

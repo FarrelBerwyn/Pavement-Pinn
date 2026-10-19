@@ -9,6 +9,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../../server/app';
 import { demoLoginFor } from '../../src/data/reference/demoCredentials';
+import { bodyWithSession } from '../helpers/sessionCookie';
 
 let server: Server;
 let stub: Server;
@@ -48,7 +49,7 @@ const call = async (method: string, p: string, body?: unknown, token?: string) =
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
-  return { status: r.status, body: (await r.json()) as any };
+  return { status: r.status, body: await bodyWithSession(r) };
 };
 const login = async (accountId: string) => (await call('POST', '/api/auth/login', demoLoginFor(accountId))).body.token as string;
 

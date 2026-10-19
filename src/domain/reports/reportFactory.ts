@@ -13,7 +13,7 @@
  * is selected client-side without credentials. `creatorAccountId` is therefore a demo
  * attribution, not an authenticated owner, and nothing created here is persisted.
  */
-import type { DamageReport, UserRole } from '../../types';
+import type { CvAssessment, DamageReport, UserRole } from '../../types';
 import { ALL_ROLES } from '../access';
 import { hasValidCoordinates } from '../geo';
 
@@ -49,7 +49,12 @@ export function generateReportId(): string {
  * Build a validated, session-created report. Throws `ReportCreationError` instead of
  * returning an incomplete report; callers show the message and create nothing.
  */
-export function createSessionReport(draft: ReportDraft, creator: ReportCreator | null | undefined, now: Date = new Date()): DamageReport {
+export function createSessionReport(
+  draft: ReportDraft,
+  creator: ReportCreator | null | undefined,
+  now: Date = new Date(),
+  options: { verifiedCv?: CvAssessment } = {}
+): DamageReport {
   if (!creator || typeof creator.id !== 'string' || creator.id.trim() === '' || !KNOWN_ROLES.includes(creator.role)) {
     throw new ReportCreationError('No valid account is selected; the report was not created.');
   }
@@ -73,14 +78,29 @@ export function createSessionReport(draft: ReportDraft, creator: ReportCreator |
   // community upvotes and workflow fields are produced later by the system and staff;
   // values sent by the caller are dropped so they cannot appear as evidence. A client-side
   // classification is never a verified model output.
-  const { repairDetails: _repair, wimCorrelation: _wim, workflowState: _state, caseVersion: _version, upvotesCount: _votes, userUpvoted: _voted, photoProvenance: _prov, datasetAssetId: _asset, ...content } = draft;
-  void _repair; void _wim; void _state; void _version; void _votes; void _voted; void _prov; void _asset;
-  const aiAnalysis = content.aiAnalysis ? { ...content.aiAnalysis, confidence: null, modelStatus: 'NOT_CLASSIFIED' as const, modelVersion: undefined, detectionBox: undefined } : undefined;
+  const { repairDetails: _repair, wimCorrelation: _wim, workflowState: _state, caseVersion: _version, upvotesCount: _votes, userUpvoted: _voted, photoProvenance: _prov, datasetAssetId: _asset, cvAssessment: _cv, cvAnalysisId: _cvId, ...content } = draft;
+  void _repair; void _wim; void _state; void _version; void _votes; void _voted; void _prov; void _asset; void _cv; void _cvId;
+  // Only a CV analysis the server verified (options.verifiedCv) may carry a model confidence.
+  const cv = options.verifiedCv;
+  const aiAnalysis = cv && cv.primary
+    ? {
+        ...(content.aiAnalysis ?? { icon: '', characteristics: [] }),
+        class: cv.primary.taxonomyCode,
+        label: cv.primary.label,
+        confidence: cv.primary.confidence,
+        modelStatus: 'REAL' as const,
+        modelVersion: cv.modelId,
+        severity: cv.modelSeverity,
+        characteristics: cv.statusReasons,
+        detectionBox: undefined
+      }
+    : content.aiAnalysis ? { ...content.aiAnalysis, confidence: null, modelStatus: 'NOT_CLASSIFIED' as const, modelVersion: undefined, detectionBox: undefined } : undefined;
 
   // Factory-owned fields are written last so caller content can never override them.
   return {
     ...content,
     ...(aiAnalysis ? { aiAnalysis } : {}),
+    ...(cv ? { cvAssessment: cv } : {}),
     upvotesCount: 0,
     userUpvoted: false,
     id: generateReportId(),

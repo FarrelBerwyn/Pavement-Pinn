@@ -29,7 +29,7 @@ import {
  */
 function AppShell() {
   const { location, match, navigate, navigateTo } = useRouter();
-  const { currentAccount, activeRole, establishSession, logout } = useSession();
+  const { currentAccount, activeRole, establishSession, logout, endedNotice } = useSession();
   const app = useAppState();
   const modals = useGlobalModals();
   const { setActiveNav, launchSimulation } = useWorkspaceNavigation();
@@ -49,6 +49,12 @@ function AppShell() {
       navigate(loginPathFor(`${location.path}${location.search}`), { replace: true });
     }
   }, [isRoot, match, decision, homeRoute, location.path, location.search, location.hash, navigate]);
+
+  // A session that ended at its time limit always lands on the login page (which says why),
+  // whatever page was open, public or not.
+  useEffect(() => {
+    if (endedNotice && match?.route.id !== 'login') navigateTo('login');
+  }, [endedNotice, match, navigateTo]);
 
   // Remember the last workspace view so standalone pages (login, settings, engine hub, ...)
   // render over it and can return to it.
@@ -97,8 +103,7 @@ function AppShell() {
         navigateTo(landing.id, landing.params);
       },
       logout: () => {
-        app.workflow.gateway.logout();
-        logout();
+        logout(app.workflow.gateway.logout());
         navigateTo('login');
       }
     }),
@@ -175,8 +180,13 @@ export default function App() {
         <AppStateProvider>
           <GlobalModalsProvider>
             <AppErrorBoundary>
-              <ServerVersionBanner />
-              <AppShell />
+              {/* The banner takes its own row; the shell fills what is left, so it never covers the header. */}
+              <div className="flex h-[100dvh] flex-col overflow-hidden">
+                <ServerVersionBanner />
+                <div className="relative min-h-0 flex-1 overflow-auto">
+                  <AppShell />
+                </div>
+              </div>
             </AppErrorBoundary>
           </GlobalModalsProvider>
         </AppStateProvider>

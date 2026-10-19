@@ -82,7 +82,11 @@ export function reportForDisplay(c: ReportCase): DamageReport {
  * else (no stock or sample image). Sample cases keep their labelled illustrative details.
  */
 function repairFor(c: ReportCase, sample: DamageReport['repairDetails']): DamageReport['repairDetails'] {
-  if (c.dataStatus === 'SYNTHETIC') return sample;
+  // Sample cases: an illustrative "after" only for samples that are repaired; never a verification claim.
+  if (c.dataStatus === 'SYNTHETIC') {
+    const repaired = c.state === 'RESOLVED' || c.state === 'CLOSED';
+    return repaired && sample ? { ...sample, verified: undefined, illustrative: true } : undefined;
+  }
   const wo = c.workOrder;
   if (!wo?.completionPhotoUrl) return undefined;
   return {

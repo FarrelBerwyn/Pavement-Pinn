@@ -7,14 +7,25 @@ import {
   getRhiStatusAndColor
 } from './nationalRoadHealthData';
 import { Plus, Minus, Layers, Info, ExternalLink, RefreshCw } from 'lucide-react';
+import { PavementMap } from '../../components/maps/PavementMap';
+import type { DamageReport, RoadSegment } from '../../types';
 
 interface NationalRoadHealthMapProps {
   onNavigateToMap?: () => void;
+  /** Data for the shared map (the same reports and segments every role sees). */
+  roadSegments?: RoadSegment[];
+  selectedSegment?: RoadSegment | null;
+  onSelectSegment?: (segment: RoadSegment) => void;
+  communityReports?: DamageReport[];
   onSelectCorridor?: (corridor: NationalRoadCorridor) => void;
 }
 
 export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
   onNavigateToMap,
+  roadSegments = [],
+  selectedSegment = null,
+  onSelectSegment = () => {},
+  communityReports = [],
   onSelectCorridor
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -278,83 +289,9 @@ export const NationalRoadHealthMap: React.FC<NationalRoadHealthMapProps> = ({
       {/* Map Container */}
       <div className="relative w-full h-[340px] sm:h-[380px] lg:h-[420px] rounded-xl overflow-hidden border border-slate-200 bg-[#f1f5f9]">
         {/* Leaflet DOM Anchor */}
-        <div ref={mapContainerRef} className="w-full h-full z-10" />
+        {/* Shared map engine: the same reports and coordinates as every role's map tab */}
+        <PavementMap compact roadSegments={roadSegments} selectedSegment={selectedSegment} onSelectSegment={onSelectSegment} communityReports={communityReports} />
 
-        {/* Floating Map Controls Top-Left (Exact from screenshot) */}
-        <div className="absolute top-3 left-3 flex flex-col bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden z-20">
-          <button
-            onClick={handleZoomIn}
-            className="p-2 hover:bg-slate-100 text-slate-700 transition-colors border-b border-slate-200 cursor-pointer"
-            title="Perbesar Peta"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="p-2 hover:bg-slate-100 text-slate-700 transition-colors border-b border-slate-200 cursor-pointer"
-            title="Perkecil Peta"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
-            className="p-2 hover:bg-slate-100 text-slate-700 transition-colors border-b border-slate-200 cursor-pointer"
-            title="Ganti Lapisan GIS"
-          >
-            <Layers className="w-4 h-4 text-amber-600" />
-          </button>
-          <button
-            onClick={handleResetBounds}
-            className="p-2 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-            title="Kembali ke Pandangan Nasional"
-          >
-            <RefreshCw className="w-4 h-4 text-slate-500" />
-          </button>
-        </div>
-
-        {/* Base Layer Switcher Dropdown */}
-        {isLayerMenuOpen && (
-          <div className="absolute top-3 left-14 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-30 w-44 space-y-1 text-xs font-semibold">
-            <p className="text-xs font-bold text-slate-400 px-2 py-1">Pilih Basemap GIS</p>
-            <button
-              onClick={() => handleChangeBaseMap('CARTO_LIGHT')}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-colors cursor-pointer ${
-                activeBaseLayer === 'CARTO_LIGHT' ? 'bg-amber-50 text-amber-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              Leaflet Light Canvas
-            </button>
-            <button
-              onClick={() => handleChangeBaseMap('OSM_STANDARD')}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-colors cursor-pointer ${
-                activeBaseLayer === 'OSM_STANDARD' ? 'bg-amber-50 text-amber-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              Leaflet Street Map
-            </button>
-          </div>
-        )}
-
-        {/* Floating Legend Top-Right (Exact match from screenshot) */}
-        <div className="absolute top-3 right-3 bg-white/95 rounded-xl p-3 shadow-md border border-slate-200 z-20 text-xs font-semibold space-y-2 min-w-[150px]">
-          <p className="text-slate-800 font-bold mb-1">Kesehatan Jalan (RHI)</p>
-          <div className="flex items-center space-x-2">
-            <span className="w-4 h-2 bg-[#57ae78] rounded-full"></span>
-            <span className="text-slate-700">Baik (≥ 70)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-4 h-2 bg-[#e8b23a] rounded-full"></span>
-            <span className="text-slate-700">Sedang (50 - 69)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-4 h-2 bg-[#e2823d] rounded-full"></span>
-            <span className="text-slate-700">Buruk (30 - 49)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="w-4 h-2 bg-[#d9655d] rounded-full"></span>
-            <span className="text-slate-700">Sangat Buruk (&lt; 30)</span>
-          </div>
-        </div>
       </div>
 
       {/* Map Footer Bar (Exact match from screenshot) */}

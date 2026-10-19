@@ -1,0 +1,42 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "dev-restart",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:restart"
+      ],
+      "port": 5199
+    },
+    {
+      "name": "session-expiry-test",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5181",
+        "--independent",
+        "--data-dir",
+        ".data/session-expiry-test"
+      ],
+      "env": {
+        "SESSION_MAX_AGE_SECONDS": "30"
+      },
+      "port": 5181,
+      "url": "http://127.0.0.1:5181"
+    }
+  ]
+}

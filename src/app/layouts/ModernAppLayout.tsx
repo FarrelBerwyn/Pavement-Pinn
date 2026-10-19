@@ -81,7 +81,8 @@ import {
 import { UserAccount } from '../../features/authentication/demoAccounts';
 import { ROLE_LABELS } from '../../features/authentication/roleLabels';
 import { isAnonymousAccount } from '../providers/SessionProvider';
-import { LeafletMap, type LeafletMapProps } from '../../components/maps/LeafletMap';
+import type { LeafletMapProps } from '../../components/maps/LeafletMap';
+import { PavementMap } from '../../components/maps/PavementMap';
 import { MAP_LAYER_PANEL_ID, MapLayerPanel } from '../../components/maps/MapLayerPanel';
 import { selectRegularUserDensity } from '../../features/community-reports/reportDensity';
 import { createSessionReport, ReportCreationError } from '../../features/community-reports/reportFactory';
@@ -99,6 +100,7 @@ import { useSheetDrag } from '../../components/ui/useSheetDrag';
 import { useThemePreference } from '../themePreference';
 import { MapSheetState, sheetInsetPx } from '../../components/maps/sheetState';
 import { DemoTag, ReportList, RoadSegmentSheet } from '../../features/road-health/RoadSegmentSheet';
+import { matchReportToRoadSegment } from '../../domain/geo/canonicalRoadGeometry';
 import type { PolicyTabType } from '../../features/policy-analysis/ExecutivePolicyView';
 import { ReportRoadIssueCard } from '../../features/community-reports/ReportRoadIssueCard';
 import { generateOfficialReportPdf } from '../../services/reporting/pdfGenerator';
@@ -112,6 +114,7 @@ import { EngineeringPage } from '../../pages/engineering/EngineeringPage';
 import { WorkOrdersPage } from '../../pages/engineering/WorkOrdersPage';
 import { relativeTime, workflowNotifications } from '../../features/workflow/notifications';
 import { fieldTasks, tasksDue } from '../../features/work-orders/fieldTasks';
+import { GlobalFloatingTopBar } from '../../components/navigation/GlobalFloatingTopBar';
 
 interface ModernAppLayoutProps {
   currentAccount: UserAccount;
@@ -142,7 +145,6 @@ interface ModernAppLayoutProps {
 }
 
 // MapLibre (WebGL, globe) is loaded only for the accounts that use it
-const MapLibreMap = React.lazy(() => import('../../components/maps/MapLibreMap'));
 
 export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   currentAccount,
@@ -173,7 +175,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const isPolicyMaker = currentAccount.role === 'POLICY_MAKER';
   const isOperationsManager = currentAccount.role === 'OPERATIONS_MANAGER';
   // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
-  const { workflow } = useAppState();
+  const { workflow, activeNavigationTask, startNavigation, cancelNavigation, completeNavigation } = useAppState();
   const { navigateTo } = useRouter();
   // Sidebar badge: assigned cases where the engineer can act now (inspect, recommend, verify).
   // M.O badge: cases where an operations action is available now (same server views as the queue).
@@ -289,6 +291,19 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   // Recenter Map State for Karawang view
   const [recenterKey, setRecenterKey] = useState<number>(0);
   const [showRecenterToast, setShowRecenterToast] = useState<boolean>(false);
+
+  // Cinematic Globe-to-Java Map Entry Animation Key
+  const [mapEntryKey, setMapEntryKey] = useState<number>(1);
+  const prevActiveNavRef = React.useRef<WorkspaceNav>(activeNav);
+
+  useEffect(() => {
+    const isMapActive = activeNav === 'MAP' || activeNav === 'PETA_POS_WIM';
+    const wasMapActive = prevActiveNavRef.current === 'MAP' || prevActiveNavRef.current === 'PETA_POS_WIM';
+    if (isMapActive && !wasMapActive) {
+      setMapEntryKey((prev) => prev + 1);
+    }
+    prevActiveNavRef.current = activeNav;
+  }, [activeNav]);
 
   // Newly submitted report highlight & map animation targets
   const [highlightReportId, setHighlightReportId] = useState<string | null>(null);
@@ -433,6 +448,27 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   // Custom coordinates for location-based reporting from map
   const [customCoordinates, setCustomCoordinates] = useState<[number, number] | null>(null);
 
+  // Check for testLat / testLng in URL query for verified reproducible testing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const testLatStr = params.get('testLat');
+      const testLngStr = params.get('testLng');
+      if (testLatStr && testLngStr) {
+        const tLat = parseFloat(testLatStr);
+        const tLng = parseFloat(testLngStr);
+        if (Number.isFinite(tLat) && Number.isFinite(tLng)) {
+          setCustomCoordinates([tLat, tLng]);
+          setMapCenterTarget({
+            coords: [tLat, tLng],
+            zoom: 16,
+            timestamp: Date.now()
+          });
+        }
+      }
+    }
+  }, []);
+
   // Active photo index in Issue Details
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState<number>(0);
 
@@ -450,6 +486,12 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
   // Mobile sidebar drawer state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
+  const handleNavToMap = (targetNav: WorkspaceNav = 'MAP') => {
+    setActiveNav(targetNav);
+    setMapEntryKey((prev) => prev + 1);
+    setIsMobileSidebarOpen(false);
+  };
 
   // Notification / Alerts modal state
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState<boolean>(false);
@@ -768,9 +810,58 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const layerButtonRef = React.useRef<HTMLButtonElement>(null);
   const closeLayersMenu = React.useCallback(() => setIsLayersMenuOpen(false), []);
 
-  // Public accounts get the globe map; official roles keep the Leaflet map and its tools
-  const isPublicRole = currentAccount.role === 'PUBLIC_REPORTER' || currentAccount.role === 'PUBLIC_VIEWER';
-  const PublicMap: React.ComponentType<LeafletMapProps> = isPublicRole ? MapLibreMap : LeafletMap;
+  // Filter pills horizontal edge-to-edge scroll detection for transparent edge mask fade
+  const filterScrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
+  const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
+
+  const checkFilterScroll = React.useCallback(() => {
+    const el = filterScrollRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollWidth > el.clientWidth + 1;
+    const isAtStart = el.scrollLeft <= 2;
+    const isAtEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+    setCanScrollLeft(hasOverflow && !isAtStart);
+    setCanScrollRight(hasOverflow && !isAtEnd);
+  }, []);
+
+  // Pure transparent CSS mask: chips fade smoothly to 0% opacity near edges without adding colors or shadows
+  const filterMaskStyle = useMemo(() => {
+    if (!canScrollLeft && !canScrollRight) {
+      return undefined;
+    }
+    const fadeWidth = '28px';
+    let gradient = '';
+    if (canScrollLeft && canScrollRight) {
+      gradient = `linear-gradient(to right, transparent 0%, #000 ${fadeWidth}, #000 calc(100% - ${fadeWidth}), transparent 100%)`;
+    } else if (canScrollRight) {
+      gradient = `linear-gradient(to right, #000 0%, #000 calc(100% - ${fadeWidth}), transparent 100%)`;
+    } else if (canScrollLeft) {
+      gradient = `linear-gradient(to right, transparent 0%, #000 ${fadeWidth}, #000 100%)`;
+    }
+    return {
+      WebkitMaskImage: gradient,
+      maskImage: gradient
+    };
+  }, [canScrollLeft, canScrollRight]);
+
+  useEffect(() => {
+    checkFilterScroll();
+    const el = filterScrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      checkFilterScroll();
+    });
+    observer.observe(el);
+    window.addEventListener('resize', checkFilterScroll);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', checkFilterScroll);
+    };
+  }, [checkFilterScroll, language, activeFilter]);
+
+  // Every role uses the shared map engine (3D globe; flat Leaflet only during route guidance).
+  const PublicMap: React.ComponentType<LeafletMapProps> = PavementMap;
 
   const showMapToast = (text: string) => {
     setRecenterToastText(text);
@@ -806,17 +897,83 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
     );
   };
 
+  // Synchronize navigation task with report details panel
+  useEffect(() => {
+    if (activeNavigationTask) {
+      setSelectedIssueReport(activeNavigationTask.report);
+      setIsDetailsPanelOpen(false);
+    }
+  }, [activeNavigationTask]);
+
+  const handleCompleteNavigation = () => {
+    completeNavigation();
+    setIsDetailsPanelOpen(false);
+    setActiveNav('MAP');
+  };
+
+  const handleCancelNavigation = () => {
+    cancelNavigation();
+    setIsDetailsPanelOpen(false);
+    setActiveNav('MAP');
+  };
+
+  /**
+   * Apple Human Interface Guidelines Dark Sidebar Navigation Tokens:
+  /**
+   * Professional Dark GIS Navigation Tokens (Dark Navy Chrome System):
+   * - Selected item: Dark navy elevated surface (#18243A), off-white label (#E8EDF5),
+   *   restrained golden yellow accent (#E8B52B), subtle border (#202B3B).
+   * - Inactive item: Muted slate-navy (#9AA8BC), soft hover (#121C2C).
+   * - Proportions: 176–200 px width on desktop.
+   */
+  const getNavItemClass = (isActive: boolean) => {
+    const layout = isSidebarCollapsed
+      ? 'justify-center px-2 py-2 min-h-[40px]'
+      : 'space-x-2.5 px-3 py-2 min-h-[40px]';
+    const state = isActive
+      ? 'bg-[#18243A] text-[#E8EDF5] font-medium border border-[#202B3B] shadow-xs'
+      : 'text-[#9AA8BC] hover:text-[#E8EDF5] hover:bg-[#121C2C] border border-transparent font-medium';
+    return `relative w-full max-w-full flex items-center ${layout} rounded-lg text-xs transition-all duration-150 cursor-pointer select-none group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60 focus-visible:ring-offset-1 focus-visible:ring-offset-[#080E1B] ${state}`;
+  };
+
+  const getNavIconClass = (isActive: boolean) =>
+    `w-4 h-4 shrink-0 transition-colors duration-150 ${
+      isActive ? 'text-[#E8B52B]' : 'text-[#9AA8BC] group-hover:text-[#E8EDF5]'
+    }`;
+
+  const getSubnavItemClass = (isActive: boolean) => {
+    const state = isActive
+      ? 'bg-[#18243A] text-[#E8EDF5] font-medium border border-[#202B3B] shadow-xs'
+      : 'text-[#9AA8BC] hover:text-[#E8EDF5] hover:bg-[#121C2C] border border-transparent font-medium';
+    return `relative w-full flex items-center space-x-2 px-2.5 py-1.5 min-h-[34px] rounded-md text-xs transition-all duration-150 cursor-pointer select-none group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#080E1B] ${state}`;
+  };
+
+  const getSubnavIconClass = (isActive: boolean) =>
+    `w-3.5 h-3.5 shrink-0 transition-colors duration-150 ${
+      isActive ? 'text-[#E8B52B]' : 'text-[#7D8B9F] group-hover:text-[#9AA8BC]'
+    }`;
+
+  const getFolderNavClass = (hasActiveChild: boolean) => {
+    const layout = isSidebarCollapsed
+      ? 'justify-center px-2 py-2 min-h-[40px]'
+      : 'justify-between px-3 py-2 min-h-[40px]';
+    const state = hasActiveChild
+      ? 'bg-[#121C2C] text-[#E8EDF5] font-medium border border-[#202B3B]'
+      : 'text-[#9AA8BC] hover:text-[#E8EDF5] hover:bg-[#121C2C] border border-transparent font-medium';
+    return `w-full max-w-full flex items-center ${layout} rounded-lg text-xs transition-all duration-150 cursor-pointer select-none group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8B52B]/60 focus-visible:ring-offset-1 focus-visible:ring-offset-[#080E1B] ${state}`;
+  };
+
   return (
     <div
-      className="flex h-screen w-screen bg-canvas text-slate-100 overflow-hidden font-sans select-none antialiased"
+      className="flex h-full w-full bg-workspace text-ink overflow-hidden font-sans select-none antialiased"
       // Full-screen pages start after the sidebar on md+ (it is static there): see PageOverlay.
-      style={{ ['--sidebar-w' as string]: isSidebarCollapsed ? '5rem' : '16rem' } as React.CSSProperties}
+      style={{ ['--sidebar-w' as string]: isSidebarCollapsed ? '4.5rem' : '12rem' } as React.CSSProperties}
     >
-      {/* 1. LEFT MAIN SIDEBAR (Dark sleek navigation, compact width & collapsible) */}
+      {/* 1. LEFT MAIN SIDEBAR (Dark sleek navigation, ~192px width & collapsible) */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 ${
-          isSidebarCollapsed ? 'w-20' : 'w-64'
-        } bg-surface border-r border-white/10 flex flex-col justify-between p-4 transition-all duration-300 ease-in-out md:static md:translate-x-0 overflow-x-hidden ${
+          isSidebarCollapsed ? 'w-18' : 'w-[192px]'
+        } bg-[#080E1B] border-r border-[#202B3B] flex flex-col justify-between p-3 transition-all duration-200 ease-in-out md:static md:translate-x-0 overflow-x-hidden ${
           isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
@@ -836,556 +993,563 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             />
             {!isSidebarCollapsed && (
               <div className="overflow-hidden min-w-0 flex-1">
-                <h1 className="font-semibold text-base tracking-wider text-white leading-tight truncate">PAVEMENT PINN</h1>
-                <p className="text-xs text-slate-400 font-medium leading-tight truncate">Smart Road Intelligence</p>
+                <h1 className="font-semibold text-base tracking-wider text-[#E8EDF5] leading-tight truncate">PAVEMENT PINN</h1>
+                <p className="text-xs text-[#9AA8BC] font-medium leading-tight truncate">Smart Road Intelligence</p>
               </div>
             )}
           </div>
 
           {/* Navigation Items Vertical Stack */}
-          <nav className="space-y-2 w-full max-w-full min-w-0">
+          <nav className="space-y-1.5 w-full max-w-full min-w-0">
             {/* EXECUTIVE POLICY MAKER SIDEBAR */}
             {isPolicyMaker ? (
               <>
                 {/* 1. Ringkasan Eksekutif */}
-                <button
-                  onClick={() => {
-                    setActiveNav('DASHBOARD');
-                    setPolicyNavTab('RINGKASAN_EKSEKUTIF');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Ringkasan Eksekutif"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'DASHBOARD' && policyNavTab === 'RINGKASAN_EKSEKUTIF'
-                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <Home className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && policyNavTab === 'RINGKASAN_EKSEKUTIF' ? 'text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Ringkasan Eksekutif</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'DASHBOARD' && policyNavTab === 'RINGKASAN_EKSEKUTIF';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('DASHBOARD');
+                        setPolicyNavTab('RINGKASAN_EKSEKUTIF');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Ringkasan Eksekutif"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <Home className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Ringkasan Eksekutif</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 2. Peta Strategis */}
-                <button
-                  onClick={() => {
-                    setActiveNav('DASHBOARD');
-                    setPolicyNavTab('PETA_STRATEGIS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Peta Strategis"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'DASHBOARD' && policyNavTab === 'PETA_STRATEGIS'
-                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && policyNavTab === 'PETA_STRATEGIS' ? 'text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Peta Strategis</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'DASHBOARD' && policyNavTab === 'PETA_STRATEGIS';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('DASHBOARD');
+                        setPolicyNavTab('PETA_STRATEGIS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Peta Strategis"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <MapIcon className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Peta Strategis</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 3. Anggaran & Investasi */}
-                <button
-                  onClick={() => {
-                    setActiveNav('DASHBOARD');
-                    setPolicyNavTab('ANGGARAN_INVESTASI');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Anggaran & Investasi"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'DASHBOARD' && (policyNavTab === 'ANGGARAN_INVESTASI' || policyNavTab === 'ANGGARAN_REALISASI')
-                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <CreditCard className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && (policyNavTab === 'ANGGARAN_INVESTASI' || policyNavTab === 'ANGGARAN_REALISASI') ? 'text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Anggaran & Investasi</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'DASHBOARD' && (policyNavTab === 'ANGGARAN_INVESTASI' || policyNavTab === 'ANGGARAN_REALISASI');
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('DASHBOARD');
+                        setPolicyNavTab('ANGGARAN_INVESTASI');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Anggaran & Investasi"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <CreditCard className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Anggaran & Investasi</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 4. Program Prioritas */}
-                <button
-                  onClick={() => {
-                    setActiveNav('DASHBOARD');
-                    setPolicyNavTab('PROGRAM_PRIORITAS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Program Prioritas"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'DASHBOARD' && (policyNavTab === 'PROGRAM_PRIORITAS' || policyNavTab === 'PRIORITAS_NASIONAL')
-                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <Layers className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' && (policyNavTab === 'PROGRAM_PRIORITAS' || policyNavTab === 'PRIORITAS_NASIONAL') ? 'text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Program Prioritas</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'DASHBOARD' && (policyNavTab === 'PROGRAM_PRIORITAS' || policyNavTab === 'PRIORITAS_NASIONAL');
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('DASHBOARD');
+                        setPolicyNavTab('PROGRAM_PRIORITAS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Program Prioritas"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <Layers className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Program Prioritas</span>}
+                    </button>
+                  );
+                })()}
               </>
             ) : isOperationsManager ? (
               <>
-                {/* 1. DASHBOARD (renamed from Beranda) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('DASHBOARD');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Dashboard"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <LayoutDashboard className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex items-center justify-between w-full min-w-0">
-                      <span className="truncate">Dashboard</span>
-                      <span className="text-xs font-mono bg-amber-500/20 text-amber-300 px-2 py-0.2 rounded-full shrink-0 ml-1">
-                        Ops
-                      </span>
-                    </div>
-                  )}
-                </button>
+                {/* 1. RINGKASAN */}
+                {(() => {
+                  const isActive = activeNav === 'DASHBOARD' || activeNav === 'BERANDA_OPERASI';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('DASHBOARD');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Ringkasan"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <LayoutDashboard className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">Ringkasan</span>
+                          <span className="text-[10px] font-semibold tracking-wide bg-[#18243A] text-[#9AA8BC] border border-[#202B3B] px-1.5 py-0.5 rounded shrink-0 ml-1 leading-none">
+                            Ops
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })()}
 
-                {/* 2. PETA */}
-                <button
-                  onClick={() => {
-                    setActiveNav('MAP');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Peta"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'MAP' || activeNav === 'PETA_POS_WIM'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'MAP' || activeNav === 'PETA_POS_WIM' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex items-center justify-between w-full min-w-0">
-                      <span className="truncate">Peta</span>
-                      <span className="text-xs font-mono bg-blue-500/20 text-blue-300 px-2 py-0.2 rounded-full shrink-0 ml-1">
-                        GIS
-                      </span>
-                    </div>
-                  )}
-                </button>
+                {/* 2. PETA JALAN */}
+                {(() => {
+                  const isActive = activeNav === 'MAP' || activeNav === 'PETA_POS_WIM';
+                  return (
+                    <button
+                      onClick={() => {
+                        handleNavToMap('MAP');
+                      }}
+                      title="Peta Jalan"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <MapIcon className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">Peta Jalan</span>
+                          <span className="text-[10px] font-semibold tracking-wide bg-[#18243A] text-[#9AA8BC] border border-[#202B3B] px-1.5 py-0.5 rounded shrink-0 ml-1 leading-none">
+                            GIS
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })()}
 
-                {/* 3. MONITORING (Folder containing: Kondisi Jalan, POS WIM, ODOL, Cuaca & Banjir) */}
-                <div className="space-y-1">
-                  <button
-                    onClick={() => {
-                      if (isSidebarCollapsed) {
-                        setIsSidebarCollapsed(false);
-                      }
-                      setIsMonitoringSubmenuOpen(!isMonitoringSubmenuOpen);
-                    }}
-                    title="Monitoring"
-                    className={`w-full max-w-full flex items-center ${
-                      isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'
-                    } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeNav.startsWith('MONITORING_')
-                        ? 'bg-white/5 text-amber-300 font-bold'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <Activity className={`w-5 h-5 shrink-0 ${activeNav.startsWith('MONITORING_') ? 'text-amber-400' : 'text-slate-400'}`} />
-                      {!isSidebarCollapsed && <span className="truncate">Monitoring</span>}
-                    </div>
-                    {!isSidebarCollapsed && (
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isMonitoringSubmenuOpen ? 'rotate-180 text-amber-400' : ''}`} />
-                    )}
-                  </button>
+                {/* 3. MONITORING (Kondisi Jalan, Pos WIM, ODOL, Cuaca dan Banjir) */}
+                <div className="space-y-0.5">
+                  {(() => {
+                    const hasActiveChild = activeNav.startsWith('MONITORING_');
+                    return (
+                      <button
+                        onClick={() => {
+                          if (isSidebarCollapsed) {
+                            setIsSidebarCollapsed(false);
+                          }
+                          setIsMonitoringSubmenuOpen(!isMonitoringSubmenuOpen);
+                        }}
+                        title="Monitoring"
+                        className={getFolderNavClass(hasActiveChild)}
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <Activity className={getNavIconClass(hasActiveChild)} />
+                          {!isSidebarCollapsed && <span className="truncate">Monitoring</span>}
+                        </div>
+                        {!isSidebarCollapsed && (
+                          <ChevronDown className={`w-3.5 h-3.5 text-[#9AA8BC] transition-transform duration-200 ${isMonitoringSubmenuOpen ? 'rotate-180 text-[#E8B52B]' : ''}`} />
+                        )}
+                      </button>
+                    );
+                  })()}
 
                   {/* Sub-items for Monitoring */}
                   {(!isSidebarCollapsed && isMonitoringSubmenuOpen) && (
-                    <div className="pl-4 pr-1 space-y-1 border-l border-white/10 ml-5 my-1">
+                    <div className="ml-3 pl-2.5 space-y-0.5 border-l border-[#202B3B] my-0.5">
                       {/* Kondisi Jalan */}
-                      <button
-                        onClick={() => {
-                          setActiveNav('MONITORING_KONDISI_JALAN');
-                          setIsMobileSidebarOpen(false);
-                        }}
-                        title="Kondisi Jalan"
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                          activeNav === 'MONITORING_KONDISI_JALAN'
-                            ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                        }`}
-                      >
-                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_KONDISI_JALAN' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
-                        <span className="truncate">Kondisi Jalan</span>
-                      </button>
+                      {(() => {
+                        const isActive = activeNav === 'MONITORING_KONDISI_JALAN';
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveNav('MONITORING_KONDISI_JALAN');
+                              setIsMobileSidebarOpen(false);
+                            }}
+                            title="Kondisi Jalan"
+                            className={getSubnavItemClass(isActive)}
+                          >
+                            {isActive && <span className="absolute left-1 top-2 bottom-2 w-[2px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                            <CheckCircle2 className={getSubnavIconClass(isActive)} />
+                            <span className="truncate">Kondisi Jalan</span>
+                          </button>
+                        );
+                      })()}
 
-                      {/* POS WIM */}
-                      <button
-                        onClick={() => {
-                          setActiveNav('MONITORING_POS_WIM');
-                          setIsMobileSidebarOpen(false);
-                        }}
-                        title="POS WIM"
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                          activeNav === 'MONITORING_POS_WIM'
-                            ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                        }`}
-                      >
-                        <Scale className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_POS_WIM' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
-                        <span className="truncate">POS WIM</span>
-                      </button>
+                      {/* Pos WIM */}
+                      {(() => {
+                        const isActive = activeNav === 'MONITORING_POS_WIM';
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveNav('MONITORING_POS_WIM');
+                              setIsMobileSidebarOpen(false);
+                            }}
+                            title="Pos WIM"
+                            className={getSubnavItemClass(isActive)}
+                          >
+                            {isActive && <span className="absolute left-1 top-2 bottom-2 w-[2px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                            <Scale className={getSubnavIconClass(isActive)} />
+                            <span className="truncate">Pos WIM</span>
+                          </button>
+                        );
+                      })()}
 
                       {/* ODOL */}
-                      <button
-                        onClick={() => {
-                          setActiveNav('MONITORING_ODOL');
-                          setIsMobileSidebarOpen(false);
-                        }}
-                        title="ODOL"
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                          activeNav === 'MONITORING_ODOL'
-                            ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                        }`}
-                      >
-                        <Truck className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_ODOL' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
-                        <span className="truncate">ODOL</span>
-                      </button>
+                      {(() => {
+                        const isActive = activeNav === 'MONITORING_ODOL';
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveNav('MONITORING_ODOL');
+                              setIsMobileSidebarOpen(false);
+                            }}
+                            title="ODOL"
+                            className={getSubnavItemClass(isActive)}
+                          >
+                            {isActive && <span className="absolute left-1 top-2 bottom-2 w-[2px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                            <Truck className={getSubnavIconClass(isActive)} />
+                            <span className="truncate">ODOL</span>
+                          </button>
+                        );
+                      })()}
 
-                      {/* Cuaca & Banjir */}
-                      <button
-                        onClick={() => {
-                          setActiveNav('MONITORING_CUACA_BANJIR');
-                          setIsMobileSidebarOpen(false);
-                        }}
-                        title="Cuaca & Banjir"
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                          activeNav === 'MONITORING_CUACA_BANJIR'
-                            ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                        }`}
-                      >
-                        <CloudRain className={`w-4 h-4 shrink-0 ${activeNav === 'MONITORING_CUACA_BANJIR' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
-                        <span className="truncate">Cuaca & Banjir</span>
-                      </button>
+                      {/* Cuaca dan Banjir */}
+                      {(() => {
+                        const isActive = activeNav === 'MONITORING_CUACA_BANJIR';
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveNav('MONITORING_CUACA_BANJIR');
+                              setIsMobileSidebarOpen(false);
+                            }}
+                            title="Cuaca dan Banjir"
+                            className={getSubnavItemClass(isActive)}
+                          >
+                            {isActive && <span className="absolute left-1 top-2 bottom-2 w-[2px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                            <CloudRain className={getSubnavIconClass(isActive)} />
+                            <span className="truncate">Cuaca dan Banjir</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
 
-                {/* 4. TINDAKAN OPERASI (Folder containing: Rekayasa Lalu Lintas, Peringatan) */}
-                <div className="space-y-1">
-                  <button
-                    onClick={() => {
-                      if (isSidebarCollapsed) {
-                        setIsSidebarCollapsed(false);
-                      }
-                      setIsTindakanSubmenuOpen(!isTindakanSubmenuOpen);
-                    }}
-                    title="Tindakan Operasi"
-                    className={`w-full max-w-full flex items-center ${
-                      isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'
-                    } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeNav.startsWith('TINDAKAN_')
-                        ? 'bg-white/5 text-amber-300 font-bold'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <Workflow className={`w-5 h-5 shrink-0 ${activeNav.startsWith('TINDAKAN_') ? 'text-amber-400' : 'text-slate-400'}`} />
-                      {!isSidebarCollapsed && <span className="truncate">Tindakan Operasi</span>}
-                    </div>
-                    {!isSidebarCollapsed && (
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isTindakanSubmenuOpen ? 'rotate-180 text-amber-400' : ''}`} />
-                    )}
-                  </button>
-
-                  {/* Sub-items for Tindakan Operasi */}
-                  {(!isSidebarCollapsed && isTindakanSubmenuOpen) && (
-                    <div className="pl-4 pr-1 space-y-1 border-l border-white/10 ml-5 my-1">
-                      {/* Rekayasa Lalu Lintas */}
+                {/* 4. LAPORAN DAN PENANGANAN (Rekayasa Lalu Lintas, Peringatan) */}
+                <div className="space-y-0.5">
+                  {(() => {
+                    const hasActiveChild = activeNav.startsWith('TINDAKAN_');
+                    return (
                       <button
                         onClick={() => {
-                          setActiveNav('TINDAKAN_REKAYASA');
-                          setIsMobileSidebarOpen(false);
+                          if (isSidebarCollapsed) {
+                            setIsSidebarCollapsed(false);
+                          }
+                          setIsTindakanSubmenuOpen(!isTindakanSubmenuOpen);
                         }}
-                        title="Rekayasa Lalu Lintas"
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                          activeNav === 'TINDAKAN_REKAYASA'
-                            ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                        }`}
+                        title="Laporan dan Penanganan"
+                        className={getFolderNavClass(hasActiveChild)}
                       >
-                        <Navigation className={`w-4 h-4 shrink-0 ${activeNav === 'TINDAKAN_REKAYASA' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
-                        <span className="truncate">Rekayasa Lalu Lintas</span>
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <Workflow className={getNavIconClass(hasActiveChild)} />
+                          {!isSidebarCollapsed && <span className="truncate">Laporan & Penanganan</span>}
+                        </div>
+                        {!isSidebarCollapsed && (
+                          <ChevronDown className={`w-3.5 h-3.5 text-[#9AA8BC] transition-transform duration-200 ${isTindakanSubmenuOpen ? 'rotate-180 text-[#E8B52B]' : ''}`} />
+                        )}
                       </button>
+                    );
+                  })()}
+
+                  {/* Sub-items for Laporan dan Penanganan */}
+                  {(!isSidebarCollapsed && isTindakanSubmenuOpen) && (
+                    <div className="ml-3 pl-2.5 space-y-0.5 border-l border-[#202B3B] my-0.5">
+                      {/* Rekayasa Lalu Lintas */}
+                      {(() => {
+                        const isActive = activeNav === 'TINDAKAN_REKAYASA';
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveNav('TINDAKAN_REKAYASA');
+                              setIsMobileSidebarOpen(false);
+                            }}
+                            title="Rekayasa Lalu Lintas"
+                            className={getSubnavItemClass(isActive)}
+                          >
+                            {isActive && <span className="absolute left-1 top-2 bottom-2 w-[2px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                            <Navigation className={getSubnavIconClass(isActive)} />
+                            <span className="truncate">Rekayasa Lalu Lintas</span>
+                          </button>
+                        );
+                      })()}
 
                       {/* Peringatan */}
-                      <button
-                        onClick={() => {
-                          setActiveNav('TINDAKAN_PERINGATAN');
-                          setIsMobileSidebarOpen(false);
-                        }}
-                        title="Peringatan"
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                          activeNav === 'TINDAKAN_PERINGATAN'
-                            ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-bold shadow-sm'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                        }`}
-                      >
-                        <AlertTriangle className={`w-4 h-4 shrink-0 ${activeNav === 'TINDAKAN_PERINGATAN' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-500'}`} />
-                        <span className="truncate">Peringatan</span>
-                      </button>
+                      {(() => {
+                        const isActive = activeNav === 'TINDAKAN_PERINGATAN';
+                        return (
+                          <button
+                            onClick={() => {
+                              setActiveNav('TINDAKAN_PERINGATAN');
+                              setIsMobileSidebarOpen(false);
+                            }}
+                            title="Peringatan"
+                            className={getSubnavItemClass(isActive)}
+                          >
+                            {isActive && <span className="absolute left-1 top-2 bottom-2 w-[2px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                            <AlertTriangle className={getSubnavIconClass(isActive)} />
+                            <span className="truncate">Peringatan</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
 
-                {/* 5. TIM & TUGAS */}
-                <button
-                  onClick={() => {
-                    setActiveNav('SPK_ORDERS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Tim & Tugas"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'SPK_ORDERS'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <Users className={`w-5 h-5 shrink-0 ${activeNav === 'SPK_ORDERS' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex items-center justify-between w-full min-w-0">
-                      <span className="truncate">Tim & Tugas</span>
-                      {operationsDue > 0 && (
-                        <span className="text-xs font-semibold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-md shrink-0 ml-1" title="Laporan yang menunggu tindakan Anda">
-                          {operationsDue}
-                        </span>
+                {/* 5. TIM DAN TUGAS */}
+                {(() => {
+                  const isActive = activeNav === 'SPK_ORDERS';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('SPK_ORDERS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Tim dan Tugas"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <Users className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">Tim dan Tugas</span>
+                          {operationsDue > 0 && (
+                            <span className="text-[10px] font-semibold tabular-nums bg-[#18243A] text-[#E8B52B] border border-[#202B3B] px-1.5 py-0.5 rounded shrink-0 ml-1 leading-none" title="Laporan yang menunggu tindakan Anda">
+                              {operationsDue}
+                            </span>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                </button>
+                    </button>
+                  );
+                })()}
 
-                {/* 6. LAPORAN */}
-                <button
-                  onClick={() => {
-                    setActiveNav('REPORTS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Laporan"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'REPORTS'
-                      ? 'bg-[#fef8ee] text-[#b45309] dark:bg-amber-400/20 dark:text-amber-300 font-semibold shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-                  }`}
-                >
-                  <FileText className={`w-5 h-5 shrink-0 ${activeNav === 'REPORTS' ? 'text-[#d97706] dark:text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Laporan</span>}
-                </button>
+                {/* 6. LAPORAN KINERJA */}
+                {(() => {
+                  const isActive = activeNav === 'REPORTS';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('REPORTS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Laporan Kinerja"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <FileText className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Laporan Kinerja</span>}
+                    </button>
+                  );
+                })()}
               </>
             ) : isFieldEngineer ? (
               <>
                 {/* 1. DASHBOARD (Field Engineer) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('DASHBOARD');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Dashboard"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
-                    activeNav === 'DASHBOARD'
-                      ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
-                  }`}
-                >
-                  <LayoutDashboard className={`w-5 h-5 shrink-0 ${activeNav === 'DASHBOARD' ? 'text-amber-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex items-center justify-between w-full min-w-0">
-                      <span className="truncate">Dashboard</span>
-                      <span className="text-xs font-mono px-2 py-0.2 rounded-md shrink-0 ml-1 bg-slate-700/80 text-slate-300 border border-slate-600/60">
-                        Live
-                      </span>
-                    </div>
-                  )}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'DASHBOARD';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('DASHBOARD');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Dashboard"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <LayoutDashboard className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">Dashboard</span>
+                          <span className="text-[10px] font-semibold tracking-wide bg-[#18243A] text-[#50A878] border border-[#50A878]/30 px-1.5 py-0.5 rounded shrink-0 ml-1 leading-none">
+                            Live
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })()}
 
                 {/* 2. MAPS & RUAS JALAN (Field Engineer) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('MAP');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Maps & Ruas Jalan"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
-                    activeNav === 'MAP'
-                      ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
-                  }`}
-                >
-                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'MAP' ? 'text-blue-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Maps & Ruas Jalan</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'MAP';
+                  return (
+                    <button
+                      onClick={() => {
+                        handleNavToMap('MAP');
+                      }}
+                      title="Maps & Ruas Jalan"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <MapIcon className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Maps & Ruas Jalan</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 3. TUGAS & INSPEKSI (Field Engineer) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('SPK_ORDERS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Tugas & Inspeksi"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
-                    activeNav === 'SPK_ORDERS'
-                      ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
-                  }`}
-                >
-                  <ClipboardList className={`w-5 h-5 shrink-0 ${activeNav === 'SPK_ORDERS' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex items-center justify-between w-full min-w-0">
-                      <span className="truncate">Tugas & Inspeksi</span>
-                      {fieldTasksDue > 0 && (
-                        <span title="Tugas yang menunggu tindakan Anda" className="text-xs font-semibold bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-md shrink-0 ml-1 border border-amber-500/30 tabular-nums">
-                          {fieldTasksDue}
-                        </span>
+                {(() => {
+                  const isActive = activeNav === 'SPK_ORDERS';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('SPK_ORDERS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Tugas & Inspeksi"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <ClipboardList className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">Tugas & Inspeksi</span>
+                          {fieldTasksDue > 0 && (
+                            <span title="Tugas yang menunggu tindakan Anda" className="text-[10px] font-mono font-medium text-[#E8B52B] bg-[#18243A] border border-[#202B3B] px-1.5 py-0.5 rounded-md shrink-0 ml-1 leading-none">
+                              {fieldTasksDue}
+                            </span>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                </button>
+                    </button>
+                  );
+                })()}
 
                 {/* 4. ANALISIS PINN (Field Engineer) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('SIMULATION');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Analisis PINN"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
-                    activeNav === 'SIMULATION'
-                      ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
-                  }`}
-                >
-                  <Cpu className={`w-5 h-5 shrink-0 ${activeNav === 'SIMULATION' ? 'text-indigo-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Analisis PINN</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'SIMULATION';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('SIMULATION');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Analisis PINN"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <Cpu className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Analisis PINN</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 5. RIWAYAT JALAN (Field Engineer) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('ROAD_HISTORY');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title="Riwayat Jalan"
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-xl text-xs sm:text-sm transition-colors cursor-pointer ${
-                    activeNav === 'ROAD_HISTORY'
-                      ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-medium'
-                  }`}
-                >
-                  <History className={`w-5 h-5 shrink-0 ${activeNav === 'ROAD_HISTORY' ? 'text-cyan-400' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">Riwayat Jalan</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'ROAD_HISTORY';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('ROAD_HISTORY');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="Riwayat Jalan"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <History className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">Riwayat Jalan</span>}
+                    </button>
+                  );
+                })()}
               </>
             ) : (
               <>
                 {/* 1. PETA (Public / Non-Staff) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('MAP');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title={t.navMap}
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'MAP'
-                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <MapIcon className={`w-5 h-5 shrink-0 ${activeNav === 'MAP' ? 'text-slate-950' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">{t.navMap}</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'MAP';
+                  return (
+                    <button
+                      onClick={() => {
+                        handleNavToMap('MAP');
+                      }}
+                      title={t.navMap}
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <MapIcon className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">{t.navMap}</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 2. LAPORAN (Public) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('REPORTS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title={t.navReports}
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'REPORTS'
-                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <FileText className={`w-5 h-5 shrink-0 ${activeNav === 'REPORTS' ? 'text-slate-950' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">{t.navReports}</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'REPORTS';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('REPORTS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title={t.navReports}
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <FileText className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">{t.navReports}</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 3. ANALITIK (Public) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('ANALYTICS');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title={t.navAnalytics}
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'ANALYTICS'
-                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <BarChart2 className={`w-5 h-5 shrink-0 ${activeNav === 'ANALYTICS' ? 'text-slate-950' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">{t.navAnalytics}</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'ANALYTICS';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('ANALYTICS');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title={t.navAnalytics}
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <BarChart2 className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">{t.navAnalytics}</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 4. SIMULASI PINN (Public) */}
-                <button
-                  onClick={() => {
-                    setActiveNav('SIMULATION');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  title={t.navSimulation}
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeNav === 'SIMULATION'
-                      ? 'bg-amber-400 text-slate-950 shadow-md  font-semibold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Cpu className={`w-5 h-5 shrink-0 ${activeNav === 'SIMULATION' ? 'text-slate-950' : 'text-slate-400'}`} />
-                  {!isSidebarCollapsed && <span className="truncate">{t.navSimulation}</span>}
-                </button>
+                {(() => {
+                  const isActive = activeNav === 'SIMULATION';
+                  return (
+                    <button
+                      onClick={() => {
+                        setActiveNav('SIMULATION');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title={t.navSimulation}
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-amber-400 pointer-events-none" />}
+                      <Cpu className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && <span className="truncate">{t.navSimulation}</span>}
+                    </button>
+                  );
+                })()}
 
                 {/* 5. PENGATURAN (Public) */}
                 <button
@@ -1394,11 +1558,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                     setIsMobileSidebarOpen(false);
                   }}
                   title={t.navSettings}
-                  className={`w-full max-w-full flex items-center ${
-                    isSidebarCollapsed ? 'justify-center px-2 py-3' : 'space-x-3 px-4 py-3'
-                  } rounded-2xl font-bold text-xs sm:text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer`}
+                  className={getNavItemClass(false)}
                 >
-                  <Settings className="w-5 h-5 text-slate-400 shrink-0" />
+                  <Settings className={getNavIconClass(false)} />
                   {!isSidebarCollapsed && <span className="truncate">{t.navSettings}</span>}
                 </button>
               </>
@@ -1408,7 +1570,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
         {/* Policy Maker and Operations Manager Bottom Assistance & Logout OR Sidebar Collapse Toggle Button */}
         {isPolicyMaker || isOperationsManager ? (
-          <div className="pt-3 border-t border-white/10 flex flex-col space-y-2 w-full max-w-full">
+          <div className="pt-3 border-t border-[#202B3B] flex flex-col space-y-1.5 w-full max-w-full">
             {/* Pusat Bantuan 24/7 */}
             <button
               onClick={() => {
@@ -1419,16 +1581,16 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 );
               }}
               className={`w-full max-w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-2 py-2' : 'justify-between px-4 py-2'
-              } rounded-2xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer`}
+                isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-3.5 py-2.5'
+              } min-h-[40px] rounded-xl text-xs font-medium text-[#9AA8BC] hover:text-[#E8EDF5] hover:bg-[#121C2C] border border-transparent transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60`}
               title="Pusat Bantuan 24/7"
             >
               <div className="flex items-center space-x-3 min-w-0">
-                <Headphones className="w-4 h-4 text-slate-400 shrink-0" />
+                <Headphones className="w-4 h-4 text-[#9AA8BC] shrink-0" />
                 {!isSidebarCollapsed && <span className="truncate">Pusat Bantuan</span>}
               </div>
               {!isSidebarCollapsed && (
-                <span className="text-xs font-mono text-slate-400 bg-white/5 border border-white/10 px-2 py-1 rounded">
+                <span className="text-[11px] font-mono font-medium text-[#9AA8BC] bg-[#121C2C] border border-[#202B3B] px-2 py-0.5 rounded-md shrink-0 leading-none">
                   24/7
                 </span>
               )}
@@ -1438,11 +1600,11 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <button
               onClick={isAnonymousIdentity ? onOpenLoginModal : onLogout}
               className={`w-full max-w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-2 py-2' : 'space-x-3 px-4 py-2'
-              } rounded-2xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all cursor-pointer`}
+                isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'space-x-3 px-3.5 py-2.5'
+              } min-h-[40px] rounded-xl text-xs font-medium text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60`}
               title={isAnonymousIdentity ? 'Masuk ke Sistem' : 'Keluar'}
             >
-              <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
+              <LogOut className="w-4 h-4 text-rose-400/90 shrink-0" />
               {!isSidebarCollapsed && <span className="truncate">{isAnonymousIdentity ? 'Masuk' : 'Keluar'}</span>}
             </button>
 
@@ -1450,33 +1612,33 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <div className="hidden md:flex pt-1 items-center justify-center">
               <button
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="w-full flex items-center justify-center py-2 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-semibold cursor-pointer"
+                className="w-full max-w-full flex items-center justify-center space-x-1.5 py-2 px-3 min-h-[36px] rounded-xl bg-[#121C2C]/60 hover:bg-[#121C2C] text-[#9AA8BC] hover:text-[#E8EDF5] border border-[#202B3B] transition-all duration-150 text-xs font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                 title={isSidebarCollapsed ? t.navExpand : t.navCollapse}
               >
                 {isSidebarCollapsed ? (
                   <ChevronRight className="w-4 h-4 text-amber-400" />
                 ) : (
                   <>
-                    <ChevronLeft className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs text-slate-400 truncate ml-1">{t.navCollapse}</span>
+                    <ChevronLeft className="w-4 h-4 text-[#9AA8BC]" />
+                    <span className="truncate">{t.navCollapse}</span>
                   </>
                 )}
               </button>
             </div>
           </div>
         ) : (
-          <div className="pt-3 border-t border-white/10 hidden md:flex items-center justify-center w-full max-w-full">
+          <div className="pt-3 border-t border-[#202B3B] hidden md:flex items-center justify-center w-full max-w-full">
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="w-full max-w-full flex items-center justify-center space-x-2 py-2 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-semibold cursor-pointer"
+              className="w-full max-w-full flex items-center justify-center space-x-1.5 py-2 px-3 min-h-[36px] rounded-xl bg-[#121C2C]/60 hover:bg-[#121C2C] text-[#9AA8BC] hover:text-[#E8EDF5] border border-[#202B3B] transition-all duration-150 text-xs font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
               title={isSidebarCollapsed ? t.navExpand : t.navCollapse}
             >
               {isSidebarCollapsed ? (
                 <ChevronRight className="w-4 h-4 text-amber-400" />
               ) : (
                 <>
-                  <ChevronLeft className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs text-slate-400 truncate">{t.navCollapse}</span>
+                  <ChevronLeft className="w-4 h-4 text-[#9AA8BC]" />
+                  <span className="truncate">{t.navCollapse}</span>
                 </>
               )}
             </button>
@@ -1493,319 +1655,77 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       )}
 
       {/* 2. MAIN CONTENT AREA */}
-      <div className={`flex-1 flex flex-col h-full min-w-0 relative overflow-hidden transition-colors duration-200 ${theme === 'dark' ? 'bg-canvas text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
-        {/* 1. DESKTOP HEADER BAR (For tablets md: and desktop lg:) */}
-        <header className={`hidden md:flex h-16  border-b px-4 sm:px-6 items-center justify-between z-40 relative shrink-0 transition-colors duration-200 ${
-          theme === 'dark'
-            ? 'bg-surface/90 border-white/10 text-slate-100'
-            : 'bg-white/95 border-slate-200 text-slate-900 shadow-sm'
-        }`}>
-          {/* Left: Mobile Toggle & Search Input */}
-          <div className="flex items-center gap-3 flex-1 min-w-0 max-w-xl">
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className={`md:hidden p-2 rounded-xl border ${
-                theme === 'dark'
-                  ? 'bg-white/5 text-slate-300 hover:text-white border-white/10'
-                  : 'bg-slate-100 text-slate-700 hover:text-slate-900 border-slate-200'
-              }`}
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+      <div className={`flex-1 flex flex-col h-full min-w-0 relative overflow-hidden transition-colors duration-200 ${theme === 'dark' ? 'bg-workspace text-ink' : 'bg-slate-100 text-slate-900'}`}>
+        {/* GLOBAL FLOATING TOP BAR (Unified for all routes, viewports, and roles) */}
+        <GlobalFloatingTopBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectSegment={(seg) => {
+            onSelectSegment(seg);
+            setActiveNav('MAP');
+            setMapCenterTarget({ coords: seg.coordinates, zoom: 15, timestamp: Date.now() });
+          }}
+          onSelectReport={(rep) => {
+            setSelectedIssueReport(rep);
+            setActiveNav('MAP');
+            setMapCenterTarget({ coords: rep.coordinates, zoom: 17, timestamp: Date.now() });
+            setDetailsTab('COMPARISON');
+            setIsDetailsPanelOpen(true);
+          }}
+          roadSegments={roadSegments}
+          communityReports={communityReports}
+          language={language}
+          onToggleLanguage={() => setLanguage(language === 'id' ? 'en' : 'id')}
+          notifications={notifications}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onToggleNotificationRead={handleToggleNotificationRead}
+          onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
+          onViewNotificationReport={(caseId) => {
+            const rep = communityReports.find((r) => r.id === caseId);
+            if (!rep) return;
+            setActiveNav('MAP');
+            setMapCenterTarget({ coords: rep.coordinates, zoom: 17, timestamp: Date.now() });
+            setSelectedIssueReport(rep);
+            setDetailsTab('COMPARISON');
+            setIsDetailsPanelOpen(true);
+          }}
+          currentAccount={currentAccount}
+          isAnonymousIdentity={isAnonymousIdentity}
+          onOpenLoginModal={onOpenLoginModal}
+          onLogout={onLogout}
+          onOpenSettings={onOpenSettings}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          isPolicyMaker={isPolicyMaker}
+          onDownloadPolicyReport={() => {
+            const sim = currentResult || runPinnSimulation({
+              segmentId: selectedSegment.id,
+              axleLoadTon: 18,
+              rainIntensityMmHr: 45,
+              floodDurationHours: 12,
+              surfaceTemperatureC: 38,
+              subgradeCbrPercent: 5.5,
+              asphaltThicknessCm: 15,
+              asphaltModulusMpa: 2800,
+              targetDevice: 'CPU',
+              precisionMode: 'FP32'
+            }, selectedSegment);
+            generateOfficialReportPdf(sim, currentAccount.role);
+          }}
+        />
 
-            {/* Search location or issue input */}
-            <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t.searchPlaceholder}
-                className={`w-full border rounded-2xl pl-10 pr-10 py-2 text-xs sm:text-sm focus:outline-none transition-all ${
-                  theme === 'dark'
-                    ? 'bg-elevated border-white/10 text-slate-100 placeholder:text-slate-500 focus:border-amber-400/80'
-                    : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-indigo-500'
-                }`}
-              />
-              <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono px-2 py-1 rounded border hidden sm:block ${
-                theme === 'dark' ? 'text-slate-500 bg-white/5 border-white/10' : 'text-slate-400 bg-slate-200 border-slate-300'
-              }`}>
-                /
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Language Toggle, Theme Toggle, Notification Dropdown, and User Account Pill */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Language Switcher (English / Indonesia) */}
-            <div className="relative">
-              <button
-                onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-2xl border text-xs font-semibold transition-all cursor-pointer shadow-sm ${
-                  theme === 'dark'
-                    ? 'bg-elevated hover:bg-elevated border-white/10 text-slate-200 hover:text-white'
-                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 hover:text-slate-950'
-                }`}
-                title="Ganti Bahasa / Switch Language"
-              >
-                <span className="text-sm">{language === 'id' ? '🇮🇩' : '🇺🇸'}</span>
-                <span className="font-mono tracking-wider">{language === 'id' ? 'ID' : 'EN'}</span>
-              </button>
-            </div>
-
-
-            {/* Unduh Laporan Button (Policy Maker / Executive Fast Access) */}
-            {isPolicyMaker && (
-              <button
-                onClick={() => {
-                  const sim = currentResult || runPinnSimulation({
-                    segmentId: selectedSegment.id,
-                    axleLoadTon: 18,
-                    rainIntensityMmHr: 45,
-                    floodDurationHours: 12,
-                    surfaceTemperatureC: 38,
-                    subgradeCbrPercent: 5.5,
-                    asphaltThicknessCm: 15,
-                    asphaltModulusMpa: 2800,
-                    targetDevice: 'CPU',
-                    precisionMode: 'FP32'
-                  }, selectedSegment);
-                  generateOfficialReportPdf(sim, currentAccount.role);
-                }}
-                className="hidden md:flex items-center space-x-2 px-3 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all shadow-sm cursor-pointer"
-                title="Unduh Laporan Eksekutif PDF"
-              >
-                <Download className="w-4 h-4" />
-                <span>Unduh Laporan</span>
-              </button>
-            )}
-
-            {/* Alerts Bell with Glowing Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setIsNotificationsOpen(!isNotificationsOpen);
-                  setIsUserMenuOpen(false);
-                }}
-                className={`relative p-3 rounded-2xl border transition-all cursor-pointer shadow-sm ${
-                  theme === 'dark'
-                    ? 'bg-elevated hover:bg-elevated border-white/10 text-slate-300 hover:text-white'
-                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900'
-                }`}
-                title={t.navAlerts}
-              >
-                <Bell className="w-4 h-4" />
-                {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 font-semibold text-xs flex items-center justify-center shadow-md ">
-                    {unreadNotificationsCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Dropdown Menu (Mirroring Account Menu Design) */}
-              {isNotificationsOpen && (
-                <div className={`absolute right-0 mt-2 w-80 sm:w-96 border rounded-2xl p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 ${
-                  theme === 'dark'
-                    ? 'bg-surface border-white/15 text-slate-200'
-                    : 'bg-white border-slate-200 text-slate-800'
-                }`}>
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
-                    <div className="flex items-center space-x-2">
-                      <Bell className="w-4 h-4 text-amber-400" />
-                      <h4 className="font-semibold text-sm">{t.notificationsTitle}</h4>
-                      {unreadNotificationsCount > 0 && (
-                        <span className="px-2 py-1 rounded-full bg-amber-400/20 text-amber-400 font-bold text-xs">
-                          {unreadNotificationsCount} Baru
-                        </span>
-                      )}
-                    </div>
-                    {unreadNotificationsCount > 0 && (
-                      <button
-                        onClick={handleMarkAllNotificationsAsRead}
-                        className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
-                      >
-                        {t.markAllRead}
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
-                    {notifications.length === 0 && (
-                      <p className="text-xs text-slate-400 px-1 py-2">Belum ada pembaruan alur kerja untuk akun ini.</p>
-                    )}
-                    {notifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        onClick={() => handleToggleNotificationRead(notif.id)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-                          notif.isUnread
-                            ? theme === 'dark'
-                              ? 'bg-white/10 border-amber-400/40 shadow-sm'
-                              : 'bg-amber-50/70 border-amber-300/80 shadow-sm'
-                            : theme === 'dark'
-                            ? 'bg-white/5 border-transparent hover:bg-white/10'
-                            : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="p-2 rounded-xl bg-amber-400/20 text-amber-400 shrink-0 mt-1">
-                            {notif.type === 'VERIFIED' && <Check className="w-4 h-4 text-emerald-400" />}
-                            {notif.type === 'UPVOTE' && <TrendingUp className="w-4 h-4 text-cyan-400" />}
-                            {notif.type === 'ALERT' && <AlertTriangle className="w-4 h-4 text-rose-400" />}
-                            {notif.type === 'REPAIR' && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <h5 className={`text-xs font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                                {language === 'id' ? notif.titleId : notif.titleEn}
-                              </h5>
-                              <span className="text-xs font-mono text-slate-400 shrink-0">{notif.time}</span>
-                            </div>
-                            <p className={`text-xs mt-1 leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
-                              {language === 'id' ? notif.descId : notif.descEn}
-                            </p>
-                            {notif.done && communityReports.some((r) => r.id === notif.caseId) && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const rep = communityReports.find((r) => r.id === notif.caseId);
-                                  if (!rep) return;
-                                  setActiveNav('MAP');
-                                  setMapCenterTarget({ coords: rep.coordinates, zoom: 17, timestamp: Date.now() });
-                                  setSelectedIssueReport(rep);
-                                  setDetailsTab('COMPARISON');
-                                  setIsDetailsPanelOpen(true);
-                                }}
-                                className="mt-2 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-300"
-                              >
-                                Lihat Hasil
-                              </button>
-                            )}
-                          </div>
-                          {notif.isUnread && (
-                            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 mt-2 shadow-sm " />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* User Account Profile Pill Dropdown */}
-            <div className="relative z-50">
-              <button
-                onClick={() => {
-                  setIsUserMenuOpen(!isUserMenuOpen);
-                  setIsNotificationsOpen(false);
-                }}
-                className={`flex items-center space-x-3 border rounded-full py-2 pl-2 pr-3 transition-all cursor-pointer shadow-sm ${
-                  theme === 'dark'
-                    ? 'bg-elevated hover:bg-elevated border-white/10'
-                    : 'bg-white hover:bg-slate-50 border-slate-200'
-                }`}
-              >
-                <img
-                  src={currentAccount.avatarUrl}
-                  alt={currentAccount.name}
-                  className="w-8 h-8 rounded-full object-cover border border-amber-400/60"
-                />
-                <div className="text-left hidden lg:block">
-                  <p className={`text-xs font-semibold leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                    Hi, {currentAccount.name.split(' ')[0]}
-                  </p>
-                  <p className="text-xs text-amber-500 font-semibold leading-tight">
-                    {currentAccount.role === 'PUBLIC_REPORTER'
-                      ? 'Pelapor Aktif'
-                      : currentAccount.role === 'PUBLIC_VIEWER'
-                      ? 'Warga Pengamat'
-                      : currentAccount.role === 'FIELD_ENGINEER'
-                      ? 'Field Engineer'
-                      : currentAccount.role === 'OPERATIONS_MANAGER'
-                      ? 'Ops Manager'
-                      : 'Policy Maker'}
-                  </p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              </button>
-
-              {/* Account menu: who is signed in, profile/settings and logout. No account switching. */}
-              {isUserMenuOpen && (
-                <div
-                  role="menu"
-                  aria-label="Menu akun"
-                  className={`absolute right-0 mt-2 w-72 border rounded-2xl p-3 shadow-lg z-[100] ${
-                    theme === 'dark' ? 'bg-surface border-white/15 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <div className={`px-1 pb-3 mb-2 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                    <p className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{currentAccount.name}</p>
-                    <p className="text-xs text-slate-400">
-                      {ROLE_LABELS[currentAccount.role]} · {currentAccount.title}
-                    </p>
-                    {currentAccount.agency && <p className="text-xs text-slate-400">{currentAccount.agency}</p>}
-                    {!isAnonymousIdentity && (
-                      <span className="inline-block mt-2 text-xs font-semibold text-sky-300 border border-sky-400/40 rounded px-2 py-1">
-                        Akun demo · identitas fiktif
-                      </span>
-                    )}
-                  </div>
-                  {isAnonymousIdentity ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        onOpenLoginModal();
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
-                    >
-                      Masuk ke Sistem
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onOpenSettings();
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
-                      >
-                        Profil & pengaturan
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onLogout();
-                        }}
-                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 cursor-pointer"
-                      >
-                        Keluar
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* 3. MAIN WORKSPACE / MAP VIEWPORT */}
+        {/* 3. MAIN WORKSPACE / MAP VIEWPORT / ROUTE OUTLET */}
         <div className="relative flex-1 w-full h-full min-h-0 overflow-hidden">
-          {/* STAKEHOLDER WORKSPACES: route-level compositions live in src/pages */}
-          {isPolicyMaker && activeNav === 'DASHBOARD' ? (
+          {children && !activeNavigationTask ? (
+            <div className="absolute inset-0 w-full h-full overflow-hidden">
+              {children}
+            </div>
+          ) : isPolicyMaker && activeNav === 'DASHBOARD' && !activeNavigationTask ? (
             <PolicyPage policyNavTab={policyNavTab} setPolicyNavTab={setPolicyNavTab} />
-          ) : isOperationsManager && OPERATIONS_WORKSPACE_NAVS.includes(activeNav) ? (
+          ) : isOperationsManager && OPERATIONS_WORKSPACE_NAVS.includes(activeNav) && !activeNavigationTask ? (
             <OperationsPage activeNav={activeNav} setIsCreateReportModalOpen={setIsCreateReportModalOpen} />
-          ) : isFieldEngineer && activeNav === 'DASHBOARD' ? (
+          ) : isFieldEngineer && activeNav === 'DASHBOARD' && !activeNavigationTask ? (
             <EngineeringPage searchQuery={searchQuery} setIsCreateReportModalOpen={setIsCreateReportModalOpen} />
-          ) : (isFieldEngineer || isOperationsManager) && activeNav === 'SPK_ORDERS' ? (
+          ) : (isFieldEngineer || isOperationsManager) && activeNav === 'SPK_ORDERS' && !activeNavigationTask ? (
             <WorkOrdersPage />
           ) : (
             <>
@@ -1825,6 +1745,13 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   currentAccount={currentAccount}
                   activeFilter={activeFilter}
                   showDensity={showDensity}
+                  activeNavigationTask={activeNavigationTask}
+                  onCompleteNavigation={handleCompleteNavigation}
+                  onCancelNavigation={handleCancelNavigation}
+                  onStartNavigationToReport={startNavigation}
+                  compact={false}
+                  isTabActive={activeNav === 'MAP' || activeNav === 'PETA_POS_WIM'}
+                  entryAnimationKey={mapEntryKey}
                   bottomInsetPx={
                     sheetSegment && typeof window !== 'undefined' && window.innerWidth < 768
                       ? sheetInsetPx(mapSheetState, window.innerHeight)
@@ -1847,14 +1774,21 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   recenterKey={recenterKey}
                   highlightReportId={highlightReportId}
                   mapCenterTarget={mapCenterTarget}
+                  activePinCoordinates={customCoordinates}
+                  onActivePinChange={(coords) => setCustomCoordinates(coords)}
                   onOpenReportModalWithLocation={(segment, coords) => {
-                    setFormSegmentId(segment.id);
+                    const targetSegment = segment || roadSegments[0] || null;
+                    if (targetSegment) {
+                      setFormSegmentId(targetSegment.id);
+                      onSelectSegment(targetSegment);
+                    }
                     setCustomCoordinates(coords);
                     setIsCreateReportModalOpen(true);
                   }}
                   onSelectReport={(rep) => {
                     closeMapSheet();
-                    const reportSegment = roadSegments.find((s) => s.id === rep.segmentId);
+                    const match = matchReportToRoadSegment(rep.coordinates, roadSegments, rep.segmentId);
+                    const reportSegment = match.segment ?? roadSegments.find((s) => s.id === rep.segmentId);
                     if (reportSegment) onSelectSegment(reportSegment);
                     {
                       setSelectedIssueReport(rep);
@@ -1876,9 +1810,9 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
           {/* RECENTER TOAST NOTIFICATION */}
           {showRecenterToast && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 border border-amber-400/50 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none">
-              <Navigation className="w-4 h-4 text-amber-400" />
-              <span>{recenterToastText}</span>
+            <div className="absolute top-[116px] sm:top-[120px] md:top-20 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 border border-amber-400/50 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2 animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none max-w-[calc(100vw-3rem)]">
+              <Navigation className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">{recenterToastText}</span>
             </div>
           )}
 
@@ -1931,17 +1865,22 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             </div>
           )}
 
-          {/* OVERLAY 1: MAP FILTER PILLS (Floating horizontally below header) */}
+          {/* OVERLAY 1: MAP FILTER PILLS (Floating horizontally below header, edge-to-edge scroll with smooth transparent edge mask) */}
           {!isFieldEngineer && (
-            <div className="absolute top-[60px] sm:top-[68px] md:top-4 left-3 sm:left-4 z-20 flex flex-col space-y-2 max-w-[calc(100vw-1.5rem)] sm:max-w-max pointer-events-auto transition-all">
-              <div className="flex items-center gap-2 sm:gap-2 overflow-x-auto no-scrollbar pb-1">
+            <div className="absolute top-[68px] sm:top-[72px] md:top-4 left-0 right-0 md:left-4 md:right-auto md:w-auto md:max-w-max z-20 pointer-events-auto transition-all">
+              <div
+                ref={filterScrollRef}
+                onScroll={checkFilterScroll}
+                className="flex items-center gap-2 overflow-x-auto no-scrollbar pl-3 pr-8 sm:pl-4 sm:pr-8 md:px-0 py-1 scroll-smooth touch-pan-x filter-chips-scroll"
+                style={filterMaskStyle}
+              >
                 {/* All Issues */}
                 <button
                   onClick={() => setActiveFilter('ALL')}
-                  className={`px-4 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
+                  className={`h-8 px-3 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer shrink-0 border whitespace-nowrap ${
                     activeFilter === 'ALL'
                       ? 'bg-slate-800 text-white border-slate-700'
-                      : 'bg-slate-900/90  text-slate-300 hover:text-white border-slate-800'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-white border-slate-800'
                   }`}
                 >
                   <span>{t.filterAll}</span>
@@ -1950,43 +1889,42 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 {/* Critical */}
                 <button
                   onClick={() => setActiveFilter('CRITICAL')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
+                  className={`h-8 px-3 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer shrink-0 border whitespace-nowrap ${
                     activeFilter === 'CRITICAL'
                       ? 'bg-rose-950/80 text-rose-300 border-rose-800'
-                      : 'bg-slate-900/90  text-slate-300 hover:text-rose-300 border-slate-800'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-rose-300 border-slate-800'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
                   <span>{t.filterCritical}</span>
                 </button>
 
                 {/* Moderate */}
                 <button
                   onClick={() => setActiveFilter('MODERATE')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
+                  className={`h-8 px-3 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer shrink-0 border whitespace-nowrap ${
                     activeFilter === 'MODERATE'
                       ? 'bg-amber-950/80 text-amber-300 border-amber-800'
-                      : 'bg-slate-900/90  text-slate-300 hover:text-amber-300 border-slate-800'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-amber-300 border-slate-800'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-amber-400 mr-1" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                   <span>{t.filterModerate}</span>
                 </button>
 
                 {/* Minor */}
                 <button
                   onClick={() => setActiveFilter('MINOR')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer shrink-0 border ${
+                  className={`h-8 px-3 rounded-xl font-semibold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer shrink-0 border whitespace-nowrap ${
                     activeFilter === 'MINOR'
                       ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
-                      : 'bg-slate-900/90  text-slate-300 hover:text-emerald-300 border-slate-800'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-emerald-300 border-slate-800'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 mr-1" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                   <span>{t.filterMinor}</span>
                 </button>
               </div>
-
             </div>
           )}
 
@@ -2050,7 +1988,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             <div
               ref={nearbySheet.sheetRef as React.RefObject<HTMLDivElement>}
               {...nearbySheet.sheetProps}
-              className={`absolute bottom-[78px] sm:bottom-[86px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95  border border-slate-800 rounded-2xl px-4 pb-4 pt-2 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto flex flex-col box-border overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+              className={`absolute bottom-[104px] sm:bottom-[108px] left-3 right-3 sm:left-4 sm:right-4 sm:max-w-md sm:mx-auto z-20 bg-slate-900/95  border border-slate-800 rounded-2xl px-4 pb-4 pt-2 sm:p-4 shadow-2xl text-slate-200 animate-in fade-in duration-300 pointer-events-auto flex flex-col box-border overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
                 nearbyCardSize === 'FULL' ? 'h-[78vh]' : 'h-[48vh]'
               } sm:h-auto sm:max-h-[55vh]`}
             >
@@ -2209,7 +2147,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
 
           {/* OVERLAY 3: FLOATING PILL WHEN CARD IS COLLAPSED */}
           {!isFieldEngineer && !isNearbyCardExpanded && !isDetailsPanelOpen && !isMapSheetOpen && (
-            <div className="absolute bottom-[78px] sm:bottom-[86px] md:bottom-6 left-3 right-3 sm:left-4 sm:right-4 sm:max-w-xs sm:mx-auto z-20 flex justify-center pointer-events-auto">
+            <div className="absolute bottom-[104px] sm:bottom-[108px] md:bottom-6 left-3 right-3 sm:left-4 sm:right-4 sm:max-w-xs sm:mx-auto z-20 flex justify-center pointer-events-auto">
               <button
                 onClick={() => setIsNearbyCardExpanded(true)}
                 className="flex items-center gap-2 bg-slate-900/95 border border-slate-800 rounded-xl py-2 px-4 shadow-lg text-white font-semibold text-xs active:scale-95 transition-all cursor-pointer"
@@ -2269,6 +2207,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             currentAccount={currentAccount}
             isFieldEngineer={isFieldEngineer}
             onEditReport={onEditReport}
+            onStartNavigation={startNavigation}
             onOpenSPK={() => {
               setActiveNav('SPK_ORDERS');
               setIsDetailsPanelOpen(false);
@@ -2315,9 +2254,8 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                 {/* 1. Map Tab */}
                 <button
                   onClick={() => {
-                    setActiveNav('MAP');
+                    handleNavToMap('MAP');
                     setIsRecentReportsCardOpen(false);
-                    setRecenterKey((prev) => prev + 1);
                   }}
                   className={`flex flex-col items-center space-y-1 cursor-pointer transition-all ${
                     activeNav === 'MAP' && !isRecentReportsCardOpen && !isActivityModalOpen && !isProfileModalOpen
@@ -2571,8 +2509,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
         }}
       />
 
-      {/* ROUTE OUTLET: route-level pages (src/pages) mount here — reports, engine, computer vision, settings, login, ... */}
-      {children}
+      
 
       {/* MODAL: NOTIFICATIONS / ALERTS */}
       {isAlertsModalOpen && (
