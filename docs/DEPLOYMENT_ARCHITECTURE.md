@@ -1,6 +1,6 @@
 # Deployment architecture
 
-Repository: https://github.com/FarrelBerwyn/Pavement-PINN
+Repository: https://github.com/FarrelBerwyn/Pavement-Pinn
 
 There are two ways PAVEMENT-PINN runs today, and they are deliberately different.
 
@@ -37,7 +37,7 @@ Browser ──HTTPS──▶ GitHub Pages: index.html, assets, 404.html (SPA dee
 
 | Setting | Where | Notes |
 |---|---|---|
-| Base path | `VITE_BASE_PATH` → `src/constants/deployment.ts` | Pages build sets `/<repo name>/` (`/Pavement-PINN/`); Express uses the same value |
+| Base path | `VITE_BASE_PATH` → `src/constants/deployment.ts` | Pages build sets `/<repo name>/` (`/Pavement-Pinn/`); Express uses the same value |
 | API origin | same origin (`src/services/api/client.ts` `apiUrl`) | No API host is baked into the browser bundle |
 | Session | `SESSION_SECRET` (≥ 32 chars) | Unset locally: a key kept in `.data/session-secret` (gitignored) |
 | Session limit | fixed 7200 s | `SESSION_MAX_AGE_SECONDS` may only shorten it, never in production |

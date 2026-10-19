@@ -32,7 +32,7 @@ port  server        runtime   pid    role               commit   code    store
 | Which process, commit, store and code state answers each port | `npm run dev:status` |
 | Same, failing (exit 1) on any inconsistency | `npm run dev:check` |
 | Identity of one port | `curl http://localhost:<port>/api/runtime` |
-| Revision of the live site | `curl https://farrelberwyn.github.io/Pavement-PINN/version.json` |
+| Revision of the live site | `curl https://farrelberwyn.github.io/Pavement-Pinn/version.json` |
 
 ## Why ports cannot drift apart
 

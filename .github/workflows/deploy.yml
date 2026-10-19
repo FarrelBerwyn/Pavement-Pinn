@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
 # Static demo build (frontend only; the offline demo gateway runs in the browser).
-# Only `main` deploys; every other branch is checked by ci.yml without publishing.
+# Only `main` deploys; ci.yml checks every branch (main included) without publishing.
 # The Express API is not hosted here: see docs/DEPLOYMENT_ARCHITECTURE.md (Vercel upgrade path).
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install (lockfile)
         run: npm ci
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install (lockfile)
         run: npm ci

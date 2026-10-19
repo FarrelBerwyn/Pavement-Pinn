@@ -1,6 +1,6 @@
 # GitHub and deployment runbook
 
-Repository: https://github.com/FarrelBerwyn/Pavement-PINN (remote name `pavement-pinn` in the local
+Repository: https://github.com/FarrelBerwyn/Pavement-Pinn (remote name `pavement-pinn` in the local
 checkout; the older `origin`, FarrelBerwyn/PavementPinn, has an unrelated history and is not pushed to).
 
 ## Commit and push
@@ -15,7 +15,7 @@ checkout; the older `origin`, FarrelBerwyn/PavementPinn, has an unrelated histor
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `ci.yml` | push to branches other than `main`, PRs | `npm ci`, typecheck, tests, build |
+| `ci.yml` | every push (except `gh-pages`) and PRs | `npm ci`, typecheck, tests, build; never deploys |
 | `deploy.yml` | push to `main`, manual run | job `verify` (typecheck + tests) must pass, then `vite build` with `VITE_BASE_PATH=/<repo>/`, writes `version.json` (commit, run id), publishes `dist/` to the `gh-pages` branch |
 
 A failing check stops the deploy; the previous site stays up.
@@ -23,7 +23,7 @@ A failing check stops the deploy; the previous site stays up.
 ## Hosting configuration (one-time, repository owner)
 
 Settings → Pages → Build and deployment: **Deploy from a branch**, branch `gh-pages`, folder `/ (root)`.
-Site: https://farrelberwyn.github.io/Pavement-PINN/
+Site: https://farrelberwyn.github.io/Pavement-Pinn/
 
 No secrets are needed for the static site. A full-stack deployment needs `SESSION_SECRET`,
 `DEMO_AUTH`, `INFERENCE_URL` (and database credentials) set in that host's environment settings, never in the repo
@@ -32,7 +32,7 @@ No secrets are needed for the static site. A full-stack deployment needs `SESSIO
 ## Verify a deployment
 
 1. Actions run green (both jobs).
-2. `curl https://farrelberwyn.github.io/Pavement-PINN/version.json` → `commit` equals the pushed SHA.
+2. `curl https://farrelberwyn.github.io/Pavement-Pinn/version.json` → `commit` equals the pushed SHA.
 3. Open the site, sign in with a demo account (static demo login), check the roles' pages and the map.
 
 ## Rollback
