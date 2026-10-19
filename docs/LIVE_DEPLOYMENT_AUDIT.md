@@ -49,3 +49,13 @@ URL: https://farrelberwyn.github.io/Pavement-Pinn/
 1. Sign-in on the live site: enabled after this audit with `VITE_DEMO_ACCESS=true` (owner decision, 2026-10-19); the fictitious demo credentials are bundled and checked in the browser. See the follow-up section below.
 2. Live role-by-role checks need the above, and are done by a person typing demo credentials (automation here does not enter passwords on non-local sites).
 3. Backend, gateway, database, AI inference: not deployed (see above); no live API exists to test.
+
+## Follow-up: demo login enabled (2026-10-19)
+
+| Check | Result |
+|---|---|
+| Commit | `c848acb` (`VITE_DEMO_ACCESS: "true"` in the Pages build) |
+| Deploy run | 39189114952: verify + build-and-deploy success |
+| Served revision | `version.json` → `c848acb6…`, run 39189114952 |
+| Login page | "Akses akun demo" present; the panel lists all five roles (Insinyur Lapangan, Manajer Operasional, Pengambil Kebijakan, Pelapor Publik, Pengamat Publik), each with "Masuk" |
+| Signing in per role on the live site | **to be done by a person**: automation here does not submit passwords on a public site. Locally, the same login flow and every role were verified against the full server. |
