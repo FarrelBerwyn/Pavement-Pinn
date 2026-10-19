@@ -93,7 +93,6 @@ import { useRouter } from '../router';
 import { canEditReport } from '../../features/rbac/accessPolicy';
 import { ReportDetailModal } from '../../features/community-reports/ReportDetailModal';
 import { ReportDetailBottomSheet } from '../../features/community-reports/ReportDetailBottomSheet';
-import { DEMO_DATA_LABEL } from '../../data/provenance';
 import { LatLngBounds, itemsInBounds } from '../../components/maps/mapDetail';
 import { MapSheet } from '../../components/maps/MapSheet';
 import { useSheetDrag } from '../../components/ui/useSheetDrag';
@@ -174,6 +173,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const isAnonymousIdentity = isAnonymousAccount(currentAccount);
   const isPolicyMaker = currentAccount.role === 'POLICY_MAKER';
   const isOperationsManager = currentAccount.role === 'OPERATIONS_MANAGER';
+  const isPublicUser = currentAccount.role === 'PUBLIC_REPORTER' || currentAccount.role === 'PUBLIC_VIEWER';
   // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
   const { workflow, activeNavigationTask, startNavigation, cancelNavigation, completeNavigation } = useAppState();
   const { navigateTo } = useRouter();
@@ -1657,6 +1657,10 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
       {/* 2. MAIN CONTENT AREA */}
       <div className={`flex-1 flex flex-col h-full min-w-0 relative overflow-hidden transition-colors duration-200 ${theme === 'dark' ? 'bg-workspace text-ink' : 'bg-slate-100 text-slate-900'}`}>
         {/* GLOBAL FLOATING TOP BAR (Unified for all routes, viewports, and roles) */}
+        {/* Phones, public map: the map's own floating header (search, notifications) and the bottom
+            tab bar (Map, Reports, Activity, Profile) cover this bar, so it is hidden below md. Staff keep
+            it on phones: its menu button is their way to the sidebar. */}
+        <div className={isPublicUser && activeNav === 'MAP' && !children && !activeNavigationTask ? 'hidden md:contents' : 'contents'}>
         <GlobalFloatingTopBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -1712,6 +1716,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
             generateOfficialReportPdf(sim, currentAccount.role);
           }}
         />
+        </div>
 
         {/* 3. MAIN WORKSPACE / MAP VIEWPORT / ROUTE OUTLET */}
         <div className="relative flex-1 w-full h-full min-h-0 overflow-hidden">
@@ -1830,11 +1835,12 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   className="w-8 h-8 rounded-full object-cover border-2 border-amber-400 shadow-sm shrink-0"
                 />
                 <div className="text-left flex flex-col justify-center">
-                  <p className="text-xs font-semibold leading-none text-slate-900 dark:text-white truncate max-w-[110px]">
-                    {selectedSegment ? selectedSegment.province : 'Indonesia'}
+                  {/* Who is signed in: account name, then the role in the same type, regular weight. */}
+                  <p className="text-xs font-semibold leading-none text-slate-900 dark:text-white truncate max-w-[150px]">
+                    {currentAccount.name}
                   </p>
-                  <p className="text-xs text-amber-500 font-bold leading-none mt-1 flex items-center gap-1">
-                    {DEMO_DATA_LABEL[language]}
+                  <p className="text-xs font-normal leading-none mt-1 text-brand truncate max-w-[150px]">
+                    {isAnonymousAccount(currentAccount) ? currentAccount.title : ROLE_LABELS[currentAccount.role]}
                   </p>
                 </div>
               </div>

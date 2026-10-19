@@ -673,58 +673,55 @@ html, body, #root {
     pointer-events: auto !important;
   }
 
-  /* Compact collapsed state: strictly icon-only on mobile by default */
-  .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    width: 24px !important;
-    height: 24px !important;
+  /* The credit sits below the bottom tab bar, centred on one line along the screen edge. The
+     corner spans the map width; only the controls inside take touches. */
+  .maplibregl-ctrl-bottom-right {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: max(3px, env(safe-area-inset-bottom, 0px)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    pointer-events: none !important;
+  }
+  .maplibregl-ctrl-bottom-right > .maplibregl-ctrl {
+    float: none !important;
+    pointer-events: auto !important;
   }
 
-  .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) .maplibregl-ctrl-attrib-inner {
+  /* Phones: no round (i) button. The credit the tile and data licences require is shown as one
+     line of small, quiet text instead (no chip, no background), so it stays visible without
+     looking like a control. */
+  .maplibregl-ctrl-attrib {
+    position: static !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: max-content !important;
+    max-width: calc(100vw - 24px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
     display: none !important;
   }
 
-  .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) .maplibregl-ctrl-attrib-button {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 24px !important;
-    height: 24px !important;
-    background-color: rgba(15, 23, 42, 0.88) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 50% !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-    cursor: pointer !important;
+  .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner {
+    display: block !important;
+    font-size: 8.5px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    color: rgba(51, 65, 85, 0.75) !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
   }
 
-  /* Expanded state when user clicks the (i) icon: readable floating attribution card */
-  .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
-    position: fixed !important;
-    bottom: calc(max(12px, env(safe-area-inset-bottom, 12px)) + 76px) !important;
-    right: 12px !important;
-    width: auto !important;
-    height: auto !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    background: rgba(15, 23, 42, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 8px !important;
-    padding: 6px 12px !important;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
-    backdrop-filter: blur(12px) !important;
-    max-width: calc(100vw - 24px) !important;
-    z-index: 60 !important;
-  }
-
-  .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show .maplibregl-ctrl-attrib-inner {
-    display: inline-block !important;
-    font-size: 10px !important;
-    color: #94a3b8 !important;
-    line-height: 1.4 !important;
+  .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a {
+    color: inherit !important;
   }
 
   .leaflet-control-attribution {

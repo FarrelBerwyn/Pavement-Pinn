@@ -941,11 +941,14 @@ const MapLibreMap: React.FC<LeafletMapProps> = (props) => {
       w.__pavementReplayIntro = () => startCameraSequence();
     }
 
-    // Official AttributionControl: compact mode, starts collapsed, expandable on tap
-    const attribControl = new maplibregl.AttributionControl({ compact: true });
+    // Attribution (required by the tile and data licences).
+    // - Phones: always-open, one quiet line of text (index.css), no (i) toggle button.
+    // - Larger screens: compact, starts collapsed, expandable on click.
+    const phone = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches;
+    const attribControl = new maplibregl.AttributionControl({ compact: !phone });
     map.addControl(attribControl, 'bottom-right');
     const containerEl = (attribControl as unknown as { _container: HTMLElement })._container;
-    if (containerEl) {
+    if (containerEl && !phone) {
       containerEl.classList.add('maplibregl-compact');
       containerEl.classList.remove('maplibregl-compact-show');
       const origUpdateCompact = (attribControl as unknown as { _updateCompact: () => void })._updateCompact;
