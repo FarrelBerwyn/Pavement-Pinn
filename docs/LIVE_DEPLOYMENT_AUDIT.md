@@ -46,6 +46,6 @@ URL: https://farrelberwyn.github.io/Pavement-Pinn/
 
 ## Blockers / not verified
 
-1. **Sign-in on the live site is not possible yet.** Production builds include the demo credentials only with `VITE_DEMO_ACCESS=true`, which the Pages workflow does not set. So role pages (F.E., M.O., Policy, reporters) were not verifiable live; they were verified locally against the full server. Turning it on publishes the fictitious demo usernames/passwords in the site's JavaScript (owner decision).
+1. Sign-in on the live site: enabled after this audit with `VITE_DEMO_ACCESS=true` (owner decision, 2026-10-19); the fictitious demo credentials are bundled and checked in the browser. See the follow-up section below.
 2. Live role-by-role checks need the above, and are done by a person typing demo credentials (automation here does not enter passwords on non-local sites).
 3. Backend, gateway, database, AI inference: not deployed (see above); no live API exists to test.

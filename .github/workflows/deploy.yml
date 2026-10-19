@@ -47,6 +47,9 @@ jobs:
         env:
           # Project Pages live under /<repository name>/; the app reads its base from the build.
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # Demo login on the static site (owner decision, 2026-10-19): bundles the fictitious
+          # demo accounts, checked in the browser. Not authentication; remove for a real deployment.
+          VITE_DEMO_ACCESS: "true"
         run: npx vite build
       - name: Stamp the build with its revision
         run: |
