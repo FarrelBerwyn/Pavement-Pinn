@@ -17,6 +17,37 @@ PYMASTIC_ITERATION = 20  # 40 returns NaN for thick structures (v3 Lampiran B)
 METHOD = f"PyMastic@{PYMASTIC_COMMIT[:7]}"
 
 
+FALLBACK_ITERATIONS = (15, 12, 10, 8, 6, 5, 4, 3)
+
+
+def _pymastic(q_kpa, xs, zs, hs, E, nu):
+    """PyMastic with the project's iteration count; when that overflows (small contact radius
+    against thick layers, e.g. a motorcycle tyre), retry with fewer series terms and accept the
+    result only if two consecutive iteration counts agree within 0.5 % (converged)."""
+    def run(it):
+        with np.errstate(all="ignore"):
+            return PyMastic(q_kpa, 1.0, xs, zs, hs, E, nu, 7e-7, isBounded=[1] * len(hs), iteration=it, inverser="solve")
+
+    def finite(r):
+        return all(np.all(np.isfinite(r[k])) for k in ("Strain_R", "Strain_Z", "Stress_Z"))
+
+    rs = run(PYMASTIC_ITERATION)
+    if finite(rs):
+        return rs
+    prev = None
+    for it in FALLBACK_ITERATIONS:
+        cur = run(it)
+        if not finite(cur):
+            prev = None
+            continue
+        if prev is not None:
+            a, b = prev["Strain_Z"], cur["Strain_Z"]
+            if np.all(np.abs(a - b) <= 5e-3 * np.maximum(np.abs(a), 1e-12)):
+                return prev
+        prev = cur
+    return rs  # still non-finite: the caller raises
+
+
 def mlet_strains(axle_t: float, h_mm: list[float], E_mpa: list[float], nu: list[float],
                  q_mpa: float = 0.55, tyres_per_axle: int = 4,
                  dual_spacing_mm: float | None = None) -> dict:
@@ -34,8 +65,7 @@ def mlet_strains(axle_t: float, h_mm: list[float], E_mpa: list[float], nu: list[
     z_v = (sum(h_mm) + 0.01) / s
     xs = [0.0] if dual_spacing_mm is None else [0.0, dual_spacing_mm / (2 * s), dual_spacing_mm / s]
     # PyMastic multiplies E by 1000 internally, so q goes in kPa when E is in MPa.
-    rs = PyMastic(q_mpa * 1000.0, 1.0, xs, [z_t, z_v], [h / s for h in h_mm], list(E_mpa), list(nu),
-                  7e-7, isBounded=[1] * len(h_mm), iteration=PYMASTIC_ITERATION, inverser="solve")
+    rs = _pymastic(q_mpa * 1000.0, xs, [z_t, z_v], [h / s for h in h_mm], list(E_mpa), list(nu))
     er, ez = rs["Strain_R"], rs["Strain_Z"]  # compression positive
     if dual_spacing_mm is None:
         et, ev = -er[0, 0], ez[1, 0]
@@ -71,3 +101,52 @@ def life_index_years(n_allow: float, esal_per_year: float, growth: float, damage
     if growth == 0:
         return n / esal_per_year
     return math.log(1 + n * growth / esal_per_year) / math.log(1 + growth)
+
+
+def mlet_field_grid(axle_t: float, h_mm: list[float], E_mpa: list[float], nu: list[float],
+                    q_mpa: float = 0.55, tyres_per_axle: int = 4, dual_spacing_mm: float | None = None,
+                    x_mm: list[float] | None = None, z_mm: list[float] | None = None) -> dict:
+    """Strain/stress field on the vertical plane through the wheel centres (y = 0), from the
+    same PyMastic solver as mlet_strains. Wheels sit at x = ±d/2 (dual) or x = 0 (single).
+    On that line the radial direction of every wheel is ±x, so εxx = Σ εr(|x − xi|) and
+    εzz, σzz superpose directly. Tension positive for εxx; compression positive for εzz, σzz."""
+    if not (len(E_mpa) == len(nu) == len(h_mm) + 1):
+        raise ValueError("E and nu need one entry per layer including the subgrade")
+    x_mm = x_mm if x_mm is not None else [float(v) for v in np.arange(-800, 801, 50)]
+    z_mm = z_mm if z_mm is not None else [float(v) for v in np.arange(10, 801, 25)]
+    wheel_n = axle_t * 9.80665e3 / tyres_per_axle
+    a = math.sqrt(wheel_n / (math.pi * q_mpa))
+    wheels = [0.0] if dual_spacing_mm is None else [-dual_spacing_mm / 2, dual_spacing_mm / 2]
+    # Keep evaluation depths off the layer interfaces, where the solution is two-valued.
+    interfaces = np.cumsum(h_mm)
+    zs = [z + 0.01 if np.any(np.isclose(z, interfaces)) else z for z in z_mm]
+    radii = sorted({round(abs(x - w), 6) for x in x_mm for w in wheels})
+    # One solver call per radius: PyMastic sizes its Hankel integration from the largest radius
+    # in a call, so batching far points with near ones degrades the near-wheel values.
+    cols = []
+    for r in radii:
+        rs = _pymastic(q_mpa * 1000.0, [r / a], [z / a for z in zs], [h / a for h in h_mm], list(E_mpa), list(nu))
+        cols.append((rs["Strain_R"][:, 0], rs["Strain_Z"][:, 0], rs["Stress_Z"][:, 0]))
+    idx = {r: i for i, r in enumerate(radii)}
+    er = np.stack([c[0] for c in cols], axis=1)
+    ez = np.stack([c[1] for c in cols], axis=1)
+    sz = np.stack([c[2] for c in cols], axis=1)
+
+    def field(arr, sign, scale):
+        out = []
+        for zi in range(len(zs)):
+            row = []
+            for x in x_mm:
+                v = sum(arr[zi, idx[round(abs(x - w), 6)]] for w in wheels) * sign * scale
+                row.append(float(v) if np.isfinite(v) else None)
+            out.append(row)
+        return out
+
+    return {
+        "x_mm": x_mm, "z_mm": list(zs), "wheels_x_mm": wheels, "interfaces_mm": [float(v) for v in interfaces],
+        "eps_xx": {"unit": "µε", "values": field(er, -1.0, 1e6)},
+        "eps_zz": {"unit": "µε", "values": field(ez, 1.0, 1e6)},
+        # PyMastic returns stress in the input pressure unit (kPa here); report MPa.
+        "sigma_zz": {"unit": "MPa", "values": field(sz, 1.0, 1e-3)},
+        "method": METHOD,
+    }

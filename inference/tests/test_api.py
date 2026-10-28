@@ -72,3 +72,27 @@ def test_out_of_range_inputs_are_422():
         {**BASE, "unknown_field": 1},
     ):
         assert client.post("/v1/assess", json=bad).status_code == 422
+
+
+def test_assess_returns_field_grid_for_object():
+    r = client.post("/v1/assess", json={**BASE, "n_mc": 0, "object_id": "POTHOLE-024", "field_grid": True})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["object_id"] == "POTHOLE-024"
+    f = body["field"]
+    assert len(f["eps_xx"]["values"]) == len(f["z_mm"]) and len(f["eps_xx"]["values"][0]) == len(f["x_mm"])
+
+
+def test_geometry_health_and_requantify():
+    h = client.get("/v1/geometry/health").json()
+    assert h["t1_status"] in ("available", "blocked")
+    depth = [[20.0 if (i - 10) ** 2 + (j - 10) ** 2 <= 25 else 0.0 for j in range(21)] for i in range(21)]
+    r = client.post("/v1/geometry/requantify", json={"object_id": "X", "unit": "relative", "cell_size": 1, "depth": depth})
+    assert r.status_code == 200 and r.json()["metrics"] is None and r.json()["unit"] == "relative"
+
+
+def test_light_vehicle_axles_are_solved():
+    moto = client.post("/v1/assess", json={**BASE, "n_mc": 0, "load": {"axle_t": 0.12, "q_mpa": 0.25, "tyres_per_axle": 1, "dual_spacing_mm": None}})
+    truck = client.post("/v1/assess", json={**BASE, "n_mc": 0, "load": {"axle_t": 9.0, "q_mpa": 0.7, "tyres_per_axle": 4, "dual_spacing_mm": 330}})
+    assert moto.status_code == 200 and truck.status_code == 200
+    assert 0 < moto.json()["mlet"]["et_ue"] < truck.json()["mlet"]["et_ue"]

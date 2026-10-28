@@ -52,7 +52,8 @@ export async function startServer(options: StartOptions = {}): Promise<StartedSe
     sessionMaxAgeSeconds: config.sessionMaxAgeSeconds,
     revocationFile: path.join(path.dirname(store.location), "revoked-sessions.json"),
     demoAuthEnabled: config.demoAuthEnabled,
-    cvDir: path.join(config.dataDir, "cv-analyses")
+    cvDir: path.join(config.dataDir, "cv-analyses"),
+    workspaceDir: path.join(config.dataDir, "workspaces")
   });
   await workflow.ready;
   const app = createApp({ workflow });

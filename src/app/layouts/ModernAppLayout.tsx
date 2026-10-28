@@ -66,7 +66,8 @@ import {
   MoreVertical,
   Send,
   Activity,
-  ShieldAlert
+  ShieldAlert,
+  Layers as LayersIcon
 } from 'lucide-react';
 import {
   UserRole,
@@ -114,6 +115,8 @@ import { WorkOrdersPage } from '../../pages/engineering/WorkOrdersPage';
 import { relativeTime, workflowNotifications } from '../../features/workflow/notifications';
 import { fieldTasks, tasksDue } from '../../features/work-orders/fieldTasks';
 import { GlobalFloatingTopBar } from '../../components/navigation/GlobalFloatingTopBar';
+import { UiLanguageContext } from '../../i18n/LanguageContext';
+import { can } from '../../features/rbac/accessPolicy';
 
 interface ModernAppLayoutProps {
   currentAccount: UserAccount;
@@ -176,7 +179,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
   const isPublicUser = currentAccount.role === 'PUBLIC_REPORTER' || currentAccount.role === 'PUBLIC_VIEWER';
   // Shared report workflow (server-backed): state, evidence and role actions for the sheet.
   const { workflow, activeNavigationTask, startNavigation, cancelNavigation, completeNavigation } = useAppState();
-  const { navigateTo } = useRouter();
+  const { navigateTo, location: routerLocation } = useRouter();
   // Sidebar badge: assigned cases where the engineer can act now (inspect, recommend, verify).
   // M.O badge: cases where an operations action is available now (same server views as the queue).
   const operationsDue = Object.values(workflow.views).filter((v) => v.audience === 'STAFF' && v.availableActions.length > 0).length;
@@ -1315,6 +1318,31 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                   )}
                 </div>
 
+                {/* PINN — Analysis Workspace (M.O; F.E where RBAC allows: VIEW_PINN_WORKSPACE) */}
+                {can(currentAccount.role, 'VIEW_PINN_WORKSPACE') && (() => {
+                  const isActive = routerLocation.path.startsWith('/operations/pinn/');
+                  return (
+                    <button
+                      onClick={() => {
+                        navigateTo('operationsPinn');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="PINN — Analisis"
+                      data-testid="nav-pinn"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <LayersIcon className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">PINN</span>
+                          <span className="text-[10px] font-semibold bg-[#18243A] text-[#9AA8BC] border border-[#202B3B] px-1.5 py-0.5 rounded shrink-0 ml-1 leading-none">Analisis</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })()}
+
                 {/* 5. TIM DAN TUGAS */}
                 {(() => {
                   const isActive = activeNav === 'SPK_ORDERS';
@@ -1404,6 +1432,31 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
                       {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
                       <MapIcon className={getNavIconClass(isActive)} />
                       {!isSidebarCollapsed && <span className="truncate">Maps & Ruas Jalan</span>}
+                    </button>
+                  );
+                })()}
+
+                {/* PINN — Analysis Workspace (M.O; F.E where RBAC allows: VIEW_PINN_WORKSPACE) */}
+                {can(currentAccount.role, 'VIEW_PINN_WORKSPACE') && (() => {
+                  const isActive = routerLocation.path.startsWith('/operations/pinn/');
+                  return (
+                    <button
+                      onClick={() => {
+                        navigateTo('operationsPinn');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      title="PINN — Analisis"
+                      data-testid="nav-pinn"
+                      className={getNavItemClass(isActive)}
+                    >
+                      {isActive && <span className="absolute left-1 top-2.5 bottom-2.5 w-[2.5px] rounded-full bg-[#E8B52B] pointer-events-none" />}
+                      <LayersIcon className={getNavIconClass(isActive)} />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <span className="truncate">PINN</span>
+                          <span className="text-[10px] font-semibold bg-[#18243A] text-[#9AA8BC] border border-[#202B3B] px-1.5 py-0.5 rounded shrink-0 ml-1 leading-none">Analisis</span>
+                        </div>
+                      )}
                     </button>
                   );
                 })()}
@@ -1722,7 +1775,7 @@ export const ModernAppLayout: React.FC<ModernAppLayoutProps> = ({
         <div className="relative flex-1 w-full h-full min-h-0 overflow-hidden">
           {children && !activeNavigationTask ? (
             <div className="absolute inset-0 w-full h-full overflow-hidden">
-              {children}
+              <UiLanguageContext.Provider value={language}>{children}</UiLanguageContext.Provider>
             </div>
           ) : isPolicyMaker && activeNav === 'DASHBOARD' && !activeNavigationTask ? (
             <PolicyPage policyNavTab={policyNavTab} setPolicyNavTab={setPolicyNavTab} />

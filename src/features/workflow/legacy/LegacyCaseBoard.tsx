@@ -6,7 +6,7 @@
  * server RBAC, evidence photos, M.O verification and the audited history.
  */
 import React, { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ClipboardCheck, ClipboardList, Eye, HardHat, MapPin, Navigation, RefreshCw, RotateCcw, ShieldCheck, Camera, X, Inbox, History } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, ClipboardList, Eye, HardHat, Layers, MapPin, Navigation, RefreshCw, RotateCcw, ShieldCheck, Camera, X, Inbox, History } from 'lucide-react';
 import type { ReportCase, WorkflowAction, WorkflowState } from '../../../domain/workflow/model';
 import type { WorkflowCommand } from '../../../domain/workflow/stateMachine';
 import type { EngineerSummary, GatewayMode, ReportView } from '../../../services/api/workflowClient';
@@ -86,6 +86,8 @@ export interface LegacyCaseBoardProps {
   onRefresh: () => void;
   onRun: (caseId: string, command: WorkflowCommand) => Promise<ReportMutationOutcome>;
   onShowOnMap?: (c: ReportCase) => void;
+  /** Opens the PINN analysis workspace for the report (route layer decides the URL). */
+  onOpenAnalysis?: (c: ReportCase) => void;
   onStartNavigation?: (c: ReportCase) => void;
   /** Road network for the task navigation map. */
   roadSegments?: RoadSegment[];
@@ -95,7 +97,7 @@ export interface LegacyCaseBoardProps {
 
 type Dialog = { kind: 'SPK' | 'EVIDENCE' | 'VERIFY' | 'WORK_DONE' | 'WORK_VERIFY' | 'NAV' | 'RESULT'; caseId: string } | { kind: 'PANEL'; caseId: string; action: WorkflowAction | null } | { kind: 'PHOTO'; src: string; alt: string };
 
-export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, onStartNavigation, roadSegments = [], account = null }) => {
+export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, me, mode, engineers, loading, error, onRefresh, onRun, onShowOnMap, onOpenAnalysis, onStartNavigation, roadSegments = [], account = null }) => {
   const [tab, setTab] = useState<Tab>(role === 'OPS' ? 'MENUNGGU_PENINJAUAN' : 'MENUNGGU_FE');
   // After a server-confirmed action: say what happened and, if the case now belongs to
   // another tab, follow it there and highlight it.
@@ -274,6 +276,7 @@ export const LegacyCaseBoard: React.FC<LegacyCaseBoardProps> = ({ role, views, m
                 actions={byId.get(c.id)?.availableActions ?? []}
                 onDialog={setDialog}
                 onShowOnMap={onShowOnMap}
+                onOpenAnalysis={onOpenAnalysis}
                 onStartNavigation={onStartNavigation}
                 onFastAccept={async () => {
                   await run({ action: 'REVIEW_ACCEPT', reason: 'Laporan divalidasi dan siap ditugaskan' });
@@ -343,9 +346,10 @@ const CaseCard: React.FC<{
   actions: WorkflowAction[];
   onDialog: (d: Dialog) => void;
   onShowOnMap?: (c: ReportCase) => void;
+  onOpenAnalysis?: (c: ReportCase) => void;
   onStartNavigation?: (c: ReportCase) => void;
   onFastAccept?: () => Promise<void>;
-}> = ({ c, role, actions, onDialog, onShowOnMap, onStartNavigation, onFastAccept, highlight }) => {
+}> = ({ c, role, actions, onDialog, onShowOnMap, onOpenAnalysis, onStartNavigation, onFastAccept, highlight }) => {
   const r = c.report;
   const statusKey = canonicalStatusOf(c);
   const statusMeta = CANONICAL_STATUS_META[statusKey];
@@ -605,6 +609,12 @@ const CaseCard: React.FC<{
               title="Buka Navigasi Rute Langsung di Tab Peta Sistem"
             >
               <Navigation className="h-4 w-4 text-cyan-400 animate-pulse" /> Navigasi ke Lokasi
+            </button>
+          )}
+
+          {onOpenAnalysis && (
+            <button type="button" className={BTN_GHOST} data-testid={`pinn-link-${c.id}`} onClick={() => onOpenAnalysis(c)} title="Buka workspace analisis PINN untuk laporan ini">
+              <Layers className="h-4 w-4" /> <span>Analisis PINN</span>
             </button>
           )}
 

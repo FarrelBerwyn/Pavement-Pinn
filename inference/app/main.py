@@ -16,7 +16,7 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .mlet import METHOD, STANDARD_AXLE_TON, allowable_reps, life_index_years, mlet_strains
+from .mlet import METHOD, STANDARD_AXLE_TON, allowable_reps, life_index_years, mlet_field_grid, mlet_strains
 from .surrogate import load_surrogate, life_monte_carlo
 
 ENGINE_VERSION = "mlet-1.1.0"
@@ -44,9 +44,10 @@ class Subgrade(Strict):
 
 
 class Load(Strict):
-    axle_t: float = Field(default=STANDARD_AXLE_TON, ge=1, le=30)
-    q_mpa: float = Field(default=0.55, ge=0.3, le=1.5)
-    tyres_per_axle: Literal[2, 4] = 4
+    # Light vehicles (motorcycle, car) are allowed: 0.05 t axle, 0.1 MPa, one tyre per axle.
+    axle_t: float = Field(default=STANDARD_AXLE_TON, ge=0.05, le=30)
+    q_mpa: float = Field(default=0.55, ge=0.1, le=1.5)
+    tyres_per_axle: Literal[1, 2, 4] = 4
     dual_spacing_mm: float | None = Field(default=330, ge=150, le=600)
 
 
@@ -75,6 +76,10 @@ class AssessRequest(Strict):
     damage_used: float = Field(default=0.0, ge=0, lt=1)
     n_mc: int = Field(default=2000, ge=0, le=20000)
     seed: int | None = None
+    # Workspace (handoff U5 / F-29): object the run belongs to, and whether to return the
+    # εxx/εzz/σzz field on the plane through the wheels for the heatmap.
+    object_id: str | None = Field(default=None, max_length=64)
+    field_grid: bool = False
 
     @model_validator(mode="after")
     def asphalt_thickness(self):
@@ -159,9 +164,16 @@ def assess(req: AssessRequest) -> dict:
         if req.damage_used == 0:
             assumptions.append("Damage already used = 0 (construction year unknown), ASSUMED.")
     monte_carlo = run_monte_carlo(req, sg, assumptions)
+    field = None
+    if req.field_grid:
+        field = mlet_field_grid(req.load.axle_t, [l.h_mm for l in req.layers], [l.E_mpa for l in req.layers] + [e_sub],
+                                [l.nu for l in req.layers] + [sg.nu], q_mpa=req.load.q_mpa,
+                                tyres_per_axle=req.load.tyres_per_axle, dual_spacing_mm=req.load.dual_spacing_mm)
 
     return {
         "segment_id": req.segment_id,
+        "object_id": req.object_id,
+        "field": field,
         "mlet": {**strains, "method": METHOD, "elapsed_ms": round(mlet_ms, 2)},
         "subgrade_E_mpa": e_sub,
         "allowable": {"criterion": req.criterion, "nf": nf, "nd": nd, "governing": "fatigue" if nf <= nd else "rutting"},
@@ -260,3 +272,57 @@ async def cv_analyze_video(request: Request, fps: float = 1.0) -> dict:
         return cv_video.analyze_video(await request.body(), fps=fps)
     except cv_engine.CvError as exc:
         raise _cv_error(exc) from exc
+
+
+# ---- Geometry (handoff U4): T1 availability and T4–T5 reruns on a stored depth grid ----------
+
+from geometry import StageBlocked  # noqa: E402
+from geometry.pipeline import requantify  # noqa: E402
+from geometry.sfm import sfm_available  # noqa: E402
+
+
+class RequantifyRequest(Strict):
+    object_id: str = Field(min_length=1, max_length=64)
+    unit: Literal["mm", "relative"]
+    cell_size: float = Field(gt=0, le=1000)
+    depth: list[list[float | None]] = Field(min_length=3, max_length=1024)
+    contour: list[tuple[float, float]] | None = None
+    plane_rms: float | None = Field(default=None, ge=0)
+    scale_uncertainty_mm: float | None = Field(default=None, ge=0)
+    refit_plane: bool = False
+
+
+@app.get("/v1/geometry/health")
+def geometry_health() -> dict:
+    tools = sfm_available()
+    return {"status": "ok", "sfm": tools, "t1_status": "available" if tools["colmap"] else "blocked",
+            "t1_reason": None if tools["colmap"] else "COLMAP tidak terpasang di server inference"}
+
+
+@app.post("/v1/geometry/requantify")
+def geometry_requantify(req: RequantifyRequest) -> dict:
+    try:
+        out = requantify(req.depth, req.cell_size, req.contour, metric=req.unit == "mm",
+                         plane_rms=req.plane_rms, scale_uncertainty_mm=req.scale_uncertainty_mm, refit_plane=req.refit_plane)
+    except StageBlocked as exc:
+        raise HTTPException(status_code=409, detail={"code": exc.code, "reason": exc.reason}) from exc
+    out.pop("depth_grid", None)
+    return {"object_id": req.object_id, **out, "method": "geometry.requantify (deficit integration)"}
+
+
+from geometry.pipeline import crack_from_grid  # noqa: E402
+
+
+class CrackRequest(Strict):
+    object_id: str = Field(min_length=1, max_length=64)
+    unit: Literal["mm", "relative"]
+    cell_size: float = Field(gt=0, le=1000)
+    depth: list[list[float | None]] = Field(min_length=3, max_length=2048)
+    plane_rms: float | None = Field(default=None, ge=0)
+
+
+@app.post("/v1/geometry/crack")
+def geometry_crack(req: CrackRequest) -> dict:
+    """Pan et al. (2023) one-stage crack detection + quantification on a stored depth grid."""
+    out = crack_from_grid(req.depth, req.cell_size, metric=req.unit == "mm", plane_rms=req.plane_rms)
+    return {"object_id": req.object_id, **out, "method": "geometry.crack_from_grid (Pan et al. 2023, eq. 13–15)"}

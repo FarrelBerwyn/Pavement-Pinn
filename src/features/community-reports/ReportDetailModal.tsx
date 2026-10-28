@@ -108,8 +108,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const engineerNote =
     report.repairDetails?.engineerNote ||
     (isEn
-      ? 'Verified and executed by road maintenance division based on WIM telemetry and PINN degradation modeling.'
-      : 'Telah diverifikasi dan ditindaklanjuti oleh tim pemeliharaan jalan berdasarkan korelasi telemetri WIM & PINN.');
+      ? 'No engineer note recorded.'
+      : 'Catatan petugas belum dicatat.');
 
   const isRepairedStatus = report.status === 'REPAIRED';
 
@@ -169,11 +169,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         {/* Reporter Metadata & Timestamp Card */}
         <div className="flex flex-wrap items-center justify-between gap-2 bg-elevated border border-white/10 p-3 rounded-2xl text-xs">
           <div className="flex items-center space-x-3">
-            <img
-              src={report.reporterAvatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200'}
-              alt={report.reporterName}
-              className="w-8 h-8 rounded-full object-cover border border-amber-400/50"
-            />
+            {report.reporterAvatar && (
+              <img src={report.reporterAvatar} alt={report.reporterName} className="w-8 h-8 rounded-full object-cover border border-amber-400/50" />
+            )}
             <div>
               <p className="font-semibold text-white text-xs">{report.reporterName}</p>
               <p className="text-xs text-slate-400 font-mono">{report.reporterRole}</p>

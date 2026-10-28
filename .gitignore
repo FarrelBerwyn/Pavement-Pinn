@@ -9,3 +9,17 @@ coverage/
 
 # Local workflow store (development/demo persistence)
 .data/
+inference/.venv/
+test-results/
+playwright-report/
+
+# Large handoff documents (PDFs, DOCX, third-party papers – not for public repo)
+docs/handoff/
+
+# Local Claude/IDE configuration
+.claude/launch.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

@@ -472,6 +472,17 @@ const BASE_PATH: string =
  * reference image for its damage type (RDD2022), or an explicit "no coverage" image.
  */
 const REFERENCE_PHOTOS = assignReferencePhotos(SEED_REPORTS);
-export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = SEED_REPORTS.map((report) =>
-  withoutStockRepairPhoto(withReferencePhoto(report, REFERENCE_PHOTOS.get(report.id)!, BASE_PATH))
+/**
+ * Bundled reports are DATA CONTOH: reporters get generic names and no stock face photos, so no
+ * card shows a person who looks real. The citizen's own size estimate stays in the report as
+ * "estimasi pelapor", never as a system measurement.
+ */
+const anonymised = ({ reporterAvatar: _stockFace, ...report }: DamageReport, index: number): DamageReport => ({
+  ...report,
+  reporterName: `Warga contoh ${String(index + 1).padStart(2, '0')}`,
+  reporterRole: 'Pelapor (DATA CONTOH)'
+});
+
+export const INITIAL_COMMUNITY_REPORTS: DamageReport[] = SEED_REPORTS.map((report, index) =>
+  withoutStockRepairPhoto(withReferencePhoto(anonymised(report, index), REFERENCE_PHOTOS.get(report.id)!, BASE_PATH))
 );

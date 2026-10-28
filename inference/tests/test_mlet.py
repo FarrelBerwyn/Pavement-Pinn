@@ -62,3 +62,30 @@ def test_transfer_functions_match_reference_values():
 def test_life_index_decreases_with_traffic():
     assert life_index_years(1e6, 2e5, 0.04, 0) > life_index_years(1e6, 4e5, 0.04, 0)
     assert life_index_years(1e6, 1e5, 0, 0) == pytest.approx(10)
+
+
+def test_field_grid_matches_critical_strains_and_is_extent_independent():
+    import numpy as np
+    from app.mlet import mlet_field_grid, mlet_strains
+    args = (8.16, [100, 250, 200], [3000, 300, 150, 60], [0.35, 0.35, 0.35, 0.45])
+    crit = mlet_strains(*args, dual_spacing_mm=330)
+    small = mlet_field_grid(*args, dual_spacing_mm=330, x_mm=[-165.0, 0.0], z_mm=[99.99, 550.01])
+    wide = mlet_field_grid(*args, dual_spacing_mm=330, x_mm=[float(v) for v in np.arange(-800, 801, 50)] + [-165.0], z_mm=[99.99, 550.01])
+    assert small["eps_xx"]["values"][0][0] == wide["eps_xx"]["values"][0][-1]
+    assert abs(small["eps_xx"]["values"][0][0] - crit["et_ue"]) / crit["et_ue"] < 0.01
+    # εv in mlet_strains is the max over wheel centre and mid-point; the field holds both.
+    assert abs(max(small["eps_zz"]["values"][1]) - crit["ev_ue"]) / crit["ev_ue"] < 0.01
+
+
+def test_field_grid_surface_stress_equals_tyre_pressure_under_single_wheel():
+    from app.mlet import mlet_field_grid
+    g = mlet_field_grid(8.16, [100, 250], [3000, 300, 60], [0.35, 0.35, 0.45], x_mm=[0.0], z_mm=[1.0])
+    assert abs(g["sigma_zz"]["values"][0][0] - 0.55) / 0.55 < 0.15  # series truncation near the surface
+
+
+def test_small_contact_on_thick_structure_converges_with_fewer_terms():
+    """Motorcycle tyre (a ≈ 31 mm) on 570 mm of layers: 20 terms overflow; the fallback must
+    return the converged value (identical for 3–6 terms), not NaN."""
+    from app.mlet import mlet_strains
+    r = mlet_strains(0.0796, [120, 250, 200], [3000, 300, 150, 50], [0.35, 0.35, 0.35, 0.45], q_mpa=0.25, tyres_per_axle=1)
+    assert abs(r["et_ue"] - 10.8927) < 0.01 and abs(r["ev_ue"] - 8.8242) < 0.01

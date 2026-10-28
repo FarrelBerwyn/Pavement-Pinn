@@ -4,7 +4,8 @@
  * INFERENCE_UNAVAILABLE error — never a locally invented result.
  */
 export const DEFAULT_INFERENCE_URL = "http://127.0.0.1:8100";
-const TIMEOUT_MS = 20_000;
+// MLET field grids take seconds (one solver call per radius); a loaded host needs headroom.
+const TIMEOUT_MS = 90_000;
 
 export function inferenceUrl(): string {
   return (process.env.INFERENCE_URL || DEFAULT_INFERENCE_URL).replace(/\/+$/, "");

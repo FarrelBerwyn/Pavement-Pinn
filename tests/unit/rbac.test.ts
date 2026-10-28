@@ -60,7 +60,12 @@ const EXPECTED: Record<RouteId, Row> = {
   operationsMonitoringWeather: OPERATIONS_ONLY,
   operationsActionsTrafficEngineering: OPERATIONS_ONLY,
   operationsActionsAlerts: OPERATIONS_ONLY,
-  policy: POLICY_ONLY
+  // PINN analysis workspace: M.O and F.E only. Policy maker -> forbidden page; citizens -> login
+  // (the API answers 403 to all of them: tests/integration/workspace-api.test.ts).
+  operationsPinn: FIELD_TECHNICAL,
+  operationsPinnWorkspace: FIELD_TECHNICAL,
+  policy: POLICY_ONLY,
+  track: PUBLIC
 };
 
 test('role identifiers are the five canonical ones', () => {
@@ -69,7 +74,7 @@ test('role identifiers are the five canonical ones', () => {
   assert.deepEqual(ROLES.filter(isOfficialRole), ['FIELD_ENGINEER', 'OPERATIONS_MANAGER', 'POLICY_MAKER']);
 });
 
-test('role x route matrix (27 routes x 5 roles)', () => {
+test('role x route matrix (30 routes x 5 roles)', () => {
   assert.deepEqual(Object.keys(EXPECTED).sort(), ROUTES.map((r) => r.id).sort(), 'matrix must cover every route');
   for (const route of ROUTES) {
     ROLES.forEach((role, index) => {
@@ -111,7 +116,11 @@ test('role x action matrix', () => {
     VIEW_POLICY_ANALYSIS: ['POLICY_MAKER'],
     TRIAGE_REPORTS: ['OPERATIONS_MANAGER'],
     APPROVE_MAINTENANCE: ['OPERATIONS_MANAGER'],
-    VIEW_AUDIT_TRAIL: ['FIELD_ENGINEER', 'OPERATIONS_MANAGER', 'POLICY_MAKER']
+    VIEW_AUDIT_TRAIL: ['FIELD_ENGINEER', 'OPERATIONS_MANAGER', 'POLICY_MAKER'],
+    // Analysis workspace (handoff addendum §1/§4): F.E corrects, M.O approves, never the same person.
+    VIEW_PINN_WORKSPACE: ['OPERATIONS_MANAGER', 'FIELD_ENGINEER'],
+    CORRECT_ANALYSIS: ['FIELD_ENGINEER'],
+    APPROVE_REPORT_VERSION: ['OPERATIONS_MANAGER']
   };
   assert.deepEqual(Object.keys(ACTION_RULES).sort(), Object.keys(expected).sort());
   for (const [action, roles] of Object.entries(expected) as Array<[ActionId, UserRole[]]>) {
@@ -213,4 +222,12 @@ test('post-login "next" target only accepts same-app paths', () => {
   for (const hostile of [null, '', 'policy', '//evil.example/x', 'https://evil.example/', '/\\evil', '/x?u=http://evil.example']) {
     assert.equal(sanitizeNextPath(hostile), null, String(hostile));
   }
+});
+
+
+test('the PINN sidebar entry follows VIEW_PINN_WORKSPACE (M.O and F.E only)', () => {
+  assert.deepEqual(ROLES.filter((r) => can(r, 'VIEW_PINN_WORKSPACE')), ['FIELD_ENGINEER', 'OPERATIONS_MANAGER']);
+  assert.equal(can('OPERATIONS_MANAGER', 'CORRECT_ANALYSIS'), false);
+  assert.equal(can('FIELD_ENGINEER', 'APPROVE_REPORT_VERSION'), false);
+  assert.equal(matchRoute('/operations/pinn/ROAD-2026-001/')?.route.id, 'operationsPinnWorkspace');
 });

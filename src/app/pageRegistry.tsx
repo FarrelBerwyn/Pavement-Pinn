@@ -18,6 +18,9 @@ import { TechnicalReferencePage } from '../pages/engineering/TechnicalReferenceP
 import { ComputerVisionPage } from '../pages/computer-vision/ComputerVisionPage';
 import { DamageDetectionPage } from '../pages/computer-vision/DamageDetectionPage';
 import { InspectionHistoryPage } from '../pages/computer-vision/InspectionHistoryPage';
+import { PinnIndexPage } from '../pages/operations/PinnIndexPage';
+import { PinnWorkspacePage } from '../pages/operations/PinnWorkspacePage';
+import { TrackPage } from '../pages/track/TrackPage';
 
 export type PageComponent = React.ComponentType<{ params: Record<string, string> }>;
 
@@ -35,5 +38,8 @@ export const PAGE_COMPONENTS: Partial<Record<RouteId, PageComponent>> = {
   engineeringReference: TechnicalReferencePage,
   computerVision: ComputerVisionPage,
   computerVisionDetection: DamageDetectionPage,
-  computerVisionHistory: InspectionHistoryPage
+  computerVisionHistory: InspectionHistoryPage,
+  operationsPinn: PinnIndexPage,
+  operationsPinnWorkspace: PinnWorkspacePage,
+  track: TrackPage
 };

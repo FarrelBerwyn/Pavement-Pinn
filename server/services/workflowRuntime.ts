@@ -5,6 +5,8 @@ import { USER_ACCOUNTS } from "../../src/data/reference/demoAccounts";
 import { INITIAL_COMMUNITY_REPORTS } from "../../src/data/mock/communityReports";
 import type { UserRole } from "../../src/types";
 import { SessionSigner } from "../auth/sessionTokens";
+import { WorkspaceService, type AnalysisEngine } from "./workspaceService";
+import { FileWorkspaceRepository } from "../repositories/workspaceStore";
 import { CvAnalysisStore } from "./cvAnalysisStore";
 
 /** Everything the workflow routes need, assembled once per app. */
@@ -17,6 +19,8 @@ export interface WorkflowRuntime {
   ready: Promise<void>;
   /** Road-damage CV analyses the reports may cite (server-side record, never client state). */
   cv: CvAnalysisStore;
+  /** Analysis workspaces (handoff U2): stage runs, corrections, versions. */
+  workspaces: WorkspaceService;
 }
 
 export function roleOfDemoAccount(accountId: string): UserRole | null {
@@ -35,6 +39,8 @@ export function createWorkflowRuntime(options: {
   demoAuthEnabled?: boolean;
   seed?: boolean;
   cvDir?: string | null;
+  workspaceDir?: string | null;
+  analysisEngine?: AnalysisEngine;
 } = {}): WorkflowRuntime {
   const store = options.store ?? new MemoryCaseStore();
   const service = new WorkflowService(store, {
@@ -51,6 +57,7 @@ export function createWorkflowRuntime(options: {
     storeKind: options.storeKind ?? (options.store ? "file" : "memory"),
     storeLocation: options.storeLocation ?? null,
     ready,
-    cv: new CvAnalysisStore(options.cvDir ?? null)
+    cv: new CvAnalysisStore(options.cvDir ?? null),
+    workspaces: new WorkspaceService(new FileWorkspaceRepository(options.workspaceDir ?? null), service, options.analysisEngine, { seedDemo: options.seed !== false })
   };
 }

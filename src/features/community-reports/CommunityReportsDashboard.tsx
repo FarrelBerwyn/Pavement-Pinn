@@ -299,7 +299,7 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
           <div className="min-w-0 space-y-1">
             <h2 className="text-base sm:text-lg font-semibold text-ink">Laporan kerusakan jalan</h2>
             <p className="text-xs sm:text-sm text-ink-2 max-w-2xl">
-              Laporan dari warga. Setiap laporan diperiksa petugas sebelum ditindaklanjuti; data WIM yang ditampilkan adalah contoh (DEMO).
+              Laporan dari warga. Setiap laporan diperiksa petugas sebelum ditindaklanjuti.
             </p>
             <p className="text-[11px] text-ink-3">
               {myReportsCount > 0
@@ -317,7 +317,8 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
           {[
             ['Total laporan', reports.length],
             ['Diverifikasi petugas', reports.filter((r) => r.status === 'VERIFIED_BY_ENGINEER' || r.status === 'SCHEDULED_FOR_REPAIR').length],
-            ['Kritis / lubang', reports.filter((r) => r.severity === 'CRITICAL' || r.damageType === 'POTHOLE').length],
+            // Severity here is the reporter's own estimate; verified severity comes from the F.E inspection.
+            ['Kritis / lubang · dilaporkan warga', reports.filter((r) => r.severity === 'CRITICAL' || r.damageType === 'POTHOLE').length],
             ['Laporan saya', myReportsCount]
           ].map(([label, value]) => (
             <div key={label as string} className="rounded-card border border-line-subtle bg-card px-3.5 py-2.5 sm:px-4 sm:py-3">
@@ -671,16 +672,10 @@ export const CommunityReportsDashboard: React.FC<CommunityReportsDashboardProps>
               {/* F. FOOTER: METADATA & AKSI */}
               <div className="space-y-2 pt-1 border-t border-line-subtle min-w-0 mt-auto">
                 <div className="flex items-center gap-1.5 text-[10px] text-ink-3 min-w-0">
-                  <img
-                    src={
-                      report.reporterAvatar ||
-                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
-                    }
-                    alt=""
-                    className="w-4 h-4 rounded-full object-cover shrink-0"
-                  />
+                  {report.reporterAvatar && <img src={report.reporterAvatar} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />}
                   <span className="truncate flex-1 text-ink-2">
                     {report.reporterName}
+                    {!report.origin && <span className="ml-1 rounded border border-violet-400/40 px-1 text-[9px] font-semibold text-violet-200">DATA CONTOH</span>}
                     {isMyReport && <b className="text-[#E8B52B] font-semibold"> (Anda)</b>}
                   </span>
                   <span className="shrink-0 font-mono text-ink-3">

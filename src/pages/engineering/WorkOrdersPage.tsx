@@ -48,6 +48,7 @@ export const WorkOrdersPage: React.FC = () => {
           navigateTo('dashboard');
         }}
         onStartNavigation={handleStartNavigation}
+        onOpenAnalysis={(c) => navigateTo('operationsPinnWorkspace', { reportId: c.id })}
       />
     </div>
   );

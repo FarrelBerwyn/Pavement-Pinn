@@ -89,6 +89,8 @@ let base = '';
 
 before(async () => {
   const workflow = createWorkflowRuntime({ sessionMaxAgeSeconds: 1 });
+  // Startup work (demo workspaces) must not eat into the 1 s session window of the first test.
+  await workflow.ready;
   const app = createApp({ workflow });
   await new Promise<void>((resolve) => {
     server = app.listen(0, '127.0.0.1', () => {
@@ -134,15 +136,30 @@ test('login sets an HttpOnly SameSite cookie and puts no token in the response b
 });
 
 test('every role resumes as itself from the cookie, and repeated refreshes do not move the deadline', async () => {
-  for (const credential of DEMO_CREDENTIALS) {
-    const r = await login({ username: credential.username, password: credential.password, layout: 'MODERN_APP' });
-    const first = await me(r.cookie!);
-    assert.equal(first.status, 200, credential.username);
-    assert.equal(first.body.actor.role, credential.role);
-    assert.equal(first.body.actor.id, credential.accounts.MODERN_APP);
-    const second = await me(r.cookie!);
-    assert.equal(second.body.expiresAt, first.body.expiresAt, 'refresh must not extend the session');
-    assert.equal(first.body.expiresAt, r.body.expiresAt);
+  // Own server with a long session: this checks identity and a fixed deadline, not expiry, so a
+  // loaded machine must not let the shared 1 s session lapse between login and the refreshes.
+  const app = createApp({ workflow: createWorkflowRuntime({ sessionMaxAgeSeconds: 60 }) });
+  const own = await new Promise<Server>((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+  const ownBase = `http://127.0.0.1:${(own.address() as AddressInfo).port}`;
+  const get = async (cookie: string) => {
+    const res = await fetch(`${ownBase}/api/auth/me`, { headers: asBrowser(cookie) });
+    return { status: res.status, body: (await res.json()) as any };
+  };
+  try {
+    for (const credential of DEMO_CREDENTIALS) {
+      const res = await fetch(`${ownBase}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: credential.username, password: credential.password, layout: 'MODERN_APP' }) });
+      const body = (await res.json()) as any;
+      const cookie = sessionCookieToken(res)!;
+      const first = await get(cookie);
+      assert.equal(first.status, 200, credential.username);
+      assert.equal(first.body.actor.role, credential.role);
+      assert.equal(first.body.actor.id, credential.accounts.MODERN_APP);
+      const second = await get(cookie);
+      assert.equal(second.body.expiresAt, first.body.expiresAt, 'refresh must not extend the session');
+      assert.equal(first.body.expiresAt, body.expiresAt);
+    }
+  } finally {
+    await new Promise<void>((resolve) => own.close(() => resolve()));
   }
 });
 

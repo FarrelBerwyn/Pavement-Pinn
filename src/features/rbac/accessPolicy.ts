@@ -18,6 +18,7 @@ import {
   OWN_REPORT_EDITOR_ROLES,
   PUBLIC_ROLES
 } from '../../domain/access';
+import { WORKSPACE_APPROVE_ROLES, WORKSPACE_CORRECT_ROLES, WORKSPACE_VIEW_ROLES } from '../../domain/workspace/access';
 
 export {
   canEditReport,
@@ -62,7 +63,10 @@ export type ActionId =
   | 'VIEW_POLICY_ANALYSIS'
   | 'TRIAGE_REPORTS'
   | 'APPROVE_MAINTENANCE'
-  | 'VIEW_AUDIT_TRAIL';
+  | 'VIEW_AUDIT_TRAIL'
+  | 'VIEW_PINN_WORKSPACE'
+  | 'CORRECT_ANALYSIS'
+  | 'APPROVE_REPORT_VERSION';
 
 export interface ActionRule {
   roles: readonly UserRole[];
@@ -90,7 +94,10 @@ export const ACTION_RULES: Readonly<Record<ActionId, ActionRule>> = {
   VIEW_POLICY_ANALYSIS: { roles: ['POLICY_MAKER'], gate: 'route /policy/' },
   TRIAGE_REPORTS: { roles: ['OPERATIONS_MANAGER'], gate: 'workflow REVIEW_ACCEPT / CLOSE_INVALID / REQUEST_INSPECTION, enforced by the API' },
   APPROVE_MAINTENANCE: { roles: ['OPERATIONS_MANAGER'], gate: 'workflow APPROVE_ACTION / REJECT_ACTION / START_WORK, enforced by the API (recommender cannot approve)' },
-  VIEW_AUDIT_TRAIL: { roles: OFFICIAL_ROLES, gate: 'GET /api/workflow/audit requires an official session; UI entry points hidden for public roles' }
+  VIEW_AUDIT_TRAIL: { roles: OFFICIAL_ROLES, gate: 'GET /api/workflow/audit requires an official session; UI entry points hidden for public roles' },
+  VIEW_PINN_WORKSPACE: { roles: WORKSPACE_VIEW_ROLES, gate: 'routes /operations/pinn/** and GET /api/v3/** (server/routes/workspace.routes.ts)' },
+  CORRECT_ANALYSIS: { roles: WORKSPACE_CORRECT_ROLES, gate: 'POST /api/v3/reports/:id/corrections and /ground-truth (applyCorrection: FE only)' },
+  APPROVE_REPORT_VERSION: { roles: WORKSPACE_APPROVE_ROLES, gate: 'POST /api/v3/reports/:id/versions/:v/approve|reject (approvalGuard: not the corrector, stages complete)' }
 };
 
 export function can(role: UserRole, action: ActionId): boolean {

@@ -123,3 +123,20 @@ D.M read `ACTION_APPROVED` with history `RECOMMEND → REJECT → RECOMMEND → 
 reason. `npm test` 244/244; build ok; headless audit of Tugas Saya and the M.O queue at 1920, 1280,
 768, 390 px: no overflow, no clipped text (isolated server, temporary `DATA_DIR`; `.data/` untouched).
 The cause of the light Tasks screenshot: the pre-`6ac0c01` mock page (7 hard-coded tasks, "DEMO LOKAL").
+
+## 9. Analysis Workspace (handoff ui-workspace, 2026-10-27)
+
+| ID | Status | Evidence |
+|---|---|---|
+| U1 contract, store, layout | CLOSED | `src/domain/workspace/*`, `src/features/workspace/*`; `tests/unit/workspace-domain.test.ts` |
+| U2 orchestrator, SSE, endpoints | CLOSED (file store) | `server/services/workspaceService.ts`, `server/routes/workspace.routes.ts`; `tests/integration/workspace-api.test.ts` (real Python service) |
+| U3 Overview, Camera Scan | PARTIAL | no detector (HD-03); QC computed in browser |
+| U4 geometry pipeline + 3D tab | PARTIAL | eq. 11–15 + volume tested on synthetic surfaces; T1 SfM BLOCKED (no COLMAP) |
+| U5 Structure, PINN | PARTIAL | MLET field grid (F-29 CLOSED); life index needs traffic; surrogate RENCANA |
+| U6 Validation, revisions, /track | CLOSED | E2E `e2e/workspace.spec.ts` |
+| R3-01 screening on submit | OPEN | `/v1/screen` absent |
+| R7-01 Playwright | CLOSED for the workspace flow | `npm run test:e2e` 6/6 |
+| Ops PINN menu + RBAC | CLOSED | `rbac.test.ts`, E2E |
+| UI cleanup: WIM text, seed names/faces, "Kritis" KPI label | CLOSED | `communityReports.ts`, `CommunityReportsDashboard.tsx`, `ReportDetailModal.tsx` |
+
+Details: `docs/handoff/ui-workspace/IMPLEMENTATION_MAP.md`, D-043.

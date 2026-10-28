@@ -50,10 +50,12 @@ test('PUBLIC_VIEWER is denied, including on a report they created', () => {
 });
 
 test('bundled demo reports (no owner) are not editable by anyone, including the named reporter', () => {
-  const budiSeed = INITIAL_COMMUNITY_REPORTS.find((r) => r.reporterName === BUDI.name);
-  assert.ok(budiSeed, 'seed data contains a report attributed to Budi by name');
+  // Seed reporters are generic now ("Warga contoh NN"); a seed carrying the citizen account's
+  // display name must still not become editable by that account.
+  const budiSeed = { ...INITIAL_COMMUNITY_REPORTS[0], reporterName: BUDI.name };
+  assert.equal(INITIAL_COMMUNITY_REPORTS.some((r) => r.reporterName === BUDI.name), false, 'seed reporters carry no real-looking names');
   for (const acc of USER_ACCOUNTS) {
-    for (const seed of INITIAL_COMMUNITY_REPORTS) {
+    for (const seed of [...INITIAL_COMMUNITY_REPORTS, budiSeed]) {
       assert.equal(canEditReport(acc, seed), false, `${acc.id} on ${seed.id}`);
     }
   }

@@ -48,7 +48,11 @@ export type RouteId =
   | 'operationsMonitoringWeather'
   | 'operationsActionsTrafficEngineering'
   | 'operationsActionsAlerts'
-  | 'policy';
+  | 'operationsPinn'
+  | 'operationsPinnWorkspace'
+  | 'policy'
+  // public tracking (citizen)
+  | 'track';
 
 /** `PUBLIC` = reachable without logging in (every role, including the two public ones). */
 export type RouteAccess = 'PUBLIC' | readonly UserRole[];
@@ -107,7 +111,11 @@ export const ROUTES: readonly RouteDefinition[] = [
   { id: 'operationsActionsTrafficEngineering', path: '/operations/actions/traffic-engineering/', title: 'Action: Traffic Engineering', access: OPERATIONS, kind: 'workspace' },
   { id: 'operationsActionsAlerts', path: '/operations/actions/alerts/', title: 'Action: Warnings', access: OPERATIONS, kind: 'workspace' },
 
-  { id: 'policy', path: '/policy/', title: 'Policy Workspace', access: POLICY, kind: 'workspace' }
+  // Analysis Workspace (handoff addendum): M.O approves, F.E corrects; citizens and policy makers get 403.
+  { id: 'operationsPinn', path: '/operations/pinn/', title: 'PINN — Structural & Damage Analysis', access: FIELD_TECHNICAL, kind: 'page' },
+  { id: 'operationsPinnWorkspace', path: '/operations/pinn/:reportId/', title: 'Analysis Workspace', access: FIELD_TECHNICAL, kind: 'page' },
+  { id: 'policy', path: '/policy/', title: 'Policy Workspace', access: POLICY, kind: 'workspace' },
+  { id: 'track', path: '/track/:code/', title: 'Track Report', access: 'PUBLIC', kind: 'page' }
 ];
 
 const ROUTE_BY_ID = new Map<RouteId, RouteDefinition>(ROUTES.map((route) => [route.id, route]));
